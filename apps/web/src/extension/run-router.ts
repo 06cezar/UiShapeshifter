@@ -14,6 +14,7 @@ export function runIdOf(message: ServerMessage): string | undefined {
       return message.step.runId;
     case "agent_message":
       return message.runId;
+    case "suggestion":
     case "error":
       return undefined;
   }
