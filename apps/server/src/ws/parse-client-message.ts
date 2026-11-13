@@ -26,6 +26,17 @@ function parsePage(value: unknown): PageInfo | undefined | null {
   return host.length <= MAX_HOST_CHARS && HOST_PATTERN.test(host) ? { url, host, title } : null;
 }
 
+/**
+ * Un `page` stricat nu refuză mesajul: îl scoatem și mesajul merge mai departe fără el. Service worker-ul leagă
+ * fiecare user_message de primul run_started care vine (în ordine); un mesaj refuzat, fără run_started, ar muta
+ * rulările următoare în alt tab.
+ */
+function pageOrDrop(value: unknown): PageInfo | undefined {
+  const page = parsePage(value);
+  if (page === null) console.warn("ws: page stricat (host invalid sau formă greșită), mesajul merge fără el");
+  return page ?? undefined;
+}
+
 function isToolResult(value: unknown): value is ToolResult {
   if (!isObject(value)) return false;
   if (value.ok === true) return "data" in value;
@@ -47,14 +58,8 @@ export function parseClientMessage(raw: string): ClientMessage | null {
         ? { type: "hello", userId: message.userId, sessionId: message.sessionId }
         : null;
     case "user_message": {
-      const page = parsePage(message.page);
-      if (
-        !isNonEmptyString(message.text) ||
-        (message.source !== "text" && message.source !== "voice") ||
-        page === null
-      ) {
-        return null;
-      }
+      if (!isNonEmptyString(message.text) || (message.source !== "text" && message.source !== "voice")) return null;
+      const page = pageOrDrop(message.page);
       return { type: "user_message", text: message.text.trim(), source: message.source, ...(page && { page }) };
     }
     case "tool_result":
@@ -63,12 +68,11 @@ export function parseClientMessage(raw: string): ClientMessage | null {
         : null;
     case "signals": {
       // conținutul fiecărui semnal îl verifică adaptarea (E); aici doar că e o listă de obiecte cu `kind`
-      const page = parsePage(message.page);
       const valid =
-        Array.isArray(message.signals) &&
-        message.signals.every((s) => isObject(s) && typeof s.kind === "string") &&
-        page !== null;
-      return valid ? { type: "signals", signals: message.signals as UsageSignal[], ...(page && { page }) } : null;
+        Array.isArray(message.signals) && message.signals.every((s) => isObject(s) && typeof s.kind === "string");
+      if (!valid) return null;
+      const page = pageOrDrop(message.page);
+      return { type: "signals", signals: message.signals as UsageSignal[], ...(page && { page }) };
     }
     case "suggestion_decision":
       return isNonEmptyString(message.suggestionId) && (message.decision === "accept" || message.decision === "dismiss")
