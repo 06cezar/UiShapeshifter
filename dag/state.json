@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "dd4be668f71f3ff5c4982fa8b17fee8270275799",
-  "last_run": "2026-11-13T14:20:20Z",
+  "last_comms_sha": "7a8c937bf155e684aa1e73d2780fe109042cd6ae",
+  "last_run": "2026-11-13T14:23:14Z",
   "last_sha": "3b79bb796e0a35b76353230a261fbcc53f7c3fc1",
   "prs": {
     "1": {
@@ -16,6 +16,11 @@
     },
     "11": {
       "head": "d4-panou",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "12": {
+      "head": "e1-tmp-unic",
       "merged_at": null,
       "state": "OPEN"
     },
