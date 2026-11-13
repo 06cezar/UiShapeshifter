@@ -1,3 +1,3 @@
-2026-11-13 15:11
+2026-11-13 16:19
 
-gata: D1 (PR #4 unit); urmează: D2 după B2; blocat: nimic
+gata: D4 cod în PR #11 (nemontat în App, așteaptă socket B2); urmează: D2 după B2, D3; blocat: nimic
