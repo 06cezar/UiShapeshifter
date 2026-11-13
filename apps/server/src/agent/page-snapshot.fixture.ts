@@ -25,6 +25,7 @@ export function pageSnapshot(overrides: Partial<PageSnapshot> = {}): PageSnapsho
     regions: [
       {
         id: "r.main",
+        selector: "main",
         role: "main",
         label: "Recomandări",
         rect: { x: 0, y: 80, width: 1280, height: 2000 },

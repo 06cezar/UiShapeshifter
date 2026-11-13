@@ -12,8 +12,10 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-// host ajunge în calea fișierelor de rețete (data/recipes): fără „www.”, litere mici (specs/06)
-const HOST_PATTERN = /^[a-z0-9.-]{1,253}$/;
+// host ajunge în calea fișierelor de rețete (data/recipes): fără „www.”, litere mici (specs/06). Etichete despărțite de
+// câte un punct, fără „.”, „..” sau puncte la capete, ca un host să nu poată fi niciodată o cale.
+const HOST_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)*$/;
+const MAX_HOST_CHARS = 253;
 
 /** `page` lipsește pe pagina de probă; dacă vine, trebuie să aibă forma PageInfo. undefined = lipsă, null = stricat. */
 function parsePage(value: unknown): PageInfo | undefined | null {
@@ -21,7 +23,7 @@ function parsePage(value: unknown): PageInfo | undefined | null {
   if (!isObject(value)) return null;
   const { url, host, title } = value;
   if (typeof url !== "string" || typeof host !== "string" || typeof title !== "string") return null;
-  return HOST_PATTERN.test(host) ? { url, host, title } : null;
+  return host.length <= MAX_HOST_CHARS && HOST_PATTERN.test(host) ? { url, host, title } : null;
 }
 
 function isToolResult(value: unknown): value is ToolResult {

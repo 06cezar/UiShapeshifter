@@ -3,15 +3,21 @@
 // PageSnapshot e deja un rezumat (SNAPSHOT_LIMITS); aici scoatem ce nu ajută la decizie (coordonate exacte, ora).
 
 import type { PageElement, PageRegion, PageSnapshot, ToolName, ToolResult } from "@uishapeshifter/contracts";
+import { pageAddress, pageText } from "./system-prompt";
+
+// textele scrise de site (etichete, titluri) ajung la model pe un singur rând și scurte
+const MAX_LABEL_CHARS = 80;
+const label = (text: string) => pageText(text, MAX_LABEL_CHARS);
 
 const round = (value: number) => Math.round(value);
 
 function compactRegion(region: PageRegion): Record<string, unknown> {
-  const { id, role, label, visible, elementCount, rect } = region;
+  const { id, selector, role, visible, elementCount, rect } = region;
   return {
     id,
+    selector,
     role,
-    label,
+    label: label(region.label),
     top: round(rect.y),
     size: `${round(rect.width)}x${round(rect.height)}`,
     elementCount,
@@ -20,14 +26,13 @@ function compactRegion(region: PageRegion): Record<string, unknown> {
 }
 
 function compactElement(element: PageElement): Record<string, unknown> {
-  const { id, selector, tag, role, label, regionId, rect, visible, inViewport, interactive, fontPx, hiddenBy } =
-    element;
+  const { id, selector, tag, role, regionId, rect, visible, inViewport, interactive, fontPx, hiddenBy } = element;
   return {
     id,
     selector,
     tag,
     role,
-    label,
+    label: label(element.label),
     ...(regionId && { regionId }),
     // poziția pe verticală ajută la „bara de sus”, „coloana din dreapta”
     top: round(rect.y),
@@ -41,8 +46,8 @@ function compactElement(element: PageElement): Record<string, unknown> {
 
 function compactPageSnapshot(snapshot: PageSnapshot): Record<string, unknown> {
   return {
-    url: snapshot.url,
-    title: snapshot.title,
+    url: pageAddress(snapshot.url),
+    title: label(snapshot.title),
     viewport: snapshot.viewport,
     regions: (snapshot.regions ?? []).map(compactRegion),
     elements: (snapshot.elements ?? []).map(compactElement),

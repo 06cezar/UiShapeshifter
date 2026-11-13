@@ -5,7 +5,7 @@ import { SITE_TOOL_DEFINITIONS, TOOL_RUNS_ON, type PageInfo, type ToolName } fro
 import { compactResult } from "./compact-result";
 import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
-import { buildSystemPrompt } from "./system-prompt";
+import { buildSystemPrompt, userMessage } from "./system-prompt";
 
 const TEMPERATURE = 0.2; // mică, pentru un demo previzibil (specs/05)
 const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
@@ -47,7 +47,7 @@ export function createOpenRouterDecider(goal: string, options: OpenRouterDecider
   const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
   const messages: ChatMessage[] = [
     { role: "system", content: buildSystemPrompt({ page }) },
-    { role: "user", content: goal },
+    { role: "user", content: userMessage(goal, page) },
   ];
   let pendingCallId: string | null = null;
 

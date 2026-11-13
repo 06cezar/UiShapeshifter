@@ -36,5 +36,15 @@ describe("parseClientMessage", () => {
     expect(parse({ type: "tool_result", callId: "c1", result: { ok: false } })).toBeNull();
     expect(parse({ type: "signals", signals: [42] })).toBeNull();
     expect(parse({ type: "necunoscut" })).toBeNull();
+    const page = (host: string) => ({
+      type: "user_message",
+      text: "x",
+      source: "text",
+      page: { url: "u", host, title: "t" },
+    });
+    expect(parse(page("video.example"))?.type).toBe("user_message");
+    for (const bad of [".", "..", "a..b", ".video.example", "video.example.", "../etc", "Video.Example", "a/b"]) {
+      expect(parse(page(bad))).toBeNull();
+    }
   });
 });
