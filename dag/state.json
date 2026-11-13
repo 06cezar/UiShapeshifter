@@ -13,8 +13,8 @@
       }
     }
   },
-  "last_comms_sha": "dc1ca257a6b6cb5a5724b903b0a566215f482d9c",
-  "last_run": "2026-11-13T21:33:51Z",
+  "last_comms_sha": "d6e0a1fb15727e53a09be47ebe44edd945a62787",
+  "last_run": "2026-11-13T21:38:38Z",
   "last_sha": "e605f500da259477e9cf895fc478ca355365ceda",
   "prs": {
     "1": {
@@ -214,6 +214,11 @@
     },
     "45": {
       "head": "d9-panou-extensie",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "46": {
+      "head": "a2-prompt-doar-x",
       "merged_at": null,
       "state": "OPEN"
     },
