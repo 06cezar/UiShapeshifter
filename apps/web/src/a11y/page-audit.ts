@@ -183,10 +183,17 @@ function pageFactsOf(element: HTMLElement): DomFacts {
 
 /**
  * Un link în mijlocul unei propoziții (WCAG 2.5.5 îl scutește): nu se cere țintă mare, fiindcă mărit ar rupe rândul
- * de text în care stă. Doar butoanele și linkurile de sine stătătoare au nevoie de ținte mari.
+ * de text în care stă. Urcăm prin strămoșii inline (`<sup>` al notelor de subsol, `<span>`, `<b>`) până la blocul în
+ * care curge textul: dacă oricare dintre ei are text propriu, linkul e în frază. Doar butoanele și linkurile de sine
+ * stătătoare (meniuri, liste) au nevoie de ținte mari.
  */
 export function isLinkInSentence(element: Element, style: CSSStyleDeclaration = getComputedStyle(element)): boolean {
-  return style.display === "inline" && element.parentElement !== null && hasOwnText(element.parentElement);
+  if (style.display !== "inline") return false;
+  for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+    if (hasOwnText(ancestor)) return true;
+    if (getComputedStyle(ancestor).display !== "inline") return false; // am ajuns la bloc, fără text în jur
+  }
+  return false;
 }
 
 export function isInteractive(element: Element): boolean {

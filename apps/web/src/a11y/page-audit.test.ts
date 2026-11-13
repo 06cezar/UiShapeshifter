@@ -40,6 +40,8 @@ beforeEach(() => {
     <button data-t="buton" style="font-size: 16px" data-rect="0,80,30,30">OK</button>
     <p data-t="ascuns" style="display: none; font-size: 10px">nu se vede</p>
     <p data-t="fraza" style="font-size: 18px; line-height: 1.6">Vezi <a data-t="in-fraza" href="/x" style="display: inline; font-size: 18px" data-rect="0,0,40,20">aici</a> detalii.</p>
+    <p data-t="nota" style="font-size: 18px; line-height: 1.6">Un fapt<sup data-t="sup" style="display: inline"><a data-t="in-nota" href="#n1" style="display: inline; font-size: 18px" data-rect="0,0,20,15">[1]</a></sup> cu sursă.</p>
+    <ul data-t="lista"><li data-t="li"><a data-t="in-lista" href="/y" style="display: inline; font-size: 18px" data-rect="0,0,40,20">Meniu</a></li></ul>
     <span data-t="sr-only" style="font-size: 12px" data-rect="0,0,1,1">Meniul principal</span>
     <div id="${HOST_ID}"><p data-t="mascota" style="font-size: 10px">a noastră</p></div>`);
 });
@@ -68,10 +70,15 @@ describe("auditPage pe un site", () => {
     expect(issuesOf("target-size")).toContain("link");
   });
 
+  it("o notă de subsol [1] dintr-un <sup> e tot în frază; un link singur într-un <li> de meniu, nu", () => {
+    expect(issuesOf("target-size")).not.toContain("in-nota");
+    expect(issuesOf("target-size")).toContain("in-lista");
+  });
+
   it("raportul are revizia rețetei, scorul și numărul de elemente verificate", () => {
     const { report } = auditPage(THRESHOLDS, OPTIONS);
     expect(report).toMatchObject({ ok: false, configRevision: 3, checkedAt: "1970-01-01T00:00:00.000Z" });
-    expect(report.checkedElements).toBe(6);
+    expect(report.checkedElements).toBe(9);
     expect(report.score).toBeLessThan(100);
   });
 
