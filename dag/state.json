@@ -1,9 +1,15 @@
 {
   "comms": {},
-  "last_comms_sha": "43bf06587da7b71d67a99df3be4502c8dd0408f4",
-  "last_run": "2026-11-13T12:54:39Z",
+  "last_comms_sha": "61b0dcf281851e6966d3b5983ff903fb4ae8ad3e",
+  "last_run": "2026-11-13T12:54:51Z",
   "last_sha": "4037fcb568a4efefbc35c0f6627dcdb4793166c5",
-  "prs": {},
+  "prs": {
+    "1": {
+      "head": "c1-contrast",
+      "merged_at": null,
+      "state": "OPEN"
+    }
+  },
   "statuses": {
     "A1": "wait",
     "A2": "wait",
