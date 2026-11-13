@@ -17,8 +17,6 @@ flowchart LR
   end
   subgraph t_owner_B["B"]
     t_B1["B1 · Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane<br/>✅ gata"]
-    t_B2["B2 · Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină<br/>🔨 în lucru · încă așteaptă M0"]
-    t_B5["B5 · Motorul de rețete v1 - aplică CSS-ul validat, îl salvează pe site în stocarea locală, îl reaplică fără AI la încărcare, „Revino la original”<br/>⏳ așteaptă"]
     t_B6["B6 · Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul<br/>⏳ așteaptă"]
     t_B3["B3 · Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03)<br/>⏳ așteaptă"]
     t_B4["B4 · Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo<br/>⏳ așteaptă"]
@@ -50,6 +48,8 @@ flowchart LR
   subgraph t_owner_E["E"]
     t_E1["E1 · Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt (specs/08)<br/>✅ gata"]
     t_E5["E5 · Scheletul extensiei Chrome (MV3) - manifest, content script cu rădăcină shadow DOM, service worker cu WebSocket la server, popup, stocare locală<br/>🟢 poate începe"]
+    t_B2["B2 · Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină<br/>🔨 în lucru · încă așteaptă M0"]
+    t_B5["B5 · Motorul de rețete v1 - aplică CSS-ul validat, îl salvează pe site în stocarea locală, îl reaplică fără AI la încărcare, „Revino la original”<br/>⏳ așteaptă"]
     t_E7["E7 · Site-ul de test - o pagină aglomerată intenționat (meniuri, bannere, un „plătește factura” greu de găsit), servită local, cu date de test<br/>⏳ așteaptă"]
     t_E2["E2 · Colectarea semnalelor în content script - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)<br/>⏳ așteaptă"]
     t_E8["E8 · Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08)<br/>⏳ așteaptă"]
@@ -162,7 +162,7 @@ _nimic_
 ## În lucru
 
 - **D7** (D) Contractele etapei 1 - SiteRecipe cu CSS, snapshot-ul paginii, uneltele get\_page\_snapshot/apply\_css/say/finish, mesajele + specs 02, 04, 05, 06 rescrise: PR #20 deschis _(Etapa 0 · vin 18:45. Gata = tipurile din packages/contracts trec check; specs/02, 04, 05, 06 descriu doar ce trebuie etapei 1. Restul contractelor vin în D8, ca adăugări.)_
-- **B2** (B) Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină: PR #16 deschis; încă așteaptă M0 _(Etapa 1 · vin 21:00. Gata = pe o pagină reală mare, snapshot-ul rămâne sub limita de mărime din D7; același element primește același id după reîncărcare; get\_page\_snapshot și apply\_css venite de la server se execută în pagină.)_
+- **B2** (E) Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină: PR #16 deschis; încă așteaptă M0 _(Etapa 1 · vin 21:00. Gata = pe o pagină reală mare, snapshot-ul rămâne sub limita de mărime din D7; același element primește același id după reîncărcare; get\_page\_snapshot și apply\_css venite de la server se execută în pagină.)_
 - **C5** (C) Validarea a ce scrie agentul - CSS (fără url, @import, selectori spre interfața noastră) și HTML (fără script, iframe, atribute on\*), funcții pure cu teste: branch `c5-validare` are commit-uri; încă așteaptă M0 _(Etapa 1 · vin 20:30 pentru CSS (îl folosește B5), HTML până la sfârșitul etapei (îl folosește B3 în etapa 3). Gata = validateCss/validateHtml întorc ce e respins și de ce, cu teste pe cazurile periculoase.)_
 - **A2** (A) Bucla agentului cu OpenRouter cap-coadă pe o pagină reală - get\_page\_snapshot, apply\_css, verificare, say, finish (+ agentul fals adaptat): branch `a2-bucla` are commit-uri; încă așteaptă M0 _(Etapa 1 · vin 21:30. Gata = „ascunde X” pe o pagină: snapshot → apply\_css → snapshot de verificare → finish, cu pașii în jurnal; AGENT\_FAKE=1 face același drum fără cheie.)_
 - **A3** (A) Uneltele etapei 2 - apply\_ops, point\_at, propose\_changes, ask\_user, wait\_for\_user\_click + promptul care cere verificare după fiecare schimbare: branch `a3-unelte` are commit-uri; încă așteaptă A2, M1, D8 _(Etapa 2 · sâm 00:30. Gata = agentul mută un element, verifică, cere Păstrez/Anulez și arată rezultatul; la o cerere neclară întreabă.)_
@@ -172,7 +172,7 @@ _nimic_
 ## Așteaptă
 
 - **M0** (D) PUNCT DE CONTROL 0 - extensia se vede pe două site-uri reale și mesajul de probă face drumul dus-întors: așteaptă D7, E5 _(vin 19:30. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
-- **B5** (B) Motorul de rețete v1 - aplică CSS-ul validat, îl salvează pe site în stocarea locală, îl reaplică fără AI la încărcare, „Revino la original”: așteaptă M0, C5 _(Etapa 1 · vin 21:30. Gata = o rețetă cu CSS rezistă la reîncărcare fără apel la server și fără să clipească pagina; „Revino la original” din popup o golește.)_
+- **B5** (E) Motorul de rețete v1 - aplică CSS-ul validat, îl salvează pe site în stocarea locală, îl reaplică fără AI la încărcare, „Revino la original”: așteaptă M0, C5 _(Etapa 1 · vin 21:30. Gata = o rețetă cu CSS rezistă la reîncărcare fără apel la server și fără să clipească pagina; „Revino la original” din popup o golește.)_
 - **D3** (D) Chatul în extensie - câmp de text și bula de răspuns peste orice site, legate de server prin service worker: așteaptă M0 _(Etapa 1 · vin 21:00. Gata = pe orice site, mesajul scris ajunge la server și răspunsul agentului apare în bulă. Vocea vine în D10.)_
 - **E7** (E) Site-ul de test - o pagină aglomerată intenționat (meniuri, bannere, un „plătește factura” greu de găsit), servită local, cu date de test: așteaptă M0 _(Etapa 1 · vin 21:00. Gata = site-ul pornește cu npm run dev și extensia rulează pe el; pe el verificăm fiecare punct de control, fără internet.)_
 - **D8** (D) Contractele etapelor 2-4, ca adăugări - DomOp (remove, move, wrap, setText, insertHtml, bind, inject), point\_at, propose\_changes, audit, profilul extins, conturi + specs 03, 07-12: așteaptă D7 _(Se scrie în timpul etapei 1 · vin 21:30. Gata = tipurile trec check și nu strică nimic din etapa 1; specs/12 are scenariul nou de demo.)_
