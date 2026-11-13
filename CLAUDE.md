@@ -47,7 +47,10 @@ interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmb�
 ## Planul și graful
 - Planul: `dag/tasks.yaml` (pe `main`, schimbat prin PR). Fiecare task are `branch:`; lucrează pe el.
 - Graful îl scrie doar botul, pe branch-ul `dag`. Nu edita și nu comite `DAG.md` sau `dag/state.json`.
-- Etichete în mesajele `git comms`: `[blocat ID de X]`, `[deblocat ID]`, `[gata ID]` (vezi `COMMS-RULES.md`).
+- Etichete în mesajele `git comms`: `[blocat ID de X]`, `[deblocat ID]`, `[gata ID]`, și pentru mai multe taskuri
+  `[gata A1, B1]` (vezi `COMMS-RULES.md`). Majusculele nu contează. Un `[blocat ID de X]` cade singur când taskul X
+  e gata; blocajele cu motiv se scot cu `[deblocat ID]`. Într-un mesaj, nu scrie etichete doar ca exemplu.
+- Pe scurt, pentru toată echipa: `docs/CUM-LUCRAM.md`.
 
 ## Comenzi
 - `npm install`, apoi `npm run dev` (după taskul D1).

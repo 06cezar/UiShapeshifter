@@ -25,6 +25,7 @@ memorie despre utilizator (profil tip ICP) și adaptare automată din felul în 
 - **Contractele** sunt în `specs/` (regulile) și `packages/contracts/src/` (tipurile, sursa de adevăr).
   Citește întâi `specs/00-produs.md`, `specs/01-arhitectura.md` și specificațiile taskurilor tale.
   Nu schimbi un contract fără să-i anunți pe cei afectați (`--type contract`, vezi `specs/README.md`).
+- **Cum lucrăm** (comms + graf pe scurt, și ce s-a schimbat azi): `docs/CUM-LUCRAM.md`.
 - **Juriul punctează:** rezultat cap-coadă (30), valoare pentru utilizator (25), designul agentului (20),
   originalitate (15), control (10). Calea cap-coadă care merge bate finisajele.
 
@@ -99,10 +100,11 @@ redesenează în câteva secunde. Mesajele fără etichete nu pornesc graful.
 
 | Scrii | Când |
 |---|---|
-| `[blocat B1 de C1]` | taskul tău `B1` nu poate continua până nu e gata C1 |
+| `[blocat B1 de C1]` | taskul tău `B1` nu poate continua până nu e gata C1 (blocajul cade singur când C1 e gata) |
 | `[blocat B1: aștept cheia API]` | ești blocat de ceva din afara planului; scrii motivul |
 | `[deblocat B1]` | blocajul a trecut; taskul revine la starea dedusă din GitHub |
 | `[gata B1]` | ai terminat un task **fără PR** (laborator, hardware, demo, o decizie) |
+| `[gata B1, B2]` | aceeași etichetă pentru mai multe taskuri |
 
 Exemple:
 
@@ -115,7 +117,12 @@ git comms send C "Schema a sosit, continui. [deblocat B1]" --type fyi
 Reguli pentru etichete:
 
 - **Pune mereu id-ul taskului** din `tasks.yaml` (`B1` de mai sus e doar un exemplu). Fără id, eticheta e ignorată.
-- Un mesaj nu se editează. Ca să anulezi un `[blocat]`, trimiți un mesaj nou cu `[deblocat ID]`.
+- Majusculele și punctuația de la finalul id-ului nu contează: `[Gata b1.]` e `[gata B1]`.
+- Un `[blocat ID de X]`, cu X un task din plan, **cade singur** când X e gata, iar tu primești „poate începe”.
+  Blocajele cu motiv (`[blocat ID: …]`) sau puse de un om (`de Maria`) le scoți cu un mesaj nou `[deblocat ID]`.
+- Un mesaj nu se editează; ca să corectezi ceva, trimiți altul.
+- Într-un mesaj comms, **nu scrie etichete doar ca exemplu**: graful le citește ca etichete reale.
+  Scrie „gata ID” fără paranteze.
 - `[gata]` nu are „anulare”. Pune-l doar când taskul chiar e gata.
 - Un PR unit bate `[blocat]`; o stare forțată în `tasks.yaml` bate orice etichetă.
 - Pune etichete doar pe taskurile tale. Pentru taskul altcuiva, scrie-i lui și lasă-l pe el să pună eticheta.
@@ -176,6 +183,6 @@ Detalii și cazuri rare: `tools/comms/PROTOCOL.md` și `tools/comms/GHID-AGENT.m
 |---|---|
 | graful nu s-a schimbat după un mesaj cu etichetă | verifică id-ul din etichetă; spune-i omului să se uite în tab-ul Actions (`dag`) |
 | taskul tău rămâne „poate începe” deși lucrezi | lipsește `pr:` sau `branch:` în `tasks.yaml`, sau branch-ul n-are încă commit-uri împinse |
-| taskul tău rămâne „blocat” | trimite `[deblocat ID]` |
+| taskul tău rămâne „blocat” | dacă blocajul e „de X”, X nu e încă gata; altfel trimite `[deblocat ID]` |
 | n-a venit „poate începe” | `owner` din `tasks.yaml` nu e exact `B`; graful arată totuși starea corectă |
 | `git comms send` e refuzat | citește motivul: text prea lung, destinatar necunoscut sau fir prea lung (întreabă-ți omul) |

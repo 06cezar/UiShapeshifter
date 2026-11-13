@@ -17,12 +17,17 @@ pornește redesenarea grafului în câteva secunde. Mesajele fără etichete nu 
 | `[blocat A2 de Maria: serverul e jos]` | amândouă |
 | `[deblocat A2]` | scoate blocajul; A2 revine la starea dedusă din GitHub |
 | `[gata A3]` | A3 devine **gata** fără PR (muncă de laborator, hardware, demo) |
+| `[gata A1, B1]` · `[blocat A2, A3 de C1]` | aceeași etichetă pentru mai multe taskuri, separate prin virgulă |
 
 Reguli:
 
 - **Pune mereu id-ul taskului** (cel din `dag/tasks.yaml`). `[blocat de C1]` fără id e ignorat,
   pentru că scriptul nu știe ce task e blocat.
-- Majusculele nu contează: `[Gata A3]` merge la fel.
+- Majusculele nu contează, nici la cuvânt, nici la id: `[Gata a3]` e același lucru cu `[gata A3]`.
+- Punctuația lipită de id nu contează: `[gata A3.]` e `[gata A3]`.
+- **Blocajul „de X” cade singur** când X (un task din plan) e gata: `[blocat A2 de C1]`, apoi C1 gata →
+  A2 nu mai e blocat și proprietarul lui primește „poate începe”. Fără `[deblocat]` de mână.
+  Blocajele cu motiv (`[blocat A2: cheia API]`) sau de un om (`de Maria`) rămân până la `[deblocat A2]`.
 - **„De când”** e data commit-ului care a adus mesajul.
 - **Se citesc doar mesajele noi.** Un mesaj nu se editează; ca să anulezi, trimiți altul (`[deblocat A2]`).
 - Doar textul mesajului contează, nu antetul (`from`, `to`, `re`…).
