@@ -10,3 +10,4 @@ tools/
 # contractele sunt formatate de mână (comentarii aliniate); verificarea lor e npm run check
 packages/contracts/src/
 .vite/
+apps/web/src/mascot/mascot-sprites.ts
