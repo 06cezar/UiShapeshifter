@@ -1,0 +1,6 @@
+// Validarea a ce scrie agentul (C5, specs/02): funcții pure, folosite de motorul de rețete (B5, apply_css) și de
+// elementele generate (B3, insertHtml). Nu aruncă: întorc ce a rămas și ce s-a scos, cu motivul pentru model.
+
+export { OUR_INTERFACE_MARKERS, validateCss } from "./css";
+export { validateHtml } from "./html";
+export type { CssValidation, HtmlDropped, HtmlDropReason, HtmlValidation } from "./result";

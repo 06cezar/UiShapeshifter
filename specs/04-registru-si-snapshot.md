@@ -49,4 +49,8 @@ parolă, nici valorile câmpurilor de formular, doar eticheta lor.
 
 ## Coordonate pentru mascotă
 
-`point_at`, mutarea mascotei și conturul pulsatoriu vin în etapa 2 (D2, B6); se descriu atunci, în D8.
+`point_at` folosește `registry.ensureVisible(id)` și `registry.rectOf(id)` pentru id-uri `e.<n>`. Mutarea mascotei și
+conturul sunt descrise în `11-mascota-chat-jurnal.md`.
+
+Pentru `point_at`, registrul expune: `registry.get(id): HTMLElement | undefined`, `registry.rectOf(id): DOMRect | undefined` (în
+viewport) și `registry.ensureVisible(id): Promise<"visible" | "scrolled" | "hidden">`.
