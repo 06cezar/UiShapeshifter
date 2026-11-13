@@ -16,6 +16,7 @@ const FAKE_STEP_DELAY_MS = Number(process.env.AGENT_FAKE_DELAY_MS ?? 600);
 interface ActiveRun {
   runId: string;
   cancelled: boolean;
+  replaced: boolean; // oprită de o rulare nouă a aceluiași om, nu de „Oprește”
   done: Promise<AgentRun>;
 }
 
@@ -42,7 +43,7 @@ function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
     steps: [],
     model: decider.model,
   };
-  const active: ActiveRun = { runId: run.runId, cancelled: false, done: Promise.resolve(run) };
+  const active: ActiveRun = { runId: run.runId, cancelled: false, replaced: false, done: Promise.resolve(run) };
   sendToSession(session, { type: "run_started", runId: run.runId, goal, origin });
 
   active.done = runAgent(run, decider, {
@@ -51,14 +52,21 @@ function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
     send: (message) => sendToSession(session, message),
     saveRun,
     isCancelled: () => active.cancelled,
-  }).finally(() => {
-    if (activeByUser.get(session.userId) === active) activeByUser.delete(session.userId);
-    const next = queuedAdaptation.get(session.userId);
-    if (next && !activeByUser.has(session.userId)) {
-      queuedAdaptation.delete(session.userId);
-      startRun(session.userId, next.goal, next.origin);
-    }
-  });
+    isReplaced: () => active.replaced,
+  })
+    // o eroare scăpată din buclă nu trebuie să oprească tot serverul
+    .catch((error: unknown) => {
+      console.error(`agent: rularea ${run.runId} s-a oprit cu o eroare neprinsă:`, error);
+      return run;
+    })
+    .finally(() => {
+      if (activeByUser.get(session.userId) === active) activeByUser.delete(session.userId);
+      const next = queuedAdaptation.get(session.userId);
+      if (next && !activeByUser.has(session.userId)) {
+        queuedAdaptation.delete(session.userId);
+        startRun(session.userId, next.goal, next.origin);
+      }
+    });
   activeByUser.set(session.userId, active);
   return active;
 }
@@ -71,7 +79,10 @@ function stop(active: ActiveRun): void {
 /** Rularea cerută din sesiunea în care a scris omul. */
 export function startRunInSession(session: Session, goal: string, origin: RunOrigin = "user"): string {
   const current = activeByUser.get(session.userId);
-  if (current) stop(current);
+  if (current) {
+    current.replaced = true;
+    stop(current);
+  }
   return launch(session, goal, origin).runId;
 }
 

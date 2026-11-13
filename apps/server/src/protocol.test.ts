@@ -200,6 +200,8 @@ describe("WebSocket cu agentul fals", () => {
     const second = await web.next("run_started");
     expect(second.runId).not.toBe(first.runId);
     expect(await web.next("run_finished")).toMatchObject({ runId: first.runId, success: false });
+    // rularea veche nu mai vorbește prin mascotă; bula rămâne a rulării noi
+    expect(web.inbox.some((m) => m.type === "agent_message" && m.runId === first.runId)).toBe(false);
     web.socket.close();
   });
 });
