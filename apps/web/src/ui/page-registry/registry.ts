@@ -328,8 +328,9 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       };
     });
 
-    // În viewport întâi, apoi ce a ascuns rețeta (agentul verifică așa ce a schimbat), apoi restul, în ordinea paginii.
-    const rank = (e: PageElement) => (e.inViewport ? 0 : e.hiddenBy === "recipe" ? 1 : 2);
+    // Ce a ascuns rețeta întâi: sunt puține și fără ele agentul nu-și poate verifica munca (pe o pagină aglomerată,
+    // elementele vizibile ar umple singure limita). Apoi ce e în viewport, apoi restul, în ordinea paginii.
+    const rank = (e: PageElement) => (e.hiddenBy === "recipe" ? 0 : e.inViewport ? 1 : 2);
     const ordered = elements
       .map((e, index) => ({ e, index }))
       .sort((a, b) => rank(a.e) - rank(b.e) || a.index - b.index);

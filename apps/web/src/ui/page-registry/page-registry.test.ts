@@ -89,6 +89,41 @@ describe("registrul și snapshot-ul", () => {
     expect(JSON.stringify(snap)).not.toContain("secret123");
   });
 
+  test("pe o pagină plină, ce a ascuns rețeta intră totuși în rezumat (agentul își verifică munca)", () => {
+    document.body.innerHTML =
+      Array.from({ length: SNAPSHOT_LIMITS.maxElements + 10 }, (_, i) => `<a href="/p${i}">L${i}</a>`).join("") +
+      `<div aria-label="Reclamă" id="ad">x</div>`;
+    // happy-dom nu aplică sheet.disabled: simulăm foaia rețetei care ascunde #ad cât timp e pornită
+    let recipeOn = true;
+    const sheet = {
+      set disabled(off: boolean) {
+        recipeOn = !off;
+      },
+    };
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      const size = this.id === "ad" && recipeOn ? 0 : 20;
+      return {
+        x: 10,
+        y: 10,
+        width: size,
+        height: size,
+        top: 10,
+        left: 10,
+        right: 10,
+        bottom: 10,
+        toJSON() {},
+      } as DOMRect;
+    });
+    const styleElement = { sheet } as unknown as HTMLStyleElement;
+    const reg = createPageRegistry({
+      ourHostId: HOST,
+      recipe: () => ({ revision: 1, css: "#ad{display:none}", styleElement }),
+    });
+    const snap = reg.snapshot();
+    expect(snap.truncated).toBe(true);
+    expect(snap.elements[0]).toMatchObject({ label: "Reclamă", visible: false, hiddenBy: "recipe" });
+  });
+
   test("cel mult maxElements, cu truncated", () => {
     document.body.innerHTML = Array.from(
       { length: SNAPSHOT_LIMITS.maxElements + 15 },
