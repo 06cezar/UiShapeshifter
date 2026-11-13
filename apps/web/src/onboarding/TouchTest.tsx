@@ -1,5 +1,6 @@
 // Pasul 4 (specs/10): ținte care apar pe rând, din ce în ce mai mici. Măsurăm dacă omul le nimerește din prima.
-// Un click în zonă, dar pe lângă țintă, e o ratare. Cu tastatura, Enter pe țintă contează ca nimerit.
+// Un click în zonă, dar pe lângă țintă, e o ratare. Enter/Space pe țintă trece mai departe (testul se poate face cu
+// tastatura), dar nu măsoară degetul: încercarea e marcată `keyboard` și nu decide `minTargetPx`.
 
 import { useRef, useState } from "react";
 import type { PointerEvent } from "react";
@@ -25,17 +26,21 @@ export function TouchTest({ onDone }: TouchTestProps) {
   const [misses, setMisses] = useState(0);
   const trials = useRef<TouchTrial[]>([]);
   const shownAt = useRef(performance.now());
+  /** Un pointerdown pe țintă înaintea click-ului: click-ul vine de la deget sau mouse, nu de la tastatură. */
+  const pointerOnTarget = useRef(false);
 
   const sizePx = TOUCH_TARGETS_PX[index];
   const [x, y] = TARGET_POSITIONS[index % TARGET_POSITIONS.length];
 
-  function finishTarget(hit: boolean, missCount: number) {
+  function finishTarget(hit: boolean, missCount: number, input: TouchTrial["input"]) {
     trials.current.push({
       sizePx,
       firstTryHit: hit && missCount === 0,
       misses: missCount,
       ms: Math.round(performance.now() - shownAt.current),
+      input,
     });
+    pointerOnTarget.current = false;
     if (index + 1 >= TOUCH_TARGETS_PX.length) {
       onDone(trials.current);
       return;
@@ -48,7 +53,7 @@ export function TouchTest({ onDone }: TouchTestProps) {
   function onAreaPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return; // a apăsat pe țintă, nu lângă
     const missCount = misses + 1;
-    if (missCount >= MAX_MISSES_PER_TARGET) finishTarget(false, missCount);
+    if (missCount >= MAX_MISSES_PER_TARGET) finishTarget(false, missCount, "pointer");
     else setMisses(missCount);
   }
 
@@ -64,7 +69,8 @@ export function TouchTest({ onDone }: TouchTestProps) {
           className="onboarding__touch-target"
           style={{ width: sizePx, height: sizePx, left: `${x}%`, top: `${y}%` }}
           aria-label={`Ținta ${index + 1} din ${TOUCH_TARGETS_PX.length}. Apasă aici.`}
-          onClick={() => finishTarget(true, misses)}
+          onPointerDown={() => (pointerOnTarget.current = true)}
+          onClick={() => finishTarget(true, misses, pointerOnTarget.current ? "pointer" : "keyboard")}
           data-agent-id="onboarding.touch.target"
           autoFocus
         />

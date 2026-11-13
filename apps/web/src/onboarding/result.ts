@@ -9,17 +9,23 @@ export const FONT_CHOICES_PX = [14, 16, 18, 20, 24, 28] as const;
 /** Pasul 4: țintele apar pe rând, din ce în ce mai mici. */
 export const TOUCH_TARGETS_PX = [72, 64, 56, 48, 40] as const;
 
-/** Pasul 5: cardurile „Ce folosești”, cu modulele pe care le fixăm pentru fiecare. */
+/**
+ * Pasul 5: cardurile „Ce folosești”, cu modulele pe care le fixăm și sarcina din `persona.frequentTasks`.
+ * Sarcinile sunt acțiuni în formatul din contract (`"openChat:ana"`, `"sendPhoto"`), fără contact: testul nu știe încă
+ * cu cine vorbește omul.
+ */
 export const TASK_CHOICES = {
-  messages: { label: "Mesaje", modules: ["messages"] },
-  photos: { label: "Poze", modules: ["photos"] },
-  calls: { label: "Apeluri", modules: ["calls", "contacts"] },
-  news: { label: "Noutăți de la alții", modules: ["feed", "stories"] },
-} as const satisfies Record<string, { label: string; modules: readonly string[] }>;
+  messages: { label: "Mesaje", modules: ["messages"], task: "sendMessage" },
+  photos: { label: "Poze", modules: ["photos"], task: "sendPhoto" },
+  calls: { label: "Apeluri", modules: ["calls", "contacts"], task: "call" },
+  news: { label: "Noutăți de la alții", modules: ["feed", "stories"], task: "readNews" },
+} as const satisfies Record<string, { label: string; modules: readonly string[]; task: string }>;
 export type TaskChoice = keyof typeof TASK_CHOICES;
 
 export const LAYOUT_CHOICES: readonly LayoutTemplate[] = ["sidebar-feed", "bottom-nav-stories", "simple-tiles"];
 export const NAV_CHOICES: readonly NavPosition[] = ["bottom", "top", "left"];
+/** „meniul jos”; pe butoane se scrie cu majusculă. */
+export const NAV_NAMES: Record<NavPosition, string> = { bottom: "jos", top: "sus", left: "în stânga" };
 
 /** O țintă din testul de atingere. */
 export interface TouchTrial {
@@ -27,6 +33,8 @@ export interface TouchTrial {
   firstTryHit: boolean;
   misses: number;
   ms: number;
+  /** Cu tastatura (Enter/Space) nu se măsoară mărimea degetului: încercarea nu decide `minTargetPx`. */
+  input: "pointer" | "keyboard";
 }
 
 /** Ce a răspuns omul; un pas omis rămâne nedefinit și nu schimbă profilul. */
@@ -53,11 +61,13 @@ export function minFontFromChoice(fontPx: number): number {
 /**
  * Cea mai mică țintă apăsată din prima, cu condiția ca toate țintele mai mari să fi fost apăsate din prima
  * (o nimereală norocoasă la 40px după o ratare la 56px nu contează). Niciuna din prima → cea mai mare țintă.
- * Rotunjită în sus și niciodată sub HARD_LIMITS.minTargetPx.
+ * Rotunjită în sus și niciodată sub HARD_LIMITS.minTargetPx. Contează doar apăsările cu degetul sau mouse-ul;
+ * fără niciuna (testul făcut cu tastatura), nu decide nimic.
  */
 export function minTargetFromTouch(trials: TouchTrial[]): number | undefined {
-  if (trials.length === 0) return undefined;
-  const bySize = [...trials].sort((a, b) => b.sizePx - a.sizePx);
+  const measured = trials.filter((trial) => trial.input === "pointer");
+  if (measured.length === 0) return undefined;
+  const bySize = [...measured].sort((a, b) => b.sizePx - a.sizePx);
   let smallestReliable = bySize[0].sizePx;
   for (const trial of bySize) {
     if (!trial.firstTryHit) break;
@@ -87,14 +97,19 @@ export function buildOnboardingResult(answers: OnboardingAnswers): OnboardingRes
     result.answers.push({ questionId: "contrast", answer: answers.contrast });
   }
   const minTarget = answers.touch ? minTargetFromTouch(answers.touch) : undefined;
-  if (minTarget !== undefined) {
-    needs.minTargetPx = minTarget;
-    for (const trial of answers.touch ?? []) {
-      result.answers.push({ questionId: `touch.${trial.sizePx}`, answer: trial.firstTryHit });
-    }
+  if (minTarget !== undefined) needs.minTargetPx = minTarget;
+  // Toate măsurătorile ajung la server, și cele cu tastatura: agentul și adaptarea le pot citi din `answers`.
+  for (const trial of answers.touch ?? []) {
+    const id = `touch.${trial.sizePx}`;
+    result.answers.push(
+      { questionId: id, answer: trial.firstTryHit },
+      { questionId: `${id}.misses`, answer: trial.misses },
+      { questionId: `${id}.ms`, answer: trial.ms },
+      { questionId: `${id}.input`, answer: trial.input },
+    );
   }
   if (answers.tasks && answers.tasks.length > 0) {
-    persona.frequentTasks = [...answers.tasks];
+    persona.frequentTasks = unique(answers.tasks.map((choice) => TASK_CHOICES[choice].task));
     preferences.pinnedModules = pinnedModulesFor(answers.tasks);
     result.answers.push({ questionId: "tasks", answer: answers.tasks.join(",") });
   }
@@ -113,8 +128,6 @@ export function buildOnboardingResult(answers: OnboardingAnswers): OnboardingRes
   }
   return result;
 }
-
-const NAV_NAMES: Record<NavPosition, string> = { bottom: "jos", top: "sus", left: "în stânga" };
 
 /** Pasul 9: „Am pregătit aplicația așa: text de 20px, butoane mari, meniul jos. Poți schimba oricând.” */
 export function summaryText(result: OnboardingResult): string {

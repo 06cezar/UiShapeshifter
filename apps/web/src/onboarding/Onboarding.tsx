@@ -2,8 +2,10 @@
 // După PUT /onboarding, serverul pornește rularea agentului cu origin "onboarding" (A1 + E1).
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
-import type { LayoutTemplate, NavPosition, OnboardingResult, UserProfile } from "@uishapeshifter/contracts";
+import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
+import { DEFAULT_CONFIG } from "@uishapeshifter/contracts";
+import type { LayoutTemplate, OnboardingResult, UserProfile } from "@uishapeshifter/contracts";
+import { themeToCssVars } from "../ui/theme-css";
 import { submitOnboarding } from "./api";
 import { LAYOUT_NAMES, LayoutSketch } from "./LayoutSketch";
 import {
@@ -11,6 +13,7 @@ import {
   FONT_CHOICES_PX,
   LAYOUT_CHOICES,
   NAV_CHOICES,
+  NAV_NAMES,
   skippedResult,
   summaryText,
   TASK_CHOICES,
@@ -24,10 +27,21 @@ import "./onboarding.css";
 /** Testul pornește deja mare (specs/10): font de 20px și ținte de 56px, oricare ar fi tema. */
 const ONBOARDING_FONT_PX = 20;
 const ONBOARDING_TARGET_PX = 56;
+/**
+ * După ce apare un pas nou, click-urile din conținut sunt ignorate atâta timp: al doilea click al unui dublu-click
+ * ar răspunde altfel la o întrebare pe care omul n-a văzut-o.
+ */
+export const STEP_INPUT_GUARD_MS = 400;
+/** Ce vede omul când nu se poate salva; detaliul tehnic merge în consolă. */
+const SAVE_ERROR_TEXT = "Nu am putut salva răspunsurile. Încearcă din nou peste câteva clipe.";
+/**
+ * Testul rulează înaintea aplicației (OnboardingGate), deci înainte ca store-ul să scrie tema pe :root.
+ * Își pune singur tema implicită, ca variabilele CSS să existe oricând e montat.
+ */
+const THEME_VARS = themeToCssVars(DEFAULT_CONFIG.theme, DEFAULT_CONFIG.minTargetPx);
 
 const FONT_SAMPLE = "Ana ți-a trimis o poză cu pisica.";
 const CONTRAST_SAMPLE = "Ion: Vin duminică la masă.";
-const NAV_NAMES: Record<NavPosition, string> = { bottom: "Jos", top: "Sus", left: "În stânga" };
 
 type StepId = "welcome" | "font" | "contrast" | "touch" | "tasks" | "layout" | "nav" | "voice" | "summary";
 
@@ -48,23 +62,37 @@ export interface OnboardingProps {
   /** Profilul salvat; `null` dacă serverul nu răspunde și omul a ales să intre fără să salveze. */
   onDone: (profile: UserProfile | null) => void;
   fetchFn?: typeof fetch;
+  /** Pentru teste: pauza după schimbarea pasului (implicit STEP_INPUT_GUARD_MS). */
+  inputGuardMs?: number;
 }
 
 type SaveState =
   { status: "idle" } | { status: "saving" } | { status: "error"; message: string; result: OnboardingResult };
 
-export function Onboarding({ userId, onDone, fetchFn }: OnboardingProps) {
+export function Onboarding({ userId, onDone, fetchFn, inputGuardMs = STEP_INPUT_GUARD_MS }: OnboardingProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [save, setSave] = useState<SaveState>({ status: "idle" });
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const stepShownAt = useRef(performance.now());
 
   const step = STEPS[stepIndex];
   const result = buildOnboardingResult(answers);
   const mascotLine = step.id === "summary" ? summaryText(result) : step.mascot;
 
-  // La fiecare pas nou, focusul merge pe titlu: cititorul de ecran îl anunță, tastatura pornește de sus.
-  useEffect(() => headingRef.current?.focus(), [stepIndex]);
+  // La fiecare pas nou: focusul pe titlu (cititorul de ecran îl anunță, tastatura pornește de sus), pauza pentru
+  // click-uri pornește din nou, iar o eroare de salvare de la pasul vechi dispare, ca să nu retrimită alt rezultat.
+  useEffect(() => {
+    headingRef.current?.focus();
+    stepShownAt.current = performance.now();
+    setSave((current) => (current.status === "error" ? { status: "idle" } : current));
+  }, [stepIndex]);
+
+  function ignoreEarlyInput(event: SyntheticEvent) {
+    if (performance.now() - stepShownAt.current >= inputGuardMs) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }
 
   function next(update: Partial<OnboardingAnswers> = {}) {
     setAnswers((prev) => ({ ...prev, ...update }));
@@ -76,12 +104,13 @@ export function Onboarding({ userId, onDone, fetchFn }: OnboardingProps) {
     try {
       onDone(await submitOnboarding(userId, toSend, fetchFn));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Serverul nu răspunde.";
-      setSave({ status: "error", message, result: toSend });
+      console.error("onboarding: rezultatul nu s-a salvat", error);
+      setSave({ status: "error", message: SAVE_ERROR_TEXT, result: toSend });
     }
   }
 
   const style = {
+    ...THEME_VARS,
     "--onboarding-font": `${ONBOARDING_FONT_PX}px`,
     "--onboarding-target": `${ONBOARDING_TARGET_PX}px`,
   } as CSSProperties;
@@ -111,7 +140,9 @@ export function Onboarding({ userId, onDone, fetchFn }: OnboardingProps) {
         {TITLES[step.id]}
       </h1>
 
-      <section className="onboarding__body">{renderStep(step.id)}</section>
+      <section className="onboarding__body" onClickCapture={ignoreEarlyInput} onPointerDownCapture={ignoreEarlyInput}>
+        {renderStep(step.id)}
+      </section>
 
       {save.status === "error" && (
         <div className="onboarding__error" role="alert">
@@ -243,7 +274,7 @@ export function Onboarding({ userId, onDone, fetchFn }: OnboardingProps) {
                 selected={answers.navPosition === position}
                 onClick={() => next({ navPosition: position })}
               >
-                {NAV_NAMES[position]}
+                {capitalize(NAV_NAMES[position])}
               </Choice>
             ))}
           </div>
@@ -324,6 +355,10 @@ function Choice(props: {
       {props.children}
     </button>
   );
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function toggle<T>(items: T[], item: T): T[] {

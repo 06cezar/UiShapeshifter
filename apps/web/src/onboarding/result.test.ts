@@ -16,6 +16,7 @@ function trials(hits: Record<number, boolean>): TouchTrial[] {
     firstTryHit: hit,
     misses: hit ? 0 : 1,
     ms: 900,
+    input: "pointer" as const,
   }));
 }
 
@@ -53,9 +54,30 @@ describe("atingerea", () => {
   it("fără încercări: nu decide nimic", () => {
     expect(minTargetFromTouch([])).toBeUndefined();
   });
+  it("cu tastatura nu se măsoară degetul: nu decide nimic", () => {
+    const keyboard = trials({ 72: true, 64: true, 56: true, 48: true, 40: true }).map((t) => ({
+      ...t,
+      input: "keyboard" as const,
+    }));
+    expect(minTargetFromTouch(keyboard)).toBeUndefined();
+    const result = buildOnboardingResult({ touch: keyboard });
+    expect(result.needs).toEqual({});
+    expect(result.answers).toContainEqual({ questionId: "touch.40.input", answer: "keyboard" });
+  });
+  it("contează doar apăsările cu degetul, chiar dacă unele au fost cu tastatura", () => {
+    const mixed = trials({ 72: true, 64: true, 56: false }).map((t) =>
+      t.sizePx === 64 ? { ...t, input: "keyboard" as const } : t,
+    );
+    expect(minTargetFromTouch(mixed)).toBe(72);
+  });
 });
 
 describe("ce folosești", () => {
+  it("sarcinile frecvente sunt acțiuni, ca în contract", () => {
+    expect(buildOnboardingResult({ tasks: ["calls", "news"] }).persona).toEqual({
+      frequentTasks: ["call", "readNews"],
+    });
+  });
   it("fixează modulele cardurilor alese, fără dubluri", () => {
     expect(pinnedModulesFor(["messages", "calls"])).toEqual(["messages", "calls", "contacts"]);
     expect(pinnedModulesFor(["news", "news"])).toEqual(["feed", "stories"]);
@@ -83,13 +105,16 @@ describe("buildOnboardingResult", () => {
         template: "simple-tiles",
         navPosition: "bottom",
       },
-      persona: { frequentTasks: ["messages", "photos"] },
+      persona: { frequentTasks: ["sendMessage", "sendPhoto"] },
     });
   });
 
-  it("păstrează răspunsurile brute, cu id-ul întrebării", () => {
+  it("păstrează răspunsurile brute, cu id-ul întrebării, și măsurătorile de atingere", () => {
     expect(MARIA.answers).toContainEqual({ questionId: "font", answer: 20 });
     expect(MARIA.answers).toContainEqual({ questionId: "touch.48", answer: false });
+    expect(MARIA.answers).toContainEqual({ questionId: "touch.48.misses", answer: 1 });
+    expect(MARIA.answers).toContainEqual({ questionId: "touch.48.ms", answer: 900 });
+    expect(MARIA.answers).toContainEqual({ questionId: "touch.48.input", answer: "pointer" });
     expect(MARIA.answers).toContainEqual({ questionId: "nav", answer: "bottom" });
   });
 

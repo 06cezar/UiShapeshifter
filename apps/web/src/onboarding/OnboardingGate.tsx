@@ -1,5 +1,6 @@
 // Arată testul inițial la prima deschidere (profil nici terminat, nici omis), altfel aplicația.
-// Dacă serverul nu răspunde, intră direct în aplicație: testul nu are voie să blocheze omul.
+// Dacă serverul nu răspunde (sau nu răspunde în PROFILE_TIMEOUT_MS), intră direct în aplicație: testul nu are voie
+// să blocheze omul.
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -39,7 +40,8 @@ export function OnboardingGate({ userId, children, onProfile, fetchFn }: Onboard
     // fără onProfile în dependențe: e un callback al părintelui, nu vrem să recitim profilul când i se schimbă referința
   }, [userId, fetchFn]);
 
-  if (state === "loading") return null;
+  // Cât se citește profilul (cel mult PROFILE_TIMEOUT_MS): un mesaj anunțat, nu un ecran gol.
+  if (state === "loading") return <p role="status">Se încarcă…</p>;
   if (state === "onboarding") {
     return (
       <Onboarding
