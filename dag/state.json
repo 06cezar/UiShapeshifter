@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "8878cd524345b07c6994864d342c3873389c4bb4",
-  "last_run": "2026-11-13T14:15:11Z",
+  "last_comms_sha": "d28e0ef89b1115a4cc1428d7d0f5537f51813311",
+  "last_run": "2026-11-13T14:18:55Z",
   "last_sha": "3b79bb796e0a35b76353230a261fbcc53f7c3fc1",
   "prs": {
     "1": {
@@ -70,7 +70,7 @@
     "D1": "done",
     "D2": "wait",
     "D3": "wait",
-    "D4": "ready",
+    "D4": "progress",
     "D5": "wait",
     "D6": "wait",
     "E1": "done",
