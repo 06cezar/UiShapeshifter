@@ -42,20 +42,24 @@ const STATUS_TEXT: Record<LinkStatus, string> = {
 
 const BADGE_CSS = `
 .badge {
-  position: fixed; right: 16px; bottom: 16px; max-width: min(560px, calc(100vw - 32px));
-  display: flex; align-items: center; gap: var(--uis-space);
-  padding: var(--uis-space) calc(var(--uis-space) * 2);
+  position: fixed; right: 16px; bottom: 16px; width: min(420px, calc(100vw - 32px)); box-sizing: border-box;
+  display: flex; flex-direction: column; gap: var(--uis-space);
+  padding: calc(var(--uis-space) * 1.5) calc(var(--uis-space) * 2);
   background: var(--uis-bg); color: var(--uis-fg);
   font: var(--uis-font-size)/1.5 var(--uis-font);
-  border-radius: var(--uis-radius);
+  border-radius: calc(var(--uis-space) * 2);
   box-shadow: var(--uis-shadow);
 }
+.head { display: flex; align-items: center; gap: var(--uis-space); }
+.reply:empty { display: none; }
+.ask { display: flex; gap: var(--uis-space); }
+.ask input { flex: 1; min-width: 0; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--uis-warn); flex: none; }
 .dot[data-status="open"] { background: var(--uis-ok); }
 .dot[data-status="closed"] { background: var(--uis-error); }
 .reply { color: var(--uis-muted); }
 input {
-  min-height: var(--uis-target); min-width: 12em; padding: 0 var(--uis-space);
+  min-height: var(--uis-target); padding: 0 calc(var(--uis-space) * 1.5);
   font: inherit; color: var(--uis-bg); background: var(--uis-fg);
   border: none; border-radius: var(--uis-radius);
 }
@@ -92,12 +96,16 @@ function startBadge() {
   badge.className = "badge";
   badge.setAttribute("role", "status");
   badge.innerHTML = `
-    <span class="dot" aria-hidden="true"></span>
-    <span><strong>UI Shapeshifter</strong> · <span class="status">${STATUS_TEXT.connecting}</span></span>
-    <span class="reply"></span>
-    <input type="text" data-agent-id="extension.request" aria-label="Ce vrei să schimbi pe pagină?"
-      placeholder="Ce vrei să schimbi?" />
-    <button type="button" data-agent-id="extension.probe">Trimite</button>`;
+    <div class="head">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>UI Shapeshifter</strong> · <span class="status">${STATUS_TEXT.connecting}</span></span>
+    </div>
+    <div class="reply"></div>
+    <div class="ask">
+      <input type="text" data-agent-id="extension.request" aria-label="Ce vrei să schimbi pe pagină?"
+        placeholder="Ce vrei să schimbi?" />
+      <button type="button" data-agent-id="extension.probe">Trimite</button>
+    </div>`;
   root.shadow.appendChild(badge);
 
   const dot = badge.querySelector<HTMLElement>(".dot")!;
