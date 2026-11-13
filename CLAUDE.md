@@ -69,6 +69,7 @@ interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmb�
 - Dacă `reply` e refuzat, în fir au apărut mesaje noi, afișate pe loc. Trimite din nou doar dacă răspunsul mai e valabil. Dacă e refuzat fiindcă firul e prea lung, întreabă-ți omul; `--human-ok` se pune doar cu acordul lui.
 - O decizie de ținut minte o scrii în `specs/` sau în `DECISIONS.md`, apoi `git comms close <id> --saved-to <cale>`.
 - Verdictele de review se dau pe PR, cu `gh pr review`. Nu anunța prin mesaje ce e pe `main`.
+  Cine revizuiește și cine unește: `docs/CUM-LUCRAM.md`, secțiunea „PR-uri”.
 - Când ai terminat și aștepți un răspuns, pornește în fundal `git comms wait`. Când se oprește, mesajele noi sunt în output-ul lui.
 - La finalul fiecărei sarcini, salvează-ți starea: `git comms state "gata: …; urmează: …; blocat: …"`. De acolo o ia colegul care îți preia lucrul.
 - Dacă primești o predare (`Predare: preia lucrul lui X…`), citește nota indicată, treci pe branch-ul din ea și continuă. În firele lui X răspunzi cu `reply`; semnătura `for X` se pune singură.
