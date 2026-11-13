@@ -177,7 +177,13 @@
   background: var(--color-primary);
 }
 
-/* Pasul 6: desenele structurilor. */
+/* Pasul 5: desenul de pe fiecare card, deasupra textului. */
+.onboarding__icon {
+  display: block;
+  font-size: calc(var(--onb-font) * 1.6);
+  line-height: 1;
+  margin-bottom: var(--spacing);
+}
 
 .onboarding__error {
   padding: var(--onb-gap);
