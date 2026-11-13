@@ -14,7 +14,7 @@ python tools/comms/install.py D
 
 | Comandă | Ce face |
 |---|---|
-| `git comms send <către> "<text>"` | Mesaj nou, de tip `ask`. `<către>`: un nume, mai multe (`A,D`) sau `all`. |
+| `git comms send <către> "<text>"` | Mesaj nou, de tip `ask`. `<către>`: un nume, mai multe (`A,D`) sau `all`. Cu `--each`: câte un mesaj separat fiecăruia, ca firul fiecăruia să rămână deschis până răspunde el. |
 | `git comms reply <id> "<text>"` | Răspuns către ceilalți din fir. Închide firul; cu `--type ask` îl lasă deschis. |
 | `git comms close <id> [--saved-to <cale>]` | Închide firul și spune unde a ajuns decizia. |
 | `git comms inbox [--new]` | Un rând pe mesaj. Cu `--new`: doar ce a sosit de la ultima citire. Fără: și firele deschise. |
