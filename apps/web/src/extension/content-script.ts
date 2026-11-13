@@ -17,7 +17,7 @@ import { buildSelector } from "../ui/page-registry/selector";
 import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
-import { needsFromStorage, ONBOARDING_KEY } from "./base-needs";
+import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
@@ -63,12 +63,27 @@ chrome.storage.onChanged.addListener((changes, area) => {
     recipes.adopt(parseStoredRecipe(recipeChange.newValue, host, new Date().toISOString()));
     base?.refresh();
   }
-  const needsChange = changes[ONBOARDING_KEY];
-  if (needsChange) {
-    needs = needsFromStorage(needsChange.newValue);
-    base?.update(needs);
+  // Nevoile s-au putut schimba: testul inițial (cheia „onboarding”) sau profilul local, ținut la zi de service worker.
+  if (changes[ONBOARDING_KEY] || (activeUserId && changes[activeUserId])) {
+    void readNeeds().then((next) => {
+      if (JSON.stringify(next) === JSON.stringify(needs)) return; // profilul s-a schimbat, nevoile nu
+      needs = next;
+      base?.update(needs);
+    });
   }
 });
+
+/** userId-ul anonim (E5): sub el stă profilul local (E8). */
+let activeUserId: string | undefined;
+
+/** Nevoile pentru preferințele de bază: profilul local (E8), altfel testul inițial, altfel implicite. */
+async function readNeeds(): Promise<Partial<UserNeeds>> {
+  const first = await chrome.storage.local.get([USER_ID_KEY, ONBOARDING_KEY]);
+  const userId = first[USER_ID_KEY];
+  activeUserId = typeof userId === "string" ? userId : undefined;
+  const profile = activeUserId ? await chrome.storage.local.get(activeUserId) : {};
+  return needsFromStored({ ...first, ...profile });
+}
 
 /** Ce face mascota la mesajele serverului: se gândește cât rulează agentul, se bucură sau se încurcă la final. */
 function moveMascot(mascot: MascotController, server: ServerMessage) {
@@ -135,9 +150,10 @@ function start() {
     return recipes.view().revision;
   }
 
-  // Preferințele de bază pornesc cu nevoile salvate de testul inițial (sau implicite) și se reaplică peste rețetă.
-  void chrome.storage.local.get(ONBOARDING_KEY).then((saved) => {
-    needs = needsFromStorage(saved[ONBOARDING_KEY]);
+  // Preferințele de bază pornesc cu nevoile din profilul local (sau din testul inițial, sau implicite) și se reaplică
+  // peste rețetă.
+  void readNeeds().then((saved) => {
+    needs = saved;
     base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
 

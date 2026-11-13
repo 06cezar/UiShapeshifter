@@ -5,6 +5,19 @@
 import type { UserNeeds } from "@uishapeshifter/contracts";
 
 export const ONBOARDING_KEY = "onboarding";
+/** Cheia userId-ului anonim (E5); profilul local stă sub chiar acest userId (E8, specs/08). */
+export const USER_ID_KEY = "userId";
+
+/**
+ * Nevoile, din cea mai bună sursă disponibilă: profilul local (E8, ținut la zi de service worker), altfel ce a salvat
+ * testul inițial, altfel nimic (valorile implicite).
+ */
+export function needsFromStored(values: Record<string, unknown>): Partial<UserNeeds> {
+  const userId = values[USER_ID_KEY];
+  const profile = typeof userId === "string" ? values[userId] : undefined;
+  if (isRecord(profile) && isRecord(profile.needs)) return needsFromStorage(profile);
+  return needsFromStorage(values[ONBOARDING_KEY]);
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
