@@ -162,7 +162,7 @@ _nimic_
 ## În lucru
 
 - **B6** (B) Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul: PR #36 deschis _(Etapa 2 · sâm 00:00. Gata = „mută căutarea sus” rezistă la reîncărcare și la navigarea în interiorul site-ului; Anulez scoate doar ultima schimbare.)_
-- **D2** (D) Mascota - animal animat din asset-uri cu licență liberă, se plimbă prin pagină și arată elementul (specs/11): branch `d2-mascota` are commit-uri _(Etapa 2 · sâm 00:00. Gata = pe un site real, mascota merge până la elementul cerut de point\_at și rămâne pe el la scroll și resize; licența asset-urilor e notată în repo.)_
+- **D2** (D) Mascota - animal animat din asset-uri cu licență liberă, se plimbă prin pagină și arată elementul (specs/11): PR #44 deschis _(Etapa 2 · sâm 00:00. Gata = pe un site real, mascota merge până la elementul cerut de point\_at și rămâne pe el la scroll și resize; licența asset-urilor e notată în repo.)_
 - **E2** (E) Colectarea semnalelor în content script - misclick, zoom, back\_loop, dwell, feature\_use, help\_request (specs/09): PR #42 deschis _(Etapa 2 · sâm 00:00. Gata = loturile de semnale de pe un site real ajung pe server și se văd în log. Se folosesc în etapa 4 (E3).)_
 - **C3** (C) Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10): PR #9 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.)_
 
