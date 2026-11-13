@@ -1,3 +1,3 @@
-2026-11-13 19:21
+2026-11-13 20:06
 
-gata: D7, D8, M0, D3 (PR 26), review A2 și C2; urmează: rebase PR 26 peste PR-ul lui E (B2+B5), apoi M1; blocat: aștept PR-ul lui E
+gata: PR 26 (D3) adus peste b5-retete, chatul leagă uneltele din pagină; urmează: unire #30, #27, #31, #26, apoi M1 în Chrome; blocat: nimic
