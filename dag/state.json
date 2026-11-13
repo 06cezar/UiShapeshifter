@@ -1,8 +1,8 @@
 {
   "comms": {},
   "last_comms_sha": "549d5aace2e41220c509ded702c4ea2d70530340",
-  "last_run": "2026-11-13T16:36:03Z",
-  "last_sha": "d15d5f1d4a90007ff6ae51458c28eeff3ea4167a",
+  "last_run": "2026-11-13T16:37:30Z",
+  "last_sha": "82292590819d0af74c96b575de939cc99b894cf9",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -86,8 +86,8 @@
     },
     "24": {
       "head": "e5-extensie",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T16:37:21Z",
+      "state": "MERGED"
     },
     "3": {
       "head": "c1-audit",
@@ -157,11 +157,11 @@
     "E2": "wait",
     "E3": "wait",
     "E4": "wait",
-    "E5": "progress",
+    "E5": "done",
     "E6": "wait",
     "E7": "wait",
     "E8": "wait",
-    "M0": "wait",
+    "M0": "ready",
     "M1": "wait",
     "M2": "wait",
     "M3": "wait",
