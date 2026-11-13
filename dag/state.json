@@ -7,9 +7,9 @@
       }
     }
   },
-  "last_comms_sha": "a1ef2d188e7292508d7cb2d86ed8a89a74c52b8f",
-  "last_run": "2026-11-13T18:18:16Z",
-  "last_sha": "c265e22e04ff6a3434238b7c109e8b89b1a10387",
+  "last_comms_sha": "c53d6f739d36c9408aced664a92cdbf9d856ae16",
+  "last_run": "2026-11-13T18:22:16Z",
+  "last_sha": "1d1a8ac2929ace0a33fddd938e05061630ec9778",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -98,8 +98,8 @@
     },
     "25": {
       "head": "c2-reparatii",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T18:22:04Z",
+      "state": "MERGED"
     },
     "26": {
       "head": "d3-chat",
@@ -108,8 +108,8 @@
     },
     "27": {
       "head": "a2-bucla",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T18:22:13Z",
+      "state": "MERGED"
     },
     "28": {
       "head": "d-region-selector",
@@ -118,8 +118,8 @@
     },
     "29": {
       "head": "c4-baza",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T18:22:09Z",
+      "state": "MERGED"
     },
     "3": {
       "head": "c1-audit",
@@ -179,7 +179,7 @@
   },
   "statuses": {
     "A1": "done",
-    "A2": "progress",
+    "A2": "done",
     "A3": "progress",
     "A4": "wait",
     "A5": "wait",
@@ -191,9 +191,9 @@
     "B5": "done",
     "B6": "wait",
     "C1": "done",
-    "C2": "progress",
+    "C2": "done",
     "C3": "progress",
-    "C4": "progress",
+    "C4": "done",
     "C5": "done",
     "D1": "done",
     "D10": "wait",
@@ -214,7 +214,7 @@
     "E7": "done",
     "E8": "wait",
     "M0": "done",
-    "M1": "wait",
+    "M1": "ready",
     "M2": "wait",
     "M3": "wait",
     "M4": "wait"
