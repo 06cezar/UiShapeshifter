@@ -1,16 +1,59 @@
 // Agentul fals (AGENT_FAKE=1): pași înregistrați, fără OpenRouter (specs/05, „Reglaje pentru demo”).
 // Servește extensia cât timp nu e cheie și e rezerva demo-ului fără rețea. Face același drum ca agentul real în etapa 1:
 // „ascunde X” → get_page_snapshot → apply_css → get_page_snapshot (verificare) → finish. Folosește rezultatele reale
-// ale uneltelor, deci verificarea chiar se uită dacă elementul a dispărut.
+// ale uneltelor, deci verificarea chiar se uită dacă elementele au dispărut.
+// Cererile pot fi vagi („șterge reclamele”): potrivim pe rădăcini și câteva sinonime, nu pe textul exact (C, pe #27).
 
 import type { PageElement, PageSnapshot, ToolArgs } from "@uishapeshifter/contracts";
 import type { Decider, Decision, PreviousStep } from "./run-agent";
 
 export const FAKE_MODEL = "fake";
 
-// „ascunde reclamele”, „scoate Shorts”, „nu vreau să văd bara din dreapta”
-const HIDE_REQUEST = /(?:ascunde|scoate|elimin[ăa]|nu vreau s[ăa] (?:mai )?v[ăa]d)\s+(.+)/i;
-const MIN_TARGET_CHARS = 2;
+// „ascunde reclamele”, „șterge Shorts”, „dă jos bara din dreapta”, „nu-mi mai arăta știrile”
+const HIDE_REQUEST =
+  /(?:ascunde|scoate|elimin[ăa]|[șs]terge|d[ăa] jos|f[ăa] s[ăa] dispar[ăa]|nu-mi (?:mai )?ar[ăa]ta|nu vreau s[ăa] (?:mai )?v[ăa]d)\s+(.+)/i;
+/** Câte litere de la începutul unui cuvânt îl reprezintă („reclamele”, „reclama” → „recla”). */
+const ROOT_CHARS = 5;
+/** Rădăcinile mai scurte (ex. „ai”) se potrivesc doar pe cuvânt întreg, ca „ai” să nu prindă „aici”. */
+const MIN_PREFIX_ROOT_CHARS = 3;
+/** Cel mult atâtea elemente ascunse într-o cerere, ca o potrivire prea largă să nu golească pagina. */
+const MAX_HIDDEN_MATCHES = 10;
+const FILLER_WORDS = new Set([
+  "butonul",
+  "butoanele",
+  "bara",
+  "barele",
+  "sectiunea",
+  "sectiunile",
+  "toate",
+  "tot",
+  "toti",
+  "alea",
+  "astea",
+  "cu",
+  "de",
+  "din",
+  "la",
+  "si",
+  "pe",
+  "mi",
+  "mai",
+  "chestiile",
+  "chestia",
+  "lucrurile",
+  "partea",
+  "te",
+  "rog",
+  "ce",
+  "e",
+]);
+const SYNONYMS: Record<string, string[]> = {
+  recla: ["sponsor", "publicit", "promov", "anunt"],
+  ai: ["rezumat", "asistent"],
+  scurt: ["shorts", "reels"],
+  clip: ["shorts", "reels"],
+  povest: ["stories"],
+};
 
 type Script = (previous: PreviousStep | null) => Decision;
 
@@ -18,7 +61,7 @@ function tool<N extends keyof ToolArgs>(name: N, args: ToolArgs[N], content: str
   return { kind: "tool", name, args, content };
 }
 
-/** Fără diacritice și majuscule, ca „Știri” să se potrivească cu „stiri”. */
+/** Fără diacritice, majuscule și semne, ca „Știri” să se potrivească cu „stiri”. */
 function normalize(text: string): string {
   return text
     .normalize("NFD")
@@ -29,24 +72,45 @@ function normalize(text: string): string {
     .trim();
 }
 
+function words(text: string): string[] {
+  return normalize(text).split(" ").filter(Boolean);
+}
+
+/** Rădăcinile cererii, cu sinonimele lor: „reclamele” → recla, sponsor, publicit, promov, anunt. */
+export function requestRoots(wanted: string): string[] {
+  const roots = words(wanted)
+    .filter((word) => !FILLER_WORDS.has(word))
+    .map((word) => word.slice(0, ROOT_CHARS));
+  return [...new Set(roots.flatMap((root) => [root, ...(SYNONYMS[root] ?? [])]))];
+}
+
+function matches(label: string, roots: string[]): boolean {
+  return words(label).some((word) =>
+    roots.some((root) => (root.length >= MIN_PREFIX_ROOT_CHARS ? word.startsWith(root) : word === root)),
+  );
+}
+
 function snapshotFrom(previous: PreviousStep | null): PageSnapshot | null {
   if (previous?.name !== "get_page_snapshot" || !previous.result.ok) return null;
   const snapshot = previous.result.data as PageSnapshot | null;
   return snapshot && Array.isArray(snapshot.elements) ? snapshot : null;
 }
 
-/** Primul element vizibil al cărui text conține ce a cerut omul (sau invers, pentru etichete scurte). */
-export function findElement(snapshot: PageSnapshot | null, wanted: string): PageElement | undefined {
-  const target = normalize(wanted);
-  if (target.length < MIN_TARGET_CHARS) return undefined;
-  return snapshot?.elements.find((element) => {
-    const label = normalize(element.label);
-    return element.visible && label.length >= MIN_TARGET_CHARS && (label.includes(target) || target.includes(label));
-  });
+/** Toate elementele vizibile care se potrivesc cu cererea, după rădăcini și sinonime (cel mult MAX_HIDDEN_MATCHES). */
+export function findElements(snapshot: PageSnapshot | null, wanted: string): PageElement[] {
+  const roots = requestRoots(wanted);
+  if (roots.length === 0 || !snapshot) return [];
+  return snapshot.elements
+    .filter((element) => element.visible && matches(element.label, roots))
+    .slice(0, MAX_HIDDEN_MATCHES);
+}
+
+function labels(elements: PageElement[]): string {
+  return elements.map((element) => `„${element.label}”`).join(", ");
 }
 
 function hideScript(goal: string, wanted: string): Script[] {
-  let found: PageElement | undefined;
+  let found: PageElement[] = [];
   return [
     () =>
       tool(
@@ -55,26 +119,27 @@ function hideScript(goal: string, wanted: string): Script[] {
         `Observ: Mi se cere: „${goal}”. Fac: Mă uit la pagină. Pentru că: Trebuie să găsesc „${wanted}” înainte să schimb ceva.`,
       ),
     (previous) => {
-      found = findElement(snapshotFrom(previous), wanted);
-      if (!found) {
+      found = findElements(snapshotFrom(previous), wanted);
+      if (found.length === 0) {
         return tool(
           "say",
           { message: `Nu găsesc „${wanted}” pe pagina asta.`, mascot: "confused" },
-          `Observ: Niciun element vizibil nu se potrivește cu „${wanted}”. Fac: Îi spun omului. Pentru că: Nu ghicesc.`,
+          `Observ: Niciun element vizibil nu se potrivește cu „${wanted}”. Fac: Îi spun omului. Pentru că: Nu inventez.`,
         );
       }
+      const selectors = found.map((element) => element.selector).join(", ");
       return tool(
         "apply_css",
-        { css: `${found.selector} { display: none !important; }`, reason: `Ascund „${found.label}”, cerut de om.` },
-        `Observ: „${found.label}” e elementul ${found.id}. Fac: Îl ascund cu CSS. Pentru că: Omul nu vrea să-l vadă.`,
+        { css: `${selectors} { display: none !important; }`, reason: `Ascund ${labels(found)}, cerut de om.` },
+        `Observ: Se potrivesc ${labels(found)}. Fac: Le ascund cu CSS. Pentru că: Omul nu vrea să le vadă.`,
       );
     },
     () =>
-      found
+      found.length > 0
         ? tool(
             "get_page_snapshot",
             {},
-            `Observ: Am aplicat CSS-ul. Fac: Mă uit din nou la pagină. Pentru că: Verific că „${found.label}” a dispărut.`,
+            `Observ: Am aplicat CSS-ul. Fac: Mă uit din nou la pagină. Pentru că: Verific că ${labels(found)} au dispărut.`,
           )
         : tool(
             "finish",
@@ -82,16 +147,19 @@ function hideScript(goal: string, wanted: string): Script[] {
             "Observ: N-am găsit elementul. Fac: Închei. Pentru că: Nu am ce ascunde.",
           ),
     (previous) => {
-      const after = snapshotFrom(previous)?.elements.find((element) => element.id === found?.id);
-      const hidden = !after || !after.visible;
+      const after = snapshotFrom(previous)?.elements ?? [];
+      const stillVisible = found.filter((element) => after.some((e) => e.id === element.id && e.visible));
       return tool(
         "finish",
-        hidden
-          ? { summary: `Am ascuns „${found?.label}”. Rămâne ascuns și data viitoare.`, success: true }
-          : { summary: `Am încercat să ascund „${found?.label}”, dar încă se vede.`, success: false },
-        hidden
-          ? "Observ: Elementul nu se mai vede. Fac: Închei. Pentru că: Cererea e îndeplinită."
-          : "Observ: Elementul se vede încă. Fac: Închei și spun. Pentru că: În modul de probă nu încerc altceva.",
+        stillVisible.length === 0
+          ? { summary: `Am ascuns ${labels(found)}. Rămân ascunse și data viitoare.`, success: true }
+          : {
+              summary: `Am încercat să ascund ${labels(found)}, dar ${labels(stillVisible)} încă se vede.`,
+              success: false,
+            },
+        stillVisible.length === 0
+          ? "Observ: Elementele nu se mai văd. Fac: Închei. Pentru că: Cererea e îndeplinită."
+          : "Observ: Unele elemente se văd încă. Fac: Închei și spun. Pentru că: În modul de probă nu încerc altceva.",
       );
     },
   ];
