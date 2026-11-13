@@ -1,3 +1,3 @@
-2026-11-13 17:25
+2026-11-13 17:37
 
-gata: PR #18 (schimbare de direcție: extensie pe site-uri existente, plan nou); urmează: anunț echipei cu acordul lui Cezar, apoi D7 (contractele noi) după unirea #18; blocat: nimic
+gata: PR #18 la zi (direcția nouă + planul pe etape cu puncte de control M0-M4, docs/agenti regenerate); urmează: după unirea #18, D7 (contractele etapei 1), apoi D3 și D8; blocat: nimic
