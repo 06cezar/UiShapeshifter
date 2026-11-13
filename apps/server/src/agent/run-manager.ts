@@ -3,6 +3,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { AgentRun, RunOrigin } from "@uishapeshifter/contracts";
+import { loadConfig } from "../config/config-store";
 import { saveRun } from "../runs/run-store";
 import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Session } from "../ws/sessions";
 import { createFakeDecider } from "./fake-decider";
@@ -22,8 +23,11 @@ interface ActiveRun {
 const activeByUser = new Map<string, ActiveRun>();
 const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 
-function createDecider(goal: string): Decider {
-  return process.env.AGENT_FAKE === "1" ? createFakeDecider(goal, FAKE_STEP_DELAY_MS) : createOpenRouterDecider(goal);
+function createDecider(userId: string, goal: string): Decider {
+  if (process.env.AGENT_FAKE === "1") return createFakeDecider(goal, FAKE_STEP_DELAY_MS);
+  return createOpenRouterDecider(goal, {
+    loadContext: async () => ({ config: await loadConfig(userId) }),
+  });
 }
 
 function newRunId(): string {
@@ -31,7 +35,7 @@ function newRunId(): string {
 }
 
 function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
-  const decider = createDecider(goal);
+  const decider = createDecider(session.userId, goal);
   const run: AgentRun = {
     runId: newRunId(),
     userId: session.userId,

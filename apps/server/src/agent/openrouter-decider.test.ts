@@ -63,7 +63,7 @@ describe("createOpenRouterDecider", () => {
       content: "Observ: x. Fac: snapshot. Pentru că: y.",
     });
     expect(sent[0].messages.map((m) => m.role)).toEqual(["system", "user"]);
-    expect(sent[0].tools).toHaveLength(4);
+    expect(sent[0].tools).toHaveLength(15);
 
     replies.push(
       reply("Observ: 16px.", {

@@ -5,15 +5,15 @@ import { TOOL_DEFINITIONS, TOOL_RUNS_ON, type ToolName } from "@uishapeshifter/c
 import { compactResult } from "./compact-result";
 import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
-import { buildSystemPrompt } from "./system-prompt";
+import { buildSystemPrompt, type PromptContext } from "./system-prompt";
 
 const TEMPERATURE = 0.2; // mică, pentru un demo previzibil (specs/05)
 const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
 // de câte ori îi cerem modelului să repare un tool call stricat (nume necunoscut, JSON invalid) în același pas
 const MAX_MALFORMED_CALLS = 2;
 
-// A2: drumul „fă textul mai mare”. A3 deschide restul uneltelor.
-export const A2_TOOLS: readonly ToolName[] = ["get_ui_snapshot", "patch_config", "point_at", "finish"];
+// toate uneltele din contracte (specs/05)
+export const ALL_TOOLS = Object.keys(TOOL_RUNS_ON) as ToolName[];
 
 function isToolName(name: string): name is ToolName {
   return Object.hasOwn(TOOL_RUNS_ON, name);
@@ -33,22 +33,28 @@ function parseArgs(raw: string): Record<string, unknown> | null {
 export interface OpenRouterDeciderOptions {
   tools?: readonly ToolName[];
   retryDelaysMs?: readonly number[]; // testele le pun pe 0
+  /** Profilul și config-ul pentru prompt; se încarcă la primul pas, ca rularea să pornească imediat. */
+  loadContext?: () => Promise<PromptContext>;
 }
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
-  const { tools = A2_TOOLS, retryDelaysMs = RETRY_DELAYS_MS } = options;
+  const { tools = ALL_TOOLS, retryDelaysMs = RETRY_DELAYS_MS, loadContext = async () => ({}) } = options;
   const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const allowed = new Set<ToolName>(tools);
   const definitions = TOOL_DEFINITIONS.filter((definition) => allowed.has(definition.function.name));
-  const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt() },
-    { role: "user", content: goal },
-  ];
+  const messages: ChatMessage[] = [];
   let pendingCallId: string | null = null;
 
   return {
     model,
     async decide(previous): Promise<Decision> {
+      if (messages.length === 0) {
+        const context = await loadContext().catch((error: unknown) => {
+          console.warn("agent: contextul pentru prompt n-a putut fi încărcat:", error);
+          return {};
+        });
+        messages.push({ role: "system", content: buildSystemPrompt(context) }, { role: "user", content: goal });
+      }
       if (previous && pendingCallId) {
         messages.push({
           role: "tool",

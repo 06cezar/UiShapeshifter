@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseReasoning } from "./reasoning";
+import { parseReasoning, withToolFallback } from "./reasoning";
 
 describe("parseReasoning", () => {
   it("desparte rândul „Observ / Fac / Pentru că”", () => {
@@ -26,5 +26,21 @@ describe("parseReasoning", () => {
 
   it("acceptă conținut gol", () => {
     expect(parseReasoning(null)).toEqual({ observation: "", decision: "", reason: "" });
+  });
+});
+
+describe("withToolFallback", () => {
+  const empty = { observation: "", decision: "", reason: "" };
+
+  it("descrie pasul din unealtă când modelul n-a scris rândul", () => {
+    expect(withToolFallback(empty, "point_at", { elementId: "gen.call-ana", message: "Apasă aici." }).decision).toBe(
+      "Arăt cu lăbuța: Apasă aici.",
+    );
+    expect(withToolFallback(empty, "audit_ui", {}).decision).toBe("Verific accesibilitatea.");
+  });
+
+  it("nu atinge un raționament scris de model", () => {
+    const written = { observation: "o", decision: "d", reason: "r" };
+    expect(withToolFallback(written, "say", { message: "x" })).toBe(written);
   });
 });
