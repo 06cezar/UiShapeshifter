@@ -1,9 +1,18 @@
 // Promptul de sistem pentru site-uri reale, etapa 1 (specs/05, „Promptul de sistem”): observă, schimbă doar cu CSS,
 // verifică după, termină cu un rezumat. Profilul omului intră în etapa 3 (A6).
 
-import { HARD_LIMITS, type PageInfo, type SiteToolStage } from "@uishapeshifter/contracts";
+import { HARD_LIMITS, type GeneralPreference, type PageInfo, type SiteToolStage } from "@uishapeshifter/contracts";
+
+/** Ce știe agentul despre om (etapa 3, A6). */
+export interface ProfileContext {
+  /** profileSummary din E1: nevoi, persona, fapte; cel mult ~150 de cuvinte. */
+  summary: string;
+  generalPreferences: GeneralPreference[];
+}
 
 export interface PromptContext {
+  /** Etapa 3: profilul omului; lipsește în etapele 1–2 sau dacă nu s-a putut citi. */
+  profile?: ProfileContext;
   /** Site-ul de pe care a scris omul; lipsește pe pagina de probă. */
   page?: PageInfo;
   /** Etapa extensiei (specs/00): 1 = doar CSS; 2 = și structură, mascotă, audit, Păstrez/Anulez. */
@@ -82,13 +91,47 @@ function stageTwoSections(stage: SiteToolStage): string {
 `;
 }
 
+const MAX_PREFERENCE_CHARS = 120;
+
+function preferenceLine(preference: GeneralPreference, host: string | undefined): string {
+  const appliedHere = host !== undefined && preference.appliedOn.includes(host);
+  return `  - ${pageText(preference.text, MAX_PREFERENCE_CHARS)}${appliedHere ? " (deja aplicată pe acest site)" : ""}`;
+}
+
+/** Etapa 3: profilul și preferințele generale, cu regulile lor (specs/08, A6). */
+function profileSection(profile: ProfileContext | undefined, page: PageInfo | undefined): string {
+  if (!profile) return "";
+  const preferences = profile.generalPreferences.length
+    ? profile.generalPreferences.map((preference) => preferenceLine(preference, page?.host)).join("\n")
+    : "  (niciuna încă)";
+  return `
+## Ce știi despre om
+${pageText(profile.summary, 1200)}
+Preferințe generale (valabile pe orice site):
+${preferences}
+
+## Cum folosești profilul
+- O preferință generală care nu e deja aplicată pe acest site și are elemente pe pagină: o aplici și aici, în aceeași
+  rulare, și o spui în propose_changes („Am ascuns și rezumatele AI, cum vrei pe orice site”), ca omul să poată anula.
+  Omul nu trebuie să-ți repete ce a spus pe alt site.
+- O cerere care sună general („nu vreau AI în site-uri”, „nu-mi plac clipurile scurte”) sau pe care omul a mai făcut-o
+  devine preferință generală: update_profile cu patch
+  [{ "op": "add", "path": "/generalPreferences/-", "value": { "id": "<scurt>", "category": "<ai-features|short-video|stories|promos|clutter|popups|autoplay>",
+  "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"],
+  "createdAt": "<acum, ISO>", "appliedOn": ["<host-ul site-ului>"] } }].
+  O cerere doar pentru site-ul acesta („ascunde bara asta”) nu devine preferință generală.
+- update_profile doar cu ce ai aflat de la om sau din pagină, cu dovezi. Nu inventezi fapte.
+- Nu refaci ce e deja în recipe.css: rețeta site-ului rămâne de la o vizită la alta.
+`;
+}
+
 export function buildSystemPrompt(context: PromptContext = {}): string {
   const stage = context.stage ?? 1;
   return `Ești agentul UI Shapeshifter: schimbi interfața site-ului pe care e omul, după cum vrea el.
 Vorbești în română, scurt, fără jargon tehnic. Te adresezi cu „tu”.
 
 ${pageSection(context.page)}
-
+${profileSection(context.profile, context.page)}
 ## Cum lucrezi
 - Înainte de FIECARE apel de unealtă, fără excepție, scrii un singur rând, exact în forma:
   Observ: <ce vezi>. Fac: <ce faci acum>. Pentru că: <de ce>.
