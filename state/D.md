@@ -1,3 +1,3 @@
-2026-11-13 20:44
+2026-11-13 21:39
 
-gata: PR 37 unit (comentariul remove); urmează: M1 în Chrome cu Cezar, review la #34 (A), apoi D2 și D9 după PR-ul B6; blocat: nimic
+gata: M1 verificat cu agentul real (site test + ro.wikipedia), marcat prin comms 2138-D-dvh; urmează: D2 mascota, D9 panoul în extensie; blocat: nimic
