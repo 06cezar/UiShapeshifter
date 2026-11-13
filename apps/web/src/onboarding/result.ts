@@ -10,17 +10,18 @@ export const FONT_CHOICES_PX = [14, 16, 18, 20, 24, 28] as const;
 export const TOUCH_TARGETS_PX = [72, 64, 56, 48, 40] as const;
 
 /**
- * Pasul 5: ce îl deranjează pe site-uri. `label` e pe card, `summary` în rezumatul de la final („fără …”).
+ * Pasul 5: ce îl deranjează pe site-uri, „cu desene și text” (specs/10): `icon` și `label` pe card, `summary` în
+ * rezumatul de la final („fără …”).
  * Ordinea e cea din specs/10.
  */
-export const DISLIKE_CHOICES: Record<PreferenceCategory, { label: string; summary: string }> = {
-  "ai-features": { label: "Rezumate și butoane AI", summary: "fără rezumate AI" },
-  "short-video": { label: "Clipuri scurte", summary: "fără clipuri scurte" },
-  stories: { label: "Stories", summary: "fără Stories" },
-  promos: { label: "Bannere și promoții", summary: "fără bannere" },
-  clutter: { label: "Pagini aglomerate", summary: "pagini mai simple" },
-  popups: { label: "Ferestre care apar", summary: "fără ferestre care apar" },
-  autoplay: { label: "Redare automată", summary: "fără redare automată" },
+export const DISLIKE_CHOICES: Record<PreferenceCategory, { label: string; summary: string; icon: string }> = {
+  "ai-features": { label: "Rezumate și butoane AI", summary: "fără rezumate AI", icon: "🤖" },
+  "short-video": { label: "Clipuri scurte", summary: "fără clipuri scurte", icon: "🎬" },
+  stories: { label: "Stories", summary: "fără Stories", icon: "⭕" },
+  promos: { label: "Bannere și promoții", summary: "fără bannere", icon: "📢" },
+  clutter: { label: "Pagini aglomerate", summary: "pagini mai simple", icon: "🧩" },
+  popups: { label: "Ferestre care apar", summary: "fără ferestre care apar", icon: "🪟" },
+  autoplay: { label: "Redare automată", summary: "fără redare automată", icon: "▶️" },
 };
 export const DISLIKE_ORDER = Object.keys(DISLIKE_CHOICES) as PreferenceCategory[];
 

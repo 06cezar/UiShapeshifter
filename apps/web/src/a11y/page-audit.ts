@@ -179,7 +179,21 @@ function pageFactsOf(element: HTMLElement): DomFacts {
   const style = getComputedStyle(element);
   if (style.display === "inline") facts.inline = true;
   if (isLinkInSentence(element, style)) facts.inSentence = true;
+  if (isInOverlay(element)) facts.overlay = true;
   return facts;
+}
+
+/**
+ * Elementul sau un strămoș are `position: fixed`/`sticky`. Găsit pe youtube.com: după ce agentul a ascuns raftul
+ * Shorts, video-urile au urcat sub bannerul fix de cookie-uri, iar suprapunerea ieșea „introduced”, așa că agentul
+ * își anula cererea bună.
+ */
+function isInOverlay(element: Element): boolean {
+  for (let node: Element | null = element; node && node !== element.ownerDocument.body; node = node.parentElement) {
+    const position = getComputedStyle(node).position;
+    if (position === "fixed" || position === "sticky") return true;
+  }
+  return false;
 }
 
 /**
