@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "196c7ffd8d1456439e39ea0ab335cd4f2cf21e15",
-  "last_run": "2026-11-13T23:44:38Z",
+  "last_run": "2026-11-13T23:46:32Z",
   "last_sha": "badc7a6cc08d2ed23be55a88511abd367cd29c96",
   "prs": {
     "1": {
@@ -285,6 +285,11 @@
     },
     "57": {
       "head": "a-prompt-ca-site-ul-x",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "58": {
+      "head": "c2-carusel-offscreen",
       "merged_at": null,
       "state": "OPEN"
     },
