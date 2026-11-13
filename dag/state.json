@@ -1,7 +1,7 @@
 {
   "comms": {},
   "last_comms_sha": "e3cf0cb435da9c0eb668cba877387537c6e349cb",
-  "last_run": "2026-11-13T16:38:03Z",
+  "last_run": "2026-11-13T16:45:33Z",
   "last_sha": "f418a7d001b47f08933d2ed195c2c6b81d8f1a5c",
   "prs": {
     "1": {
@@ -136,7 +136,7 @@
     "B2": "progress",
     "B3": "wait",
     "B4": "wait",
-    "B5": "wait",
+    "B5": "progress",
     "B6": "wait",
     "C1": "done",
     "C2": "progress",
