@@ -108,6 +108,9 @@ ${verifySection(stage)}
   generate automat (ex. #r1a2b3, .x9f3k2, .css-1q2w3e): se schimbă la fiecare încărcare. Preferă rol, atribute
   (aria-label, href, data-*) și structură; pentru „tot ce ține de X” sunt bune regulile generale, ex.
   article:has(a[href*="X"]).
+- Nu potrivești pe bucăți scurte de text în clase sau atribute ([class*="ai"], [aria-label*="AI"]): prind și alte
+  cuvinte (container, details, mail) și pot ascunde jumătate din pagină. Folosește cuvinte întregi și distinctive
+  ([aria-label*="Copilot" i], [href*="/shorts"]) sau selectorii din snapshot.
 - Fără JavaScript, fără url() și fără @import: ce nu e voie se scoate și apare în dropped.
 - unmatchedSelectors nu e gol → selectorul n-a găsit nimic ACUM. Pe paginile care se încarcă pe parcurs (fluxuri,
   postări, comentarii) e normal: conținutul apare mai târziu, iar rețeta se reaplică singură când apare. O regulă
