@@ -6,6 +6,7 @@ import { useConfigState, useConfigStoreApi } from "./config-store-context";
 import { currentModule, HOME_ID, homeModules, storiesModule } from "./layout-model";
 import { ModulePlaceholder, ModuleTile } from "./ModuleView";
 import { NavBar } from "./NavBar";
+import { useAgentElement } from "./registry-context";
 import "./layout.css";
 
 export function LayoutRenderer() {
@@ -72,14 +73,7 @@ function SimpleTiles({ open }: TemplateProps) {
     <main className="ui-content">
       {open ? (
         <>
-          <button
-            type="button"
-            className="ui-back"
-            data-agent-id={`nav.${HOME_ID}`}
-            onClick={() => store.getState().navigate(HOME_ID)}
-          >
-            Înapoi la ecranul principal
-          </button>
+          <BackButton onSelect={() => store.getState().navigate(HOME_ID)} />
           <ModulePlaceholder module={open} />
         </>
       ) : (
@@ -90,6 +84,17 @@ function SimpleTiles({ open }: TemplateProps) {
         </div>
       )}
     </main>
+  );
+}
+
+/** În `simple-tiles` nu există meniu: butonul mare „Înapoi” ține locul intrării „Acasă” (`nav.home`). */
+function BackButton({ onSelect }: { onSelect: () => void }) {
+  const agentId = `nav.${HOME_ID}`;
+  const ref = useAgentElement(agentId);
+  return (
+    <button ref={ref} type="button" className="ui-back" data-agent-id={agentId} onClick={onSelect}>
+      Înapoi la ecranul principal
+    </button>
   );
 }
 

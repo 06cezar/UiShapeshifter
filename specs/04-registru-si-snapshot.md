@@ -41,7 +41,8 @@ registry.ensureVisible(id): Promise<"visible" | "scrolled" | "hidden">
 - Ca rezervă, `snapshot()` caută și `document.querySelectorAll("[data-agent-id]")`, ca nimic să nu scape.
 - `snapshot()` calculează pentru fiecare element: `rect` (`getBoundingClientRect`), `visible`, `inViewport`,
   `fontPx`/`fontWeight`/`color` (`getComputedStyle`), `background` (primul strămoș cu fundal opac), `contrast`
-  (formula WCAG), `clipped` (`scrollWidth > clientWidth + 1`).
+  (formula WCAG), `clipped` (`scrollWidth > clientWidth + 1` sau `scrollHeight > clientHeight + 1`, dar nu pe
+  o axă care derulează, cu `overflow` `auto`/`scroll`: o listă care derulează nu e text tăiat).
 - Snapshot-ul trimis modelului se compactează: doar elementele vizibile din modulul curent + navigația,
   numere rotunjite, cel mult 80 de elemente.
 
