@@ -10,6 +10,7 @@ import { startRun } from "./agent/run-manager";
 import { configRouter } from "./config/routes";
 import { createProfileRouter, ONBOARDING_GOAL, profileStore } from "./profile";
 import { recipesRouter } from "./recipes/routes";
+import { createAccountsRouter } from "./accounts/routes";
 import { runsRouter } from "./runs/routes";
 import { handleConnection } from "./ws/connection";
 
@@ -33,6 +34,7 @@ export function createAppServer(): Server {
   app.use("/api", runsRouter);
   app.use("/api", configRouter);
   app.use("/api", recipesRouter);
+  app.use("/api", createAccountsRouter()); // conturile opționale și sincronizarea (E6)
   app.use(
     "/api/profile",
     createProfileRouter(profileStore, {
