@@ -8,6 +8,17 @@ import { createRunRouter } from "./run-router";
 import { startServerLink, type ServerLink } from "./server-link";
 import { getOrCreateSessionId, getOrCreateUserId } from "./storage";
 
+/** Pus de build.mjs: true dacă pagina testului inițial (C3) e în build. */
+declare const __UIS_ONBOARDING__: boolean;
+
+// La instalare se deschide testul inițial (C3, specs/10): ce citește comod, ce îl deranjează, ce site-uri cunoaște.
+// Rezultatul ajunge în chrome.storage.local („onboarding”) și pe server, de unde îl citesc fontul minim și agentul.
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  if (__UIS_ONBOARDING__ && reason === "install") {
+    void chrome.tabs.create({ url: chrome.runtime.getURL("onboarding.html") });
+  }
+});
+
 const SERVER_WS_URL = `ws://localhost:${SERVER_PORT}/ws`;
 
 const pagePorts = new Set<chrome.runtime.Port>();
