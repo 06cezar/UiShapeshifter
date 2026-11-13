@@ -6,6 +6,11 @@ import { useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { TOUCH_TARGETS_PX, type TouchTrial } from "./result";
 
+/**
+ * După ce apare o țintă nouă, o apăsare pe lângă ea e ignorată atâta timp: al doilea click al unui dublu-click ar
+ * cădea pe locul vechi și s-ar număra ca ratare, iar o singură ratare la 64px duce la butoane de 72px pe toate site-urile.
+ */
+export const TARGET_INPUT_GUARD_MS = 400;
 /** După atâtea ratări trecem la ținta următoare, ca omul să nu se blocheze. */
 const MAX_MISSES_PER_TARGET = 3;
 /** Unde apare fiecare țintă în zonă, în procente (x, y): mereu în alt loc, dar la fel la fiecare rulare. */
@@ -19,9 +24,11 @@ const TARGET_POSITIONS: readonly [number, number][] = [
 
 export interface TouchTestProps {
   onDone: (trials: TouchTrial[]) => void;
+  /** Pentru teste: pauza după o țintă nouă (implicit TARGET_INPUT_GUARD_MS). */
+  inputGuardMs?: number;
 }
 
-export function TouchTest({ onDone }: TouchTestProps) {
+export function TouchTest({ onDone, inputGuardMs = TARGET_INPUT_GUARD_MS }: TouchTestProps) {
   const [index, setIndex] = useState(0);
   const [misses, setMisses] = useState(0);
   const trials = useRef<TouchTrial[]>([]);
@@ -52,6 +59,7 @@ export function TouchTest({ onDone }: TouchTestProps) {
 
   function onAreaPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return; // a apăsat pe țintă, nu lângă
+    if (performance.now() - shownAt.current < inputGuardMs) return; // restul unui dublu-click, nu o ratare
     const missCount = misses + 1;
     if (missCount >= MAX_MISSES_PER_TARGET) finishTarget(false, missCount, "pointer");
     else setMisses(missCount);
