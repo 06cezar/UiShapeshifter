@@ -1,3 +1,3 @@
-2026-11-14 01:41
+2026-11-14 01:47
 
-gata: b4-refacere impins (zone + liste); probe reale: test-site ok, Bing start/rezultate partial. urmeaza: acord Stefan pe mesajul catre A si pe reparatiile din registru (fundaluri, coloane dupa ascundere, opacity 0). blocat: nimic
+gata: b4-refacere impins cu fundaluri (4a) si coloane persistente (4b); extensia reconstruita pe tmp-proba-ca-site. urmeaza: Stefan reincarca extensia, apoi probele din nou. blocat: nimic
