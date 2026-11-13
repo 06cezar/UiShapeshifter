@@ -27,5 +27,18 @@ declare namespace chrome {
     const local: StorageArea;
     /** Ține cât e pornit browserul, peste repornirile service worker-ului. */
     const session: StorageArea;
+    const onChanged: {
+      addListener(
+        listener: (changes: Record<string, { oldValue?: unknown; newValue?: unknown }>, areaName: string) => void,
+      ): void;
+    };
+  }
+
+  namespace tabs {
+    interface Tab {
+      id?: number;
+      url?: string;
+    }
+    function query(query: { active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
   }
 }
