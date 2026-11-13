@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "aed563b8ae3608a23629a6d5c5ef8b51b64cc81e",
-  "last_run": "2026-11-13T16:06:01Z",
+  "last_comms_sha": "7321270526bc5f119133e77f169be8c5315a452d",
+  "last_run": "2026-11-13T16:07:14Z",
   "last_sha": "8dc91752fc797d04fd02b71e52a3812997964ab7",
   "prs": {
     "1": {
@@ -66,6 +66,11 @@
     },
     "20": {
       "head": "d7-contracte-site",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "21": {
+      "head": "d-plan-b2-b5-la-e",
       "merged_at": null,
       "state": "OPEN"
     },
