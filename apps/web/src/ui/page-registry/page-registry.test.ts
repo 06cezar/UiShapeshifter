@@ -285,6 +285,25 @@ describe("listele care se repetă nu umplu singure rezumatul", () => {
   });
 });
 
+describe("fundalurile mari decorative (imaginea de pe pagina de start Bing)", () => {
+  test("un fundal care acoperă mare parte din ecran intră în rezumat, chiar pe o pagină plină", () => {
+    layoutFromData();
+    const links = Array.from(
+      { length: SNAPSHOT_LIMITS.maxElements + 20 },
+      (_, i) => `<a href="/p${i}" class="l${i}">L${i}</a>`,
+    ).join("");
+    document.body.innerHTML = `
+      <div id="hp_top_cover" style="background-image: url(fundal.jpg)" data-x="0" data-y="0" data-w="1024" data-h="700"></div>
+      <div id="mic" style="background-image: url(icon.png)" data-x="0" data-y="0" data-w="40" data-h="40"></div>
+      ${links}`;
+    const snap = registry().snapshot();
+    expect(snap.elements).toHaveLength(SNAPSHOT_LIMITS.maxElements);
+    const backgrounds = snap.elements.filter((e) => e.label === "Imagine de fundal");
+    expect(backgrounds.map((e) => e.selector)).toEqual(["#hp_top_cover"]);
+    expect(backgrounds[0]).toMatchObject({ role: "img", visible: true, interactive: false });
+  });
+});
+
 describe("coloanele rămân zone după ce rețeta ascunde vecina", () => {
   test("#b_results rămâne zonă după ce coloana din dreapta dispare", () => {
     layoutFromData();

@@ -102,6 +102,13 @@ const NOT_KIND_ATTRIBUTES = new Set(["id", "class", "style", "hidden", "tabindex
 /** Câte elemente ascunse de site (din meniuri închise) intră cel mult în rezumat; au locuri rezervate. */
 const MAX_SITE_HIDDEN = 15;
 
+/** Un fundal decorativ (background-image) acoperă cel puțin atâta din ecran, ca imaginea de pe pagina de start Bing. */
+const BACKGROUND_MIN_VIEWPORT_SHARE = 0.4;
+/** Câte fundaluri intră cel mult în rezumat; au locuri rezervate, ca restul paginii să nu le împingă afară. */
+const MAX_BACKGROUNDS = 3;
+/** Fundalul n-are text sau rol: îi dăm noi un nume, ca agentul să-l găsească la „scoate imaginea”. */
+const BACKGROUND_LABEL = "Imagine de fundal";
+
 /** O coloană a conținutului principal e cel puțin atât de lată (rezultatele, coloana din dreapta). */
 const COLUMN_MIN_WIDTH_PX = 200;
 /** Măcar o coloană din rând e atât de înaltă: un rând de carduri scurte nu e o așezare pe coloane. */
@@ -218,6 +225,29 @@ function createRepeatDepth(): (element: Element) => number {
     }
     return depth;
   };
+}
+
+/** Cât din ecran acoperă dreptunghiul (0–1). */
+function viewportShare(rect: DOMRect, viewport: { width: number; height: number }): number {
+  const width = Math.max(0, Math.min(rect.x + rect.width, viewport.width) - Math.max(rect.x, 0));
+  const height = Math.max(0, Math.min(rect.y + rect.height, viewport.height) - Math.max(rect.y, 0));
+  return (width * height) / (viewport.width * viewport.height);
+}
+
+/**
+ * Fundalurile mari decorative: div-uri fără text și fără rol, cu o imagine de fundal pe mare parte din ecran. Nu sunt
+ * printre elementele obișnuite ale rezumatului, deci agentul nu avea ce să ascundă la „fă-l să arate ca Google”.
+ */
+function findBackgrounds(doc: Document, ourHostId: string, viewport: { width: number; height: number }): Element[] {
+  if (viewport.width === 0 || viewport.height === 0) return [];
+  const found: Element[] = [];
+  for (const element of doc.body?.querySelectorAll("*") ?? []) {
+    if (found.length >= MAX_BACKGROUNDS) break;
+    if (viewportShare(element.getBoundingClientRect(), viewport) < BACKGROUND_MIN_VIEWPORT_SHARE) continue;
+    if (!getComputedStyle(element).backgroundImage.includes("url(") || isOurs(element, ourHostId)) continue;
+    found.push(element);
+  }
+  return found;
 }
 
 function byDocumentOrder(a: Element, b: Element): number {
@@ -489,9 +519,44 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       return { e, index, tier, depth };
     });
     const ordered = ranked.sort((a, b) => a.tier - b.tier || a.depth - b.depth || a.index - b.index).map(({ e }) => e);
+    // Fundalurile mari, și cele ascunse deja de rețetă (ca agentul să-și vadă munca), cu locuri rezervate.
+    const backgroundsShown = findBackgrounds(doc, options.ourHostId, viewport);
+    const backgroundsHidden: Element[] = [];
+    if (sheet) {
+      sheet.disabled = true;
+      for (const element of findBackgrounds(doc, options.ourHostId, viewport)) {
+        if (!backgroundsShown.includes(element)) backgroundsHidden.push(element);
+      }
+      sheet.disabled = false;
+    }
+    const listedSet = new Set(listed);
+    const backgrounds: PageElement[] = [...backgroundsShown, ...backgroundsHidden]
+      .filter((element) => !listedSet.has(element) && (!scope || scope.contains(element)))
+      .slice(0, MAX_BACKGROUNDS)
+      .map((element) => {
+        const visible = backgroundsShown.includes(element);
+        return {
+          id: idOf(element),
+          selector: buildSelector(element, doc),
+          tag: element.tagName.toLowerCase(),
+          role: "img",
+          label: BACKGROUND_LABEL,
+          regionId: regionOf(element)?.id,
+          rect: rectOf(element),
+          visible,
+          inViewport: visible,
+          interactive: false,
+          ...(visible ? {} : { hiddenBy: "recipe" as const }),
+        };
+      });
+
     const siteHidden = ordered.filter((e) => e.hiddenBy === "site").slice(0, MAX_SITE_HIDDEN);
     const others = ordered.filter((e) => e.hiddenBy !== "site");
-    const kept = [...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length), ...siteHidden];
+    const kept = [
+      ...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length - backgrounds.length),
+      ...backgrounds,
+      ...siteHidden,
+    ];
 
     const regionList: PageRegion[] = regions.map(({ element, id, role }) => ({
       id,
@@ -512,7 +577,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       viewport,
       regions: regionList,
       elements: kept,
-      truncated: elements.length > kept.length,
+      truncated: elements.length + backgrounds.length > kept.length,
       recipe: {
         revision: recipe.revision,
         css:
