@@ -1,0 +1,260 @@
+/* Testul inițial (specs/10). Culorile și spațierile vin din temă (variabilele scrise de ui/theme-sync.ts);
+   fontul și țintele pornesc de la --onboarding-font / --onboarding-target (20px / 56px, din Onboarding.tsx)
+   și cresc dacă tema cere mai mult. */
+
+.onboarding {
+  --onb-font: max(var(--font-base, var(--onboarding-font)), var(--onboarding-font));
+  --onb-target: max(var(--min-target, var(--onboarding-target)), var(--onboarding-target));
+  --onb-gap: calc(var(--spacing) * 2);
+  /* Restul mărimilor derivă din spațiere și din țintă, ca totul să crească odată cu tema. */
+  --onb-hairline: calc(var(--spacing) / 4);
+  --onb-thick: calc(var(--spacing) / 2);
+  --onb-sketch-gap: calc(var(--spacing) / 2);
+  --onb-sketch-radius: calc(var(--radius) / 3);
+
+  box-sizing: border-box;
+  min-height: 100vh;
+  max-width: calc(var(--onb-target) * 14);
+  margin: 0 auto;
+  padding: var(--onb-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--onb-gap);
+  font-family: var(--font-family);
+  font-size: var(--onb-font);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+.onboarding *,
+.onboarding *::before,
+.onboarding *::after {
+  box-sizing: border-box;
+}
+
+.onboarding__header,
+.onboarding__row,
+.onboarding__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--onb-gap);
+}
+
+.onboarding__header {
+  justify-content: space-between;
+}
+
+.onboarding__progress {
+  color: var(--color-text-muted);
+}
+
+.onboarding__mascot {
+  margin: 0;
+  padding: var(--onb-gap);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: var(--onb-hairline) solid var(--color-primary);
+}
+
+.onboarding__title {
+  margin: 0;
+  font-size: max(var(--font-step-2, var(--onb-font)), var(--onb-font));
+  line-height: var(--line-height);
+}
+
+.onboarding__title:focus {
+  outline: none;
+}
+
+.onboarding__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onb-gap);
+}
+
+.onboarding__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.onboarding__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--onb-target) * 4), 1fr));
+  gap: var(--onb-gap);
+}
+
+/* Toate butoanele testului: ținte mari, text mare, contur de focus vizibil. */
+.onboarding button {
+  min-width: var(--onb-target);
+  min-height: var(--onb-target);
+  padding: var(--spacing) var(--onb-gap);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+.onboarding button:focus-visible {
+  outline: var(--onb-thick) solid var(--color-focus);
+  outline-offset: var(--onb-thick);
+}
+
+.onboarding button:disabled {
+  cursor: wait;
+}
+
+.onboarding__primary {
+  align-self: flex-start;
+  border: var(--onb-hairline) solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.onboarding__secondary,
+.onboarding__skip,
+.onboarding__choice,
+.onboarding__card {
+  border: var(--onb-hairline) solid var(--color-text-muted);
+  background: var(--color-background);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.onboarding__skip {
+  border-color: var(--color-text);
+}
+
+.onboarding__choice[aria-pressed="true"],
+.onboarding__card[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 var(--onb-hairline) var(--color-primary);
+}
+
+.onboarding__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+  padding: var(--onb-gap);
+}
+
+/* Pasul 3: cardul obișnuit e textul secundar pe suprafață; cel cu contrast mare, textul principal pe fundal. */
+.onboarding__card--normal {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.onboarding__card--high {
+  border: var(--onb-thick) solid var(--color-text);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* Pasul 4: zona în care apar țintele. */
+.onboarding__touch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.onboarding__touch-area {
+  position: relative;
+  height: 50vh;
+  min-height: calc(var(--onb-target) * 5);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  touch-action: manipulation;
+}
+
+.onboarding .onboarding__touch-target {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  /* mărimea vine din test (72 → 40px), nu din temă: tocmai asta măsurăm */
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: var(--onb-thick) solid var(--color-on-primary);
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+/* Pasul 6: desenele structurilor. */
+.onboarding__sketch {
+  display: flex;
+  gap: var(--onb-sketch-gap);
+  height: calc(var(--onb-target) * 2);
+  padding: var(--onb-sketch-gap);
+  border: var(--onb-hairline) solid var(--color-text-muted);
+  border-radius: var(--radius);
+  background: var(--color-background);
+}
+
+.onboarding__sketch--bottom-nav-stories {
+  flex-direction: column;
+}
+
+.onboarding__sketch-side {
+  flex: 0 0 25%;
+  border-radius: var(--onb-sketch-radius);
+  background: var(--color-primary);
+}
+
+.onboarding__sketch-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--onb-sketch-gap);
+}
+
+.onboarding__sketch-line {
+  flex: 1;
+  border-radius: var(--onb-sketch-radius);
+  background: var(--color-surface);
+}
+
+.onboarding__sketch-dots {
+  display: flex;
+  gap: var(--onb-sketch-gap);
+}
+
+.onboarding__sketch-dot {
+  width: calc(var(--spacing) * 2);
+  height: calc(var(--spacing) * 2);
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.onboarding__sketch-bar {
+  flex: 0 0 calc(var(--spacing) * 2);
+  border-radius: var(--onb-sketch-radius);
+  background: var(--color-primary);
+}
+
+.onboarding__sketch-tiles {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--onb-sketch-gap);
+}
+
+.onboarding__sketch-tile {
+  border-radius: var(--onb-sketch-radius);
+  background: var(--color-primary);
+}
+
+.onboarding__error {
+  padding: var(--onb-gap);
+  border: var(--onb-hairline) solid var(--color-danger);
+  border-radius: var(--radius);
+}
+
+.onboarding__error p {
+  margin: 0 0 var(--spacing);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .onboarding button {
+    transition: box-shadow 150ms ease;
+  }
+}

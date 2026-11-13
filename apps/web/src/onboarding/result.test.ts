@@ -112,7 +112,9 @@ describe("rezumatul", () => {
       touch: trials({ 72: true, 64: true, 56: false }),
       navPosition: "bottom",
     });
-    expect(summaryText(result)).toBe("Am pregătit aplicația așa: text de 20px, butoane mari, meniul jos. Poți schimba oricând.");
+    expect(summaryText(result)).toBe(
+      "Am pregătit aplicația așa: text de 20px, butoane mari, meniul jos. Poți schimba oricând.",
+    );
   });
   it("fără răspunsuri", () => {
     expect(summaryText(buildOnboardingResult({}))).toBe("Am păstrat aplicația obișnuită. Poți schimba oricând.");
