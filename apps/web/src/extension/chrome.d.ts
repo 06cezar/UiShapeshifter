@@ -40,5 +40,6 @@ declare namespace chrome {
       url?: string;
     }
     function query(query: { active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
+    const onActivated: { addListener(listener: (info: { tabId: number; windowId: number }) => void): void };
   }
 }
