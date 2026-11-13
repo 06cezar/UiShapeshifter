@@ -161,7 +161,7 @@ _nimic_
 
 ## În lucru
 
-- **B6** (B) Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul: branch `b6-domop` are commit-uri; încă așteaptă M1 _(Etapa 2 · sâm 00:00. Gata = „mută căutarea sus” rezistă la reîncărcare și la navigarea în interiorul site-ului; Anulez scoate doar ultima schimbare.)_
+- **B6** (B) Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul: PR #36 deschis; încă așteaptă M1 _(Etapa 2 · sâm 00:00. Gata = „mută căutarea sus” rezistă la reîncărcare și la navigarea în interiorul site-ului; Anulez scoate doar ultima schimbare.)_
 - **A3** (A) Uneltele etapei 2 - apply\_ops, point\_at, propose\_changes, ask\_user, wait\_for\_user\_click + promptul care cere verificare după fiecare schimbare: branch `a3-unelte` are commit-uri; încă așteaptă M1 _(Etapa 2 · sâm 00:30. Gata = agentul mută un element, verifică, cere Păstrez/Anulez și arată rezultatul; la o cerere neclară întreabă.)_
 - **C3** (C) Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10): PR #9 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.)_
 
