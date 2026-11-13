@@ -13,9 +13,9 @@
       }
     }
   },
-  "last_comms_sha": "2f76d2755e14f7487b60bc3adcf3b0a4262476c0",
-  "last_run": "2026-11-13T21:27:48Z",
-  "last_sha": "12b1f55d71d751a4a6695a09a4cd7939194ec340",
+  "last_comms_sha": "dc1ca257a6b6cb5a5724b903b0a566215f482d9c",
+  "last_run": "2026-11-13T21:33:51Z",
+  "last_sha": "e605f500da259477e9cf895fc478ca355365ceda",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -199,8 +199,8 @@
     },
     "42": {
       "head": "e2-semnale",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T21:33:42Z",
+      "state": "MERGED"
     },
     "43": {
       "head": "a3-etapa-implicita-1",
@@ -272,7 +272,7 @@
     "D8": "done",
     "D9": "progress",
     "E1": "done",
-    "E2": "progress",
+    "E2": "done",
     "E3": "wait",
     "E4": "wait",
     "E5": "done",
