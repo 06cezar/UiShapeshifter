@@ -75,6 +75,31 @@ describe("preferințele de bază, cu profilul „20px, contrast mare”", () => 
   });
 });
 
+describe("rândurile și marginile", () => {
+  it("rândurile prea înghesuite ajung la 1.5 (WCAG 1.4.12), și cele cu înălțime fixă după ce crește fontul", () => {
+    page(`
+      <p id="normal" style="font-size: 20px; line-height: normal">Text</p>
+      <p id="fix" style="font-size: 12px; line-height: 14px">Text mic, rânduri fixe</p>
+      <p id="aerisit" style="font-size: 20px; line-height: 32px">Deja aerisit</p>
+      <h2 id="titlu" style="font-size: 28px; line-height: 1.1">Titlu</h2>`);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(el("normal").style.getPropertyValue("line-height")).toBe("1.5");
+    expect(el("fix").style.getPropertyValue("line-height")).toBe("1.5");
+    expect(el("aerisit").style.getPropertyValue("line-height")).toBe("32px"); // al site-ului, neschimbat
+    expect(el("titlu").style.getPropertyValue("line-height")).toBe("1.1"); // titlurile nu sunt text de citit
+  });
+
+  it("marginea unui buton care abia se vede ajunge la 3:1 pe fundalul din jur (WCAG 1.4.11)", () => {
+    page(
+      `<button id="palid" data-rect="80,60" style="border: 1px solid #dddddd; color: #000000; font-size: 20px">RO</button>`,
+    );
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    const border = el("palid").style.getPropertyValue("border-color");
+    expect(border).not.toBe("");
+    expect(contrastRatio(toHex(parseColor(border)!), "#FFFFFF")).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("peste CSS-ul agentului", () => {
   it("o regulă !important a rețetei, cu selector specific, nu coboară textul sub minim", () => {
     const recipe = document.createElement("style");

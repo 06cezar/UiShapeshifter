@@ -1,5 +1,6 @@
 // Preferințele de bază, fără AI (C4, specs/07 nivelul 2): din profil, pe orice site, de la prima încărcare.
-// Ridică textul sub fontul minim, culorile sub contrastul cerut și țintele sub mărimea minimă. Nu schimbă structura
+// Ridică textul sub fontul minim, culorile sub contrastul cerut, rândurile prea înghesuite (WCAG 1.4.12), marginile
+// butoanelor care abia se văd (WCAG 1.4.11) și țintele sub mărimea minimă. Nu schimbă structura
 // și nu ascunde nimic; doar aduce pagina la limitele omului.
 //
 // De ce stil inline cu `!important`, element cu element: CSS-ul nu poate spune „cel puțin 20px” fără să afle mărimea
@@ -7,9 +8,9 @@
 // a rețetei agentului cu un selector mai specific ar bate orice foaie de-a noastră; un stil inline `!important` nu
 // poate fi bătut de nicio foaie. Așa se aplică „ultimele, peste tot ce a scris agentul”.
 
-import type { AuditThresholds, UserNeeds } from "@uishapeshifter/contracts";
+import { HARD_LIMITS, type AuditThresholds, type UserNeeds } from "@uishapeshifter/contracts";
 import { adjustToContrast, composite, contrastRatio, parseColor, requiredTextContrast, toHex } from "./contrast";
-import { effectiveBackground } from "./dom";
+import { effectiveBackground, factsOf } from "./dom";
 import { hasOwnText, isInteractive, isLinkInSentence, isVisible, SKIPPED_TAGS } from "./page-audit";
 import { thresholdsFor } from "./thresholds";
 
@@ -17,6 +18,8 @@ import { thresholdsFor } from "./thresholds";
 export const BASE_STYLE_ID = "uishapeshifter-base";
 /** Câte elemente verificăm cel mult la o trecere; o pagină mai mare primește restul pe măsură ce se schimbă. */
 export const MAX_BASE_ELEMENTS = 20_000;
+/** `line-height: normal` în browsere e ~1.2 din mărimea fontului (la fel ca în dom.ts). */
+const NORMAL_LINE_HEIGHT = 1.2;
 
 const REDUCED_MOTION_CSS =
   "*, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;" +
@@ -113,15 +116,25 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     if (!isVisible(element, rect)) return;
     const style = getComputedStyle(element);
     if (hasOwnText(element)) planText(element, style, thresholds, writes);
-    if (isInteractive(element) && !isLinkInSentence(element, style))
-      planTarget(element, style, rect, thresholds, writes);
+    if (!isInteractive(element)) return;
+    planBorder(element, writes);
+    if (!isLinkInSentence(element, style)) planTarget(element, style, rect, thresholds, writes);
   }
 
   function planText(element: HTMLElement, style: CSSStyleDeclaration, t: AuditThresholds, writes: StyleWrite[]): void {
-    let fontPx = parseFloat(style.fontSize);
+    const originalFontPx = parseFloat(style.fontSize);
+    let fontPx = originalFontPx;
     if (fontPx < t.minFontPx) {
       writes.push({ element, property: "font-size", value: `${t.minFontPx}px` });
       fontPx = t.minFontPx;
+    }
+    // Rândurile, cu fontul de după ridicare: un `line-height` fix în px devine prea strâns când textul crește.
+    if (isContentText(element)) {
+      const lineHeightPx =
+        style.lineHeight === "normal" ? NORMAL_LINE_HEIGHT * originalFontPx : parseFloat(style.lineHeight);
+      if (Number.isFinite(lineHeightPx) && lineHeightPx / fontPx < t.minLineHeight) {
+        writes.push({ element, property: "line-height", value: String(t.minLineHeight) });
+      }
     }
     const color = parseColor(style.color);
     if (!color) return;
@@ -131,6 +144,17 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     if (contrastRatio(text, background) < required) {
       writes.push({ element, property: "color", value: adjustToContrast(text, background, required) });
     }
+  }
+
+  /** Marginea unui buton sau câmp, dacă abia se vede pe fundalul din jur: aceeași nuanță, până la 3:1 (WCAG 1.4.11). */
+  function planBorder(element: HTMLElement, writes: StyleWrite[]): void {
+    const border = factsOf(element).nonText;
+    if (!border || contrastRatio(border.color, border.background) >= HARD_LIMITS.minContrastUi) return;
+    writes.push({
+      element,
+      property: "border-color",
+      value: adjustToContrast(border.color, border.background, HARD_LIMITS.minContrastUi),
+    });
   }
 
   function planTarget(
@@ -201,4 +225,9 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     },
     adjustedCount: () => saved.size,
   };
+}
+
+/** Text de citit (paragrafe, liste), nu butoane sau titluri: aceeași regulă ca `line-height` din audit.ts. */
+function isContentText(element: HTMLElement): boolean {
+  return !isInteractive(element) && !/^h[1-6]$/.test(element.localName) && element.getAttribute("role") !== "heading";
 }
