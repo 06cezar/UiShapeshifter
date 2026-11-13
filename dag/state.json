@@ -14,7 +14,7 @@
     }
   },
   "last_comms_sha": "1cdd9157235a2234df95f5031e963a9dc1094bd0",
-  "last_run": "2026-11-13T21:49:27Z",
+  "last_run": "2026-11-13T21:49:45Z",
   "last_sha": "67b070a6fb79db7e50d000afae592acf29e23c91",
   "prs": {
     "1": {
@@ -224,6 +224,11 @@
     },
     "47": {
       "head": "b3-generate",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "48": {
+      "head": "d10-voce",
       "merged_at": null,
       "state": "OPEN"
     },
