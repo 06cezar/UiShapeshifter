@@ -1,22 +1,24 @@
 // Executorul uneltelor „web” în pagina unui site (etapa 1, specs/05 și 06): primește tool_call de la server, întoarce
-// tool_result. get_page_snapshot îl face registrul (B2), apply_css motorul de rețete (B5), say bula mascotei (D).
+// tool_result. get_page_snapshot îl face registrul (B2), apply_css și apply_ops motorul de rețete (B5, B6),
+// say bula mascotei (D).
 
-import type { ApplyCssData, PageSnapshot, ToolName, ToolResult } from "@uishapeshifter/contracts";
+import type { ApplyCssData, ApplyOpsData, PageSnapshot, ToolName, ToolResult } from "@uishapeshifter/contracts";
 import type { PageRegistry } from "../ui/page-registry/registry";
 
-/** Motorul de rețete, așa cum îl vede executorul (îl implementează B5). */
-export interface CssApplier {
+/** Motorul de rețete, așa cum îl vede executorul (recipe-engine.ts, B5 și B6). */
+export interface RecipeApplier {
   applyCss(args: {
     css: string;
     mode?: "append" | "replace";
     reason: string;
     runId?: string;
   }): Promise<ToolResult<ApplyCssData>>;
+  applyOps(args: { ops: unknown[]; reason: string; runId?: string }): Promise<ToolResult<ApplyOpsData>>;
 }
 
 export interface PageToolDeps {
   registry: PageRegistry;
-  recipes?: CssApplier;
+  recipes?: RecipeApplier;
   /** Arată mesajul agentului (bula mascotei, D3); fără ea, îl ignorăm, dar răspundem „shown”. */
   say?(message: string): void;
 }
@@ -58,6 +60,14 @@ export async function runPageTool(
         }
         if (!deps.recipes) return fail("INTERNAL", "Motorul de rețete nu e încă pornit în pagină.");
         return await deps.recipes.applyCss({ css: a.css, mode: a.mode, reason: a.reason, runId });
+      }
+      case "apply_ops": {
+        // Forma fiecărei operații o verifică motorul (dom-ops.ts), cu motive în `skipped` pe care modelul le citește.
+        if (!Array.isArray(a.ops) || typeof a.reason !== "string" || !a.reason.trim()) {
+          return fail("INVALID_ARGS", "apply_ops cere ops (listă de operații) și reason (o propoziție).");
+        }
+        if (!deps.recipes) return fail("INTERNAL", "Motorul de rețete nu e încă pornit în pagină.");
+        return await deps.recipes.applyOps({ ops: a.ops, reason: a.reason, runId });
       }
       case "say": {
         if (typeof a.message !== "string") return fail("INVALID_ARGS", "say cere message.");
