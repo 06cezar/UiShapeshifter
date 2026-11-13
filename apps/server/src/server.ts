@@ -9,6 +9,7 @@ import { WEB_PORT } from "@uishapeshifter/contracts";
 import { startRun } from "./agent/run-manager";
 import { configRouter } from "./config/routes";
 import { createProfileRouter, ONBOARDING_GOAL, profileStore } from "./profile";
+import { recipesRouter } from "./recipes/routes";
 import { runsRouter } from "./runs/routes";
 import { handleConnection } from "./ws/connection";
 
@@ -31,6 +32,7 @@ export function createAppServer(): Server {
   // Rutele din specs/06 se adaugă aici de proprietarii lor (A: runs, config; E: profile).
   app.use("/api", runsRouter);
   app.use("/api", configRouter);
+  app.use("/api", recipesRouter);
   app.use(
     "/api/profile",
     createProfileRouter(profileStore, {
