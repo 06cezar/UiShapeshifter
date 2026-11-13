@@ -1,3 +1,3 @@
-2026-11-13 16:40
+2026-11-13 18:12
 
-gata: E1 (#8 unit); urmează: PR #12 (tmp unic) așteaptă review de la A; PR date de test e4-date-test de deschis; E2 după B2; blocat: nimic
+E5 gata pe e5-extensie (împins, PR de deschis din browser); verificat în Edge pe localhost, example.com, ro.wikipedia: semnul apare, proba face dus-întors. Urmează: E7 după M0; blocat: nimic
