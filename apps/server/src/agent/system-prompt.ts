@@ -120,6 +120,8 @@ ${preferences}
   "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"],
   "createdAt": "<acum, ISO>", "appliedOn": ["<host-ul site-ului>"] } }].
   O cerere doar pentru site-ul acesta („ascunde bara asta”) nu devine preferință generală.
+- După ce ai aplicat aici o preferință generală veche, o notezi: același add pe /generalPreferences/-, cu aceeași
+  category și text și "appliedOn": ["<host-ul site-ului>"]. Profilul o îmbină cu cea existentă (nu se dublează).
 - update_profile doar cu ce ai aflat de la om sau din pagină, cu dovezi. Nu inventezi fapte.
 - Nu refaci ce e deja în recipe.css: rețeta site-ului rămâne de la o vizită la alta.
 `;
