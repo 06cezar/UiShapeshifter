@@ -8,6 +8,8 @@ export const MAX_SUMMARY_WORDS = 150;
 const TOP_FACTS = 5;
 /** Câte elemente din fiecare listă (scopuri, sarcini, contacte, dificultăți). */
 const MAX_LIST_ITEMS = 3;
+/** Preferințele generale sunt scurte și importante: încap mai multe decât din celelalte liste. */
+const MAX_GENERAL_PREFERENCES = 6;
 
 const AGE_LABEL: Record<NonNullable<Persona["ageRange"]>, string> = {
   "18-34": "18-34 de ani",
@@ -45,6 +47,23 @@ function summaryParts(profile: UserProfile): string[] {
   if (needs.reducedMotion) needList.push("fără animații");
   if (needs.prefersVoice) needList.push("preferă vocea");
   parts.push(`Nevoi (obligatorii): ${needList.join(", ")}.`);
+
+  // E8: ce vrea omul pe ORICE site și ce site-uri cunoaște; imediat după nevoi, fiindcă schimbă ce face agentul.
+  const general = profile.generalPreferences ?? [];
+  if (general.length) {
+    parts.push(
+      `Vrea peste tot: ${general
+        .slice(0, MAX_GENERAL_PREFERENCES)
+        .map((p) => p.text)
+        .join("; ")}.`,
+    );
+  }
+  const familiar = profile.familiarSites ?? [];
+  if (familiar.length) {
+    const daily = familiar.filter((site) => site.level === "daily");
+    const shown = (daily.length ? daily : familiar).slice(0, MAX_LIST_ITEMS).map((site) => site.host);
+    parts.push(`Site-uri cunoscute bine: ${shown.join(", ")}.`);
+  }
 
   const prefList: string[] = [];
   if (prefs.navPosition) prefList.push(`meniul ${NAV_LABEL[prefs.navPosition]}`);
