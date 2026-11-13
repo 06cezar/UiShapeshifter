@@ -4,6 +4,7 @@
 
 import type { AuditReport } from "./audit";
 import type { ComponentSpec } from "./components";
+import type { DomOp, HtmlDropped, SkippedOp } from "./dom-ops";
 import type { PageSnapshot } from "./page-snapshot";
 import type { MascotState } from "./protocol";
 import type { ProfileFact, UserProfile } from "./profile";
@@ -16,6 +17,7 @@ import type { JsonPatchOp, LayoutTemplate } from "./ui-config";
 export type ToolName =
   | "get_page_snapshot"
   | "apply_css"
+  | "apply_ops"
   | "get_ui_snapshot"
   | "patch_config"
   | "apply_template"
@@ -38,6 +40,7 @@ export const SITE_TOOL_NAMES = ["get_page_snapshot", "apply_css", "say", "finish
 export const TOOL_RUNS_ON: Record<ToolName, "web" | "server"> = {
   get_page_snapshot: "web",
   apply_css: "web",
+  apply_ops: "web",
   get_ui_snapshot: "web",
   patch_config: "web",
   apply_template: "web",
@@ -65,6 +68,8 @@ export interface ToolArgs {
    * `reason`: o propoziție, intră în jurnal și în istoricul reviziilor.
    */
   apply_css: { css: string; mode?: "append" | "replace"; reason: string };
+  /** Schimbări de structură (etapa 2+); cel mult `DOM_OP_LIMITS.maxOpsPerCall` pe apel. Se aplică în ordine. */
+  apply_ops: { ops: DomOp[]; reason: string };
   get_ui_snapshot: { moduleId?: string };
   patch_config: { ops: JsonPatchOp[]; reason: string };
   apply_template: { template: LayoutTemplate; reason: string };
@@ -75,13 +80,19 @@ export interface ToolArgs {
   };
   remove_component: { componentId: string; reason: string };
   navigate: { moduleId: string };
+  /** Pe site-uri: `elementId` e id-ul din registru (`PageElement.id`, ex. „e.17”). */
   point_at: { elementId: string; message: string };
   wait_for_user_click: { elementId: string; timeoutMs?: number };
   ask_user: { question: string; options?: string[] };
+  /**
+   * Pe site-uri: schimbările rulării sunt deja aplicate (apply_css / apply_ops); `propose_changes` le arată ca
+   * previzualizare cu Păstrez / Anulez. `ops` și `component` se omit. „Anulez” readuce rețeta la revizia
+   * de dinaintea primei schimbări a rulării (`ToolData.propose_changes.revision` = revizia rămasă).
+   */
   propose_changes: {
     title: string;           // ex. „Butoane mai mari”
     summary: string;         // ce se schimbă și de ce, pe înțeles
-    ops?: JsonPatchOp[];
+    ops?: JsonPatchOp[];     // doar aplicația veche
     component?: ToolArgs["generate_component"];
     risk: "low" | "high";
   };
@@ -122,9 +133,20 @@ export interface ApplyCssData {
   unmatchedSelectors: string[];
 }
 
+export interface ApplyOpsData {
+  revision: number;
+  /** Câte operații s-au aplicat. */
+  applied: number;
+  /** Ce n-a putut fi aplicat, cu motiv; agentul le repară sau le spune omului. */
+  skipped: SkippedOp[];
+  /** Ce a scos validarea din HTML-ul trimis (restul s-a aplicat). */
+  htmlDropped: HtmlDropped[];
+}
+
 export interface ToolData {
   get_page_snapshot: PageSnapshot;
   apply_css: ApplyCssData;
+  apply_ops: ApplyOpsData;
   get_ui_snapshot: UISnapshot;
   patch_config: { revision: number; applied: number };
   apply_template: { revision: number };

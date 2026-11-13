@@ -1,7 +1,9 @@
 // Rețeta unui site: tot ce a schimbat agentul pe un site, salvat ca să se reaplice la fiecare vizită, fără AI.
-// Etapa 1 folosește doar `css`; `ops` (DomOp) vine în D8, ca adăugare (specs/01-arhitectura.md, specs/02-ui-config.md).
+// Etapa 1 folosește doar `css`; `ops` (DomOp, dom-ops.ts) vine din etapa 2 (specs/01-arhitectura.md, specs/02-ui-config.md).
 //
 // Locul rețetei: `chrome.storage.local` (cheia = host) și, pentru cine are cont, pe server (specs/06-protocol.md).
+
+import type { DomOp } from "./dom-ops";
 
 export interface SiteRecipe {
   /** Numele de gazdă fără „www.”, ex. „youtube.com”. Rețeta se aplică pe toate paginile gazdei. */
@@ -10,6 +12,8 @@ export interface SiteRecipe {
   revision: number;
   /** Foaia de stil scrisă de agent, deja validată. Se aplică în pagină ca un <style> al extensiei. */
   css: string;
+  /** Schimbările de structură, în ordinea aplicării. Lipsește (sau e goală) la rețetele din etapa 1. */
+  ops?: DomOp[];
   updatedAt: string; // ISO
 }
 
@@ -17,6 +21,8 @@ export interface SiteRecipe {
 export interface RecipeRevision {
   revision: number;
   css: string;
+  /** Lista completă de operații după această revizie (ca la `css`, nu doar diferența). */
+  ops?: DomOp[];
   reason: string;
   /** Rularea agentului care a produs-o (lipsește la schimbările făcute de preferințele de bază). */
   runId?: string;

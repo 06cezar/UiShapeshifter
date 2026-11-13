@@ -4,7 +4,7 @@
 // HTTP:      http://localhost:8787/api/...
 
 import type { AgentRun, AgentStep, RunOrigin } from "./journal";
-import type { UsageSignal } from "./signals";
+import type { Suggestion, UsageSignal } from "./signals";
 import type { ToolArgs, ToolName, ToolResult } from "./tools";
 
 export const SERVER_PORT = 8787;
@@ -25,7 +25,8 @@ export type ClientMessage =
   | { type: "hello"; userId: string; sessionId: string }
   | { type: "user_message"; text: string; source: "text" | "voice"; page?: PageInfo }
   | { type: "tool_result"; callId: string; result: ToolResult }
-  | { type: "signals"; signals: UsageSignal[] }   // trimise în loturi, cel mult o dată la 5 s
+  | { type: "signals"; signals: UsageSignal[]; page?: PageInfo }   // în loturi, cel mult o dată la 5 s; `page` = unde s-au întâmplat
+  | { type: "suggestion_decision"; suggestionId: string; decision: "accept" | "dismiss" }
   | { type: "cancel_run"; runId: string };
 
 // ---------- server -> frontend ----------
@@ -42,6 +43,7 @@ export type ServerMessage =
     }
   | { type: "agent_message"; runId?: string; text: string; mascot: MascotState }
   | { type: "run_finished"; runId: string; success: boolean; summary: string }
+  | { type: "suggestion"; suggestion: Suggestion }   // mascota propune singură (specs/09)
   | { type: "error"; message: string };
 
 // ---------- HTTP ----------
@@ -57,5 +59,11 @@ export type ServerMessage =
 // GET  /api/recipes/:userId/:host          -> SiteRecipe (404 dacă nu există)
 // PUT  /api/recipes/:userId/:host          <- SiteRecipe        -> { revision }
 // DELETE /api/recipes/:userId/:host        -> { ok: true }      („Revino la original”)
+//
+// Conturi (opționale, specs/08): corpurile și răspunsurile sunt în accounts.ts
+// POST /api/accounts/register              <- RegisterRequest   -> AuthResult
+// POST /api/accounts/login                 <- LoginRequest      -> AuthResult
+// GET  /api/sync                           (Authorization: Bearer) -> SyncBundle
+// PUT  /api/sync                           (Authorization: Bearer) <- SyncBundle -> { updatedAt }
 
 export type RunListItem = Pick<AgentRun, "runId" | "goal" | "status" | "startedAt" | "origin">;

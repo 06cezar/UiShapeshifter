@@ -66,7 +66,22 @@ repară singur fără un snapshot în plus: un selector care nu a găsit nimic a
 - `temperature` mică (0.2).
 - `AGENT_FAKE=1`: răspunsuri înregistrate (fără OpenRouter), ca extensia să se dezvolte și demo-ul să aibă o rezervă fără rețea.
 
-## Vine în etapele următoare (D8)
+## Uneltele etapelor 2 și 3
 
-`propose_changes` (Păstrez/Anulez), `point_at`, `audit_ui`, `ask_user`, `update_profile`, `DomOp` (mută, împachetează,
-adaugă, leagă), componentele generate.
+Modelul primește uneltele etapei la care e extensia (`siteToolDefinitions(stage)`, `site-tool-definitions.ts`): etapa 2 adaugă
+`apply_ops`, `point_at`, `wait_for_user_click`, `ask_user`, `propose_changes`, `audit_ui`; etapa 3 adaugă `get_profile` și
+`update_profile`.
+
+| Unealtă | Unde | Ce face | Erori tipice și ce face agentul |
+|---|---|---|---|
+| `apply_ops` | web | structură: remove, move, wrap, setText, setAttr, insertHtml, bind, inject (`03`) | operații în `skipped` (`SELECTOR_NOT_FOUND`, `SELECTOR_AMBIGUOUS`…) → alt selector din snapshot nou; `htmlDropped` → corectează HTML-ul |
+| `point_at` | web | mascota arată un element `e.<n>` (`11`) | `NOT_VISIBLE` → deschide meniul / derulează, apoi din nou; `ELEMENT_NOT_FOUND` → snapshot nou |
+| `wait_for_user_click` | web | așteaptă click-ul | `TIMEOUT` → întreabă dacă are nevoie de ajutor |
+| `ask_user` | web | întrebare cu variante, în bula mascotei | `USER_CANCELLED` |
+| `propose_changes` | web | arată schimbările rulării cu Păstrez / Anulez; fără `ops` | decizia `undo` → rețeta revine la revizia dinainte; notează în profil, nu insistă |
+| `audit_ui` | web | raportul de accesibilitate pe pagină (`07`) | `issues` cu `fixCss` → `apply_css` (append); fără `fixCss` → decide agentul |
+| `get_profile` | server | profilul (nevoi, preferințe generale, site-uri familiare) | – |
+| `update_profile` | server | fapte (cu dovezi) și preferințe generale | `INVALID_ARGS` (fapt fără dovezi) |
+
+**Verificare după fiecare schimbare** (regula agentului): `apply_css` / `apply_ops` → `get_page_snapshot` (au dispărut elementele?
+se vede ce trebuia?) → `audit_ui` (nu s-a stricat nimic?) → abia apoi `propose_changes`. Fiecare pas intră în jurnal și se vede în panou.

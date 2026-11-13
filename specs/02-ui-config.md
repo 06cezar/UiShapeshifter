@@ -46,6 +46,13 @@ rezultată depășește `RECIPE_LIMITS.maxCssBytes`, la fel (`INVALID_ARGS`), ca
 4. O regulă care nu se potrivește cu nimic nu strică pagina; rămâne în rețetă, fiindcă site-ul poate încărca elementul
    mai târziu.
 
+## Operațiile de structură (etapa 2+)
+
+`SiteRecipe.ops` (`DomOp`, `03`) se aplică **după** CSS, în ordinea din listă, de același motor (B6). `apply_ops` adaugă la listă
+(cel mult `DOM_OP_LIMITS.maxOpsPerCall` pe apel și `maxOpsPerRecipe` în total) și crește revizia, ca `apply_css`. Fiecare
+revizie păstrează lista completă (`RecipeRevision.ops`), deci „Anulez” scoate exact ultima schimbare, de CSS sau de structură.
+O operație care nu se poate aplica (selector negăsit, ambiguu) e **sărită și notată** în `skipped`; restul se aplică.
+
 ## Reaplicarea fără AI
 
 - La încărcarea paginii, content script-ul citește rețeta gazdei din stocare și pune `<style>` la `document_start`,
