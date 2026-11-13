@@ -33,6 +33,11 @@ export interface DomFacts {
    * Conținutul paginii trece pe sub el la derulare, deci o suprapunere cu el e felul site-ului, nu o greșeală.
    */
   overlay?: boolean;
+  /**
+   * Elementul stă într-un container care derulează sau taie pe orizontală și care încape el însuși în ecran (un
+   * carusel). Ce iese din ecran e doar derulat în carusel: omul ajunge la el cu săgețile sau derulând.
+   */
+  inScroller?: boolean;
 }
 export type DomFactsMap = Record<string, DomFacts>;
 
@@ -118,7 +123,7 @@ export function runRules(
       ...checkNonTextContrast(el, f),
       ...checkTargetSize(el, t, f),
       ...checkClipped(el, f),
-      ...checkOffscreen(el, viewport),
+      ...checkOffscreen(el, viewport, f),
       ...checkLineHeight(el, t, f),
     );
   }
@@ -210,8 +215,8 @@ export function checkClipped(el: ElementInfo, f: DomFacts = {}): AuditIssue[] {
   ];
 }
 
-export function checkOffscreen(el: ElementInfo, viewport: UISnapshot["viewport"]): AuditIssue[] {
-  if (!el.interactive) return [];
+export function checkOffscreen(el: ElementInfo, viewport: UISnapshot["viewport"], f: DomFacts = {}): AuditIssue[] {
+  if (!el.interactive || f.inScroller) return [];
   const left = el.rect.x;
   const right = el.rect.x + el.rect.width;
   if (left >= -OFFSCREEN_EPS && right <= viewport.width + OFFSCREEN_EPS) return [];
