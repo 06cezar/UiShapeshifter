@@ -8,7 +8,7 @@
     }
   },
   "last_comms_sha": "d4e2f191fc9f0fdc494dfb493ecb9b79559bebe7",
-  "last_run": "2026-11-13T18:42:39Z",
+  "last_run": "2026-11-13T18:43:22Z",
   "last_sha": "0c2f4af88941c52c7e6914146369cc7ec559c434",
   "prs": {
     "1": {
@@ -158,6 +158,11 @@
     },
     "36": {
       "head": "b6-domop",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "37": {
+      "head": "d-remove-ascunde",
       "merged_at": null,
       "state": "OPEN"
     },
