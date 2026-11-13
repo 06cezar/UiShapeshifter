@@ -97,7 +97,7 @@ _nimic_
 - **A2** (A) Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get\_ui\_snapshot, patch\_config, point\_at: branch `a2-bucla` are commit-uri _(vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point\_at, cu pașii în jurnal.)_
 - **A3** (A) Toate uneltele + promptul de sistem + profilul în context (specs/05): branch `a3-unelte` are commit-uri _(sâm 02:00. Gata = ask\_user, propose\_changes, audit\_ui, generate\_component, navigate, wait\_for\_user\_click, say, update\_profile, finish.)_
 - **B1** (B) Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane: PR #7 deschis _(vin 19:00. Gata = applyPatch refuză baseFontPx 14 cu LIMIT\_VIOLATION; cele 3 șabloane se randează din config.)_
-- **C3** (C) Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10): branch `c3-onboarding` are commit-uri _(sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding.)_
+- **C3** (C) Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10): PR #9 deschis _(sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding.)_
 - **E1** (E) Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08): PR #8 deschis _(vin 20:00. Gata = GET/PUT profil, PUT onboarding, profileSummary(profile) sub 150 de cuvinte.)_
 
 ## Așteaptă
