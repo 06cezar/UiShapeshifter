@@ -1,3 +1,3 @@
-2026-11-13 16:17
+2026-11-13 17:32
 
-gata: A1 unit; E1 (#8) revizuit și unit de mine; A3: profilul legat (get/update_profile, profileSummary în prompt) pe a3-unelte; urmează: PR A2 când e gata B2, apoi PR A3; blocat: aștept B2
+Schimbare de direcție (PR #18): A de acord, comentariu cu note pe PR. A1 rămâne; urmează A5 (/api/recipes) și A2 (unelte noi) după D7; promptul, agentul fals și compactarea se rescriu pe tipurile din D7. blocat: aștept D7 și unirea #18
