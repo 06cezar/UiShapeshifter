@@ -14,7 +14,7 @@
     }
   },
   "last_comms_sha": "0bf153c7c16af95d623388399995fdb781fd66b1",
-  "last_run": "2026-11-13T21:41:10Z",
+  "last_run": "2026-11-13T21:46:35Z",
   "last_sha": "67b070a6fb79db7e50d000afae592acf29e23c91",
   "prs": {
     "1": {
@@ -222,6 +222,11 @@
       "merged_at": null,
       "state": "OPEN"
     },
+    "47": {
+      "head": "b3-generate",
+      "merged_at": null,
+      "state": "OPEN"
+    },
     "5": {
       "head": "d-prettier-contracte",
       "merged_at": "2026-11-13T13:24:54Z",
@@ -257,7 +262,7 @@
     "A6": "progress",
     "B1": "done",
     "B2": "done",
-    "B3": "wait",
+    "B3": "progress",
     "B4": "wait",
     "B5": "done",
     "B6": "done",
