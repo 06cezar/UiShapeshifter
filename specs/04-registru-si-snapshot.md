@@ -28,7 +28,8 @@ nimic stabil, `selector` e calea structurală; agentul știe că e fragilă din 
 Pagina are mii de elemente; modelul primește un rezumat:
 
 1. **Zone** (`regions`): `banner`, `navigation`, `main`, `complementary`, `contentinfo`, `region`, după rol ARIA sau
-   etichetă HTML5; fiecare cu `elementCount` (câte elemente conține, și cele netrimise).
+   etichetă HTML5; fiecare cu `selector` (construit ca la elemente, ca agentul să poată stiliza zona întreagă) și
+   `elementCount` (câte elemente conține, și cele netrimise).
 2. **Elemente** (`elements`): titlurile și elementele interactive (linkuri, butoane, câmpuri) **vizibile**, cu text
    scurt (`SNAPSHOT_LIMITS.labelMaxChars`), cel mult `SNAPSHOT_LIMITS.maxElements`. Ordinea: în viewport întâi, apoi
    după zonă. Dacă sunt mai multe, `truncated: true`.
