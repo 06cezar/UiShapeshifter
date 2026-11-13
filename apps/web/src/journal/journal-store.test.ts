@@ -40,6 +40,16 @@ describe("journal store", () => {
     expect(activeRun(journal.getState().runs)?.runId).toBe("r1");
   });
 
+  it("un pas fără run_started (reload în timpul rulării) creează rularea, nu se pierde", () => {
+    const journal = createJournalStore();
+    journal.getState().handleServerMessage({ type: "step", step: step(3) });
+
+    const run = journal.getState().runs[0];
+    expect(run?.runId).toBe("r1");
+    expect(run?.status).toBe("running");
+    expect(run?.steps.map((s) => s.index)).toEqual([3]);
+  });
+
   it("run_finished închide rularea; după Oprește, eșecul se vede ca „oprit”", () => {
     const journal = startedStore();
     journal.getState().markCancelRequested("r1");

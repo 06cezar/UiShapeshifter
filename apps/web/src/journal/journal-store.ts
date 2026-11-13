@@ -57,12 +57,24 @@ export type JournalStore = StoreApi<JournalState>;
 /** Cele mai vechi rulări ies din panou; reluarea le citește oricum de pe server. */
 const MAX_RUNS_KEPT = 20;
 
+/** Pentru o rulare pornită înainte de reload: ținta și originea nu vin în `step`, deci arătăm ceva neutru. */
+const UNKNOWN_GOAL = "Rulare în curs";
+const UNKNOWN_ORIGIN: RunOrigin = "user";
+
 export function createJournalStore(): JournalStore {
   // Promisiunea nu e date de afișat, deci nu stă în stare.
   let resolveProposal: ((decision: ProposalDecision) => void) | null = null;
 
   return createStore<JournalState>()((set, get) => {
+    function addRun(run: RunView) {
+      set((s) => ({ runs: [...s.runs.filter((r) => r.runId !== run.runId), run].slice(-MAX_RUNS_KEPT) }));
+    }
+
+    /** După un reload în timpul rulării, `run_started` a trecut deja: rularea se creează din primul mesaj văzut. */
     function updateRun(runId: string, change: (run: RunView) => RunView) {
+      if (!get().runs.some((r) => r.runId === runId)) {
+        addRun({ runId, goal: UNKNOWN_GOAL, origin: UNKNOWN_ORIGIN, status: "running", steps: [] });
+      }
       set((s) => ({ runs: s.runs.map((r) => (r.runId === runId ? change(r) : r)) }));
     }
 
@@ -75,14 +87,7 @@ export function createJournalStore(): JournalStore {
       handleServerMessage(message) {
         switch (message.type) {
           case "run_started": {
-            const run: RunView = {
-              runId: message.runId,
-              goal: message.goal,
-              origin: message.origin,
-              status: "running",
-              steps: [],
-            };
-            set((s) => ({ runs: [...s.runs.filter((r) => r.runId !== run.runId), run].slice(-MAX_RUNS_KEPT) }));
+            addRun({ runId: message.runId, goal: message.goal, origin: message.origin, status: "running", steps: [] });
             return;
           }
           case "step": {
