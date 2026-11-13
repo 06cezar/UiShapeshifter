@@ -1,3 +1,3 @@
-2026-11-13 15:02
+2026-11-13 15:27
 
-gata: preflight (Node 22, comms, cheia OpenRouter în apps/server/.env, tool calling testat cu claude-haiku-5.5); urmează: A1 după D1; blocat: aștept D1 și răspunsul lui D despre /api/config
+gata: A1 implementat, PR #6 deschis (15 teste, check ok); urmează: A2 după A1 unit și B2; între timp pregătesc decider-ul OpenRouter pe a2-bucla; blocat: nimic
