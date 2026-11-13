@@ -21,6 +21,7 @@ import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
+import { mountSuggestionBubble } from "./suggestion-bubble";
 
 /** Pus de build.mjs: true în build-ul de dezvoltare, false cu --prod. */
 declare const __UIS_DEV__: boolean;
@@ -140,6 +141,12 @@ function start() {
     page: () => pageInfo(location, document.title),
   });
   const mascot = mountMascot(ourRoot);
+  // Propunerile adaptării automate (E3): bula discretă cu Da / Nu; răspunsul pleacă la server.
+  const suggestions = mountSuggestionBubble(ourRoot, {
+    decide: (suggestionId, decision) =>
+      send({ type: "to_server", message: { type: "suggestion_decision", suggestionId, decision } }),
+    onShow: () => mascot.setState("speaking"),
+  });
   const panel = mountJournal(ourRoot, {
     send: (message) => {
       if (message.type !== "hello") send({ type: "to_server", message });
@@ -251,6 +258,10 @@ function start() {
         return;
       }
       if (server.type === "run_started") runStart.set(server.runId, recipes.view().revision);
+      if (server.type === "suggestion") {
+        suggestions.show(server.suggestion);
+        return;
+      }
       chat.handleServerMessage(server);
       moveMascot(mascot, server);
       panel.journal.getState().handleServerMessage(server);

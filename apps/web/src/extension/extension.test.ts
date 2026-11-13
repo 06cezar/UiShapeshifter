@@ -10,6 +10,7 @@ import { normalizeHost, pageInfo } from "./page-info";
 import { createRunRouter } from "./run-router";
 import { startServerLink, type SocketLike } from "./server-link";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
+import { mountSuggestionBubble } from "./suggestion-bubble";
 import { getOrCreateSessionId, getOrCreateUserId, type KeyValueStore } from "./storage";
 
 function memoryStore(): KeyValueStore & { data: Record<string, unknown> } {
@@ -248,5 +249,38 @@ describe("pagina din care vine cererea", () => {
       host: "site.ro",
       title: "T",
     });
+  });
+});
+
+describe("bula de propunere (E3)", () => {
+  test("arată textul serverului, „Da” trimite accept și închide; fără răspuns se închide singură", () => {
+    const decisions: string[] = [];
+    let timeout: (() => void) | null = null;
+    const root = mountOurRoot(document);
+    const bubble = mountSuggestionBubble(root, {
+      decide: (id, decision) => decisions.push(`${id}:${decision}`),
+      setTimer: (fn) => (timeout = fn),
+      clearTimer: () => {},
+    });
+    const el = () => root.shadow.querySelector<HTMLElement>(".suggestion")!;
+    const suggestion = {
+      id: "sug-1",
+      trigger: "small-targets" as const,
+      text: "<b>Butoanele</b> par greu de apăsat. Le măresc?",
+      goal: "g",
+      risk: "low" as const,
+      createdAt: "x",
+    };
+    bubble.show(suggestion);
+    expect(el().hidden).toBe(false);
+    expect(el().querySelector(".suggestion-text")!.textContent).toBe(suggestion.text); // text, nu HTML
+    expect(el().querySelector("b")).toBe(null);
+    el().querySelector<HTMLButtonElement>(".yes")!.click();
+    expect(decisions).toEqual(["sug-1:accept"]);
+    expect(el().hidden).toBe(true);
+    bubble.show({ ...suggestion, id: "sug-2" });
+    timeout!();
+    expect(el().hidden).toBe(true);
+    expect(decisions).toEqual(["sug-1:accept"]);
   });
 });
