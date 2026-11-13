@@ -7,8 +7,8 @@
       }
     }
   },
-  "last_comms_sha": "e2c192234c29f2c337c387574cf54b81c2599a40",
-  "last_run": "2026-11-13T18:25:52Z",
+  "last_comms_sha": "d9ef236bb3fa2023cdce069d100204bc83f5284c",
+  "last_run": "2026-11-13T18:27:05Z",
   "last_sha": "0c2f4af88941c52c7e6914146369cc7ec559c434",
   "prs": {
     "1": {
@@ -148,6 +148,11 @@
     },
     "34": {
       "head": "a2-page-nu-blocheaza",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "35": {
+      "head": "e-audit-ui-legat",
       "merged_at": null,
       "state": "OPEN"
     },
