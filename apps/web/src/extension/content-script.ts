@@ -5,9 +5,11 @@
 
 import { mountChat } from "../chat";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
+import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
 import { createPageRegistry } from "../ui/page-registry/registry";
 import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
+import { needsFromStorage, ONBOARDING_KEY } from "./base-needs";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
@@ -39,9 +41,20 @@ const recipes = createRecipeEngine({ host, storage: chrome.storage.local, isOurU
 if (__UIS_DEV__) (globalThis as { uiRecipes?: typeof recipes }).uiRecipes = recipes;
 void recipes.load();
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
+/** Preferințele de bază (C4): fontul minim, contrastul și țintele din profil, fără AI, aplicate ultimele. */
+let base: BasePreferences | null = null;
+
+// Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
+// Testul inițial a salvat alte nevoi: preferințele de bază se refac după ele.
 chrome.storage.onChanged.addListener((changes, area) => {
-  const change = changes[recipeKey(host)];
-  if (area === "local" && change) recipes.adopt(parseStoredRecipe(change.newValue, host, new Date().toISOString()));
+  if (area !== "local") return;
+  const recipeChange = changes[recipeKey(host)];
+  if (recipeChange) {
+    recipes.adopt(parseStoredRecipe(recipeChange.newValue, host, new Date().toISOString()));
+    base?.refresh();
+  }
+  const needsChange = changes[ONBOARDING_KEY];
+  if (needsChange) base?.update(needsFromStorage(needsChange.newValue));
 });
 
 function start() {
@@ -56,10 +69,22 @@ function start() {
     page: () => pageInfo(location, document.title),
   });
 
+  // Preferințele de bază pornesc cu nevoile salvate de testul inițial (sau implicite) și se reaplică peste rețetă.
+  void chrome.storage.local.get(ONBOARDING_KEY).then((saved) => {
+    base = startBasePreferences({ needs: needsFromStorage(saved[ONBOARDING_KEY]), ourHostId: HOST_ID });
+  });
+
   // Registrul paginii (B2), motorul de rețete (B5) și bula chatului pentru `say`.
   const tools: PageToolDeps = {
     registry: createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() }),
-    recipes,
+    recipes: {
+      // După fiecare CSS al agentului, fontul minim se verifică din nou (C4: „ultimele, peste tot ce a scris agentul”).
+      async applyCss(args) {
+        const result = await recipes.applyCss(args);
+        if (result.ok) base?.refresh();
+        return result;
+      },
+    },
     say: (text) => chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" }),
   };
 

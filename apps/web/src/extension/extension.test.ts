@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from "vitest";
 import type { ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
+import { needsFromStorage } from "./base-needs";
 import { parseServerMessage, parseToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { createRunRouter } from "./run-router";
@@ -195,6 +196,17 @@ describe("rulările pornite de server (adaptare, test inițial)", () => {
   test("o rulare necunoscută (service worker repornit) nu se pierde: tab-ul activ", () => {
     const router = createRunRouter<string>({ activePort: () => "tab-a" });
     expect(router.targetsFor(toolCall("r-necunoscut"), new Set(["tab-a"]))).toEqual(["tab-a"]);
+  });
+});
+
+describe("nevoile pentru preferințele de bază", () => {
+  test("din ce a salvat testul inițial păstrăm doar câmpurile cunoscute; lipsă sau stricat = implicite", () => {
+    expect(needsFromStorage({ skipped: false, needs: { minFontPx: 20, contrast: "high", minTargetPx: "x" } })).toEqual({
+      minFontPx: 20,
+      contrast: "high",
+    });
+    expect(needsFromStorage(undefined)).toEqual({});
+    expect(needsFromStorage({ needs: "stricat" })).toEqual({});
   });
 });
 
