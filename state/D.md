@@ -1,3 +1,3 @@
-2026-11-13 19:02
+2026-11-13 19:21
 
-gata: D7, D8, M0, D3 (PR 26 deschis); urmează: review-uri PR 9 și etapa 1 spre M1; blocat: nimic
+gata: D7, D8, M0, D3 (PR 26), review A2 și C2; urmează: rebase PR 26 peste PR-ul lui E (B2+B5), apoi M1; blocat: aștept PR-ul lui E
