@@ -3,39 +3,10 @@ import { DEFAULT_CONFIG, HARD_LIMITS } from "@uishapeshifter/contracts";
 import type { AuditThresholds, JsonPatchOp, UIConfig } from "@uishapeshifter/contracts";
 import { applyPatchWithLimits, checkLimits } from "./limit-gate";
 import type { ContrastFn } from "./limit-gate";
+import { fakeContrast, HIGH_CONTRAST_THRESHOLDS, NORMAL_THRESHOLDS } from "./test-fixtures";
 
-// Pragurile scrise de mână, cum le dă thresholdsFor(needs) din a11y/thresholds.ts (C): normal și contrast ridicat.
-const NORMAL: AuditThresholds = {
-  minFontPx: HARD_LIMITS.minFontPx,
-  minContrastText: HARD_LIMITS.minContrastText,
-  minContrastLargeText: HARD_LIMITS.minContrastLargeText,
-  minTargetPx: HARD_LIMITS.minTargetPx,
-  minLineHeight: HARD_LIMITS.minLineHeight,
-};
-const HIGH_CONTRAST: AuditThresholds = { ...NORMAL, minContrastText: 7, minContrastLargeText: 4.5 };
-
-// Rapoartele reale (WCAG) pentru culorile din DEFAULT_CONFIG și din teste, calculate o dată.
-const KNOWN_RATIOS: Record<string, number> = {
-  "#111827|#FFFFFF": 17.74,
-  "#FFFFFF|#C2410C": 5.18,
-  "#777777|#FFFFFF": 4.478,
-  "#FFFFFF|#777777": 4.478, // raportul nu depinde de ordine
-  "#949494|#FFFFFF": 3.03,
-};
-
-/** Funcția de contrast falsă: un tabel; o pereche necunoscută aruncă, ca funcția lui C la o culoare necunoscută. */
-function fakeContrast(table: Record<string, number> = KNOWN_RATIOS): ContrastFn & { calls: number } {
-  const fn = Object.assign(
-    (fg: string, bg: string) => {
-      fn.calls++;
-      const ratio = table[`${fg}|${bg}`];
-      if (ratio === undefined) throw new Error(`culoare necunoscută: ${fg} pe ${bg}`);
-      return ratio;
-    },
-    { calls: 0 },
-  );
-  return fn;
-}
+const NORMAL = NORMAL_THRESHOLDS;
+const HIGH_CONTRAST = HIGH_CONTRAST_THRESHOLDS;
 
 function gate(ops: JsonPatchOp[], thresholds: AuditThresholds = NORMAL, contrast: ContrastFn = fakeContrast()) {
   return applyPatchWithLimits(DEFAULT_CONFIG, ops, thresholds, contrast);
