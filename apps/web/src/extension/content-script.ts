@@ -130,6 +130,12 @@ function start() {
         if (result.ok) base?.refresh();
         return result;
       },
+      // La fel după operațiile de structură (B6): elementele mutate sau adăugate primesc și ele limitele.
+      async applyOps(args) {
+        const result = await recipes.applyOps(args);
+        if (result.ok) base?.refresh();
+        return result;
+      },
     },
     // Auditul (C2): aceleași id-uri și selectori ca snapshot-ul și aceleași nevoi ca preferințele de bază.
     audit: (args) =>
