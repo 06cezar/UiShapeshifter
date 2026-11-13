@@ -1,3 +1,3 @@
-2026-11-14 01:20
+2026-11-14 01:41
 
-gata: #55 (selector), b4-refacere local (3 commituri registru: zone/coloane, liste repetate), proba Bing+test-site+Wikipedia. urmeaza: acordul lui Stefan pe push si pe cererea catre A. blocat: proba pas 4 cu agentul real (lipseste apps/server/.env)
+gata: b4-refacere impins (zone + liste); probe reale: test-site ok, Bing start/rezultate partial. urmeaza: acord Stefan pe mesajul catre A si pe reparatiile din registru (fundaluri, coloane dupa ascundere, opacity 0). blocat: nimic
