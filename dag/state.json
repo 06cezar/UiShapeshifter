@@ -7,8 +7,8 @@
       }
     }
   },
-  "last_comms_sha": "e91647f9e74df3e9fd4bd10e0fc5eecc694dec42",
-  "last_run": "2026-11-13T17:54:15Z",
+  "last_comms_sha": "18086d877cdd334bc2ae2a1007a21267bee3fa83",
+  "last_run": "2026-11-13T18:09:01Z",
   "last_sha": "c5436fb306cb6409b58ab584f81c064d345a6906",
   "prs": {
     "1": {
@@ -133,6 +133,11 @@
     },
     "31": {
       "head": "e7-site-test",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "32": {
+      "head": "d-apply-ops-schema",
       "merged_at": null,
       "state": "OPEN"
     },
