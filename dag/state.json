@@ -8,8 +8,8 @@
     }
   },
   "last_comms_sha": "5092180e898cf7733ac9e9953ca1a0749592c163",
-  "last_run": "2026-11-13T19:27:44Z",
-  "last_sha": "827091a2b4549eca71a2073b926044252ef18194",
+  "last_run": "2026-11-13T19:33:32Z",
+  "last_sha": "7124e85ccab488006a61d4c6ca34a92e8aa04af6",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -168,8 +168,8 @@
     },
     "38": {
       "head": "c4-fixuri",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T19:33:26Z",
+      "state": "MERGED"
     },
     "39": {
       "head": "e-extensie-fixuri",
