@@ -200,13 +200,17 @@ function start() {
       mascot.setState("speaking");
     },
     pointAt: (element, message) => mascot.pointAt(element, message),
-    proposeChanges: (args, runId) =>
-      proposeChanges(args, runId, {
+    proposeChanges: async (args, runId) => {
+      const result = await proposeChanges(args, runId, {
         ask: panel.askProposal,
         revisionBefore: (id) => (id ? runStart.get(id) : undefined) ?? recipes.view().revision,
         currentRevision: () => recipes.view().revision,
         undoRun,
-      }),
+      });
+      // Păstrez / Anulez e și semnal (specs/09): din ele crește sau scade încrederea pentru aplicarea automată (E3).
+      if (result.ok) signals?.proposalDecision(result.data.proposalId, result.data.decision);
+      return result;
+    },
   };
 
   function connect() {
