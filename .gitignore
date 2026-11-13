@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+data/
+*.log
+.DS_Store
+
+# fișierul personal al fiecărui agent (șabloanele sunt în docs/agenti/)
+CLAUDE.local.md
+
+# graful stă pe branch-ul `dag`, scris doar de bot
+/DAG.md
+/dag/state.json

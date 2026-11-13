@@ -1,0 +1,193 @@
+# Planul echipei UI Shapeshifter: o intrare pe task.
+#
+# Omul scrie PLANUL (taskuri, dependențe, cine), scriptul scrie STAREA (graful de pe branch-ul `dag`).
+# Schimbările se fac printr-un PR la acest fișier.
+#
+# Câmpuri:
+#   id          obligatoriu, unic
+#   owner       A–E, exact numele din comms (A Mihnea, B Ștefan R., C Adelin, D Cezar, E Iulia)
+#   title       ce înseamnă taskul, pe scurt
+#   depends_on  id-uri care trebuie să fie gata înainte
+#   branch      branch-ul pe care lucrezi; când are commit-uri împinse, taskul apare „în lucru”
+#   pr          numărul PR-ului, dacă vrei să-l legi direct
+#   status      auto (dedus) sau forțat: done / progress / ready / wait / blocked
+#   note        ținta de timp și ce înseamnă „gata”
+#
+# Hackathon: vineri 14:00 → sâmbătă 14:00. Îngheț funcții: sâmbătă 09:00. Trimitere: sâmbătă 13:30.
+# Contractele: specs/ și packages/contracts/.
+
+# ---------- D: Cezar (lider) — schelet, mascotă, chat, panou, integrare, pitch ----------
+
+- id: D1
+  owner: D
+  title: Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev)
+  depends_on: []
+  branch: d1-schelet
+  status: auto
+  note: "vin 15:00. Gata = npm install && npm run dev pornește web pe 5173 și server pe 8787 cu /api/health; contracts importabile din ambele."
+
+- id: D2
+  owner: D
+  title: Mascota SVG + Framer Motion, cele 7 stări, pointAt cu lăbuța (specs/11, specs/04)
+  depends_on: [B2]
+  branch: d2-mascota
+  status: auto
+  note: "vin 21:00. Gata = mascot.pointAt('nav.messages') arată elementul și se recalculează la scroll/resize."
+
+- id: D3
+  owner: D
+  title: Chat text + voce (Web Speech ro-RO) + bula mascotei, conectate la WebSocket
+  depends_on: [A1, D2]
+  branch: d3-chat
+  status: auto
+  note: "vin 23:00. Gata = mesaj scris sau vorbit ajunge la server; agent_message apare în bulă și în chat."
+
+- id: D4
+  owner: D
+  title: Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas
+  depends_on: [A1, B1]
+  branch: d4-panou
+  status: auto
+  note: "sâm 03:00. Gata = o rulare se vede pas cu pas live și se poate relua după terminare."
+
+- id: D5
+  owner: D
+  title: Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție
+  depends_on: [A4, B3, B4, C2, C3, D3, D4, E3]
+  branch: d5-integrare
+  status: auto
+  note: "sâm 09:00 (înghețul). Gata = cei 6 pași din demo merg de 3 ori la rând."
+
+- id: D6
+  owner: D
+  title: Pitch de 5 minute, descrierea de o pagină, screenshot-uri, README final, trimiterea pe Slack
+  depends_on: [D5]
+  status: auto
+  note: "sâm 13:30. Se marchează cu [gata D6] după trimitere."
+
+# ---------- A: Mihnea — agentul (server) ----------
+
+- id: A1
+  owner: A
+  title: Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT_FAKE=1) și jurnalul rulărilor
+  depends_on: [D1]
+  branch: a1-server
+  status: auto
+  note: "vin 18:00. Gata = hello/user_message/tool_call/tool_result/step/run_finished merg cu agentul fals; GET /api/runs/:id."
+
+- id: A2
+  owner: A
+  title: Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get_ui_snapshot, patch_config, point_at
+  depends_on: [A1, B2]
+  branch: a2-bucla
+  status: auto
+  note: "vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point_at, cu pașii în jurnal."
+
+- id: A3
+  owner: A
+  title: Toate uneltele + promptul de sistem + profilul în context (specs/05)
+  depends_on: [A2, E1]
+  branch: a3-unelte
+  status: auto
+  note: "sâm 02:00. Gata = ask_user, propose_changes, audit_ui, generate_component, navigate, wait_for_user_click, say, update_profile, finish."
+
+- id: A4
+  owner: A
+  title: Tratarea eșecurilor - LIMIT_VIOLATION, NOT_VISIBLE, TIMEOUT, reîncercări, maxSteps, erori OpenRouter
+  depends_on: [A3]
+  branch: a4-esecuri
+  status: auto
+  note: "sâm 05:00. Gata = fiecare eroare din specs/05 are un test sau un scenariu manual care arată reacția agentului."
+
+# ---------- B: Ștefan R. — interfața dinamică (web) ----------
+
+- id: B1
+  owner: B
+  title: Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane
+  depends_on: [D1]
+  branch: b1-store-layout
+  status: auto
+  note: "vin 19:00. Gata = applyPatch refuză baseFontPx 14 cu LIMIT_VIOLATION; cele 3 șabloane se randează din config."
+
+- id: B2
+  owner: B
+  title: Registrul de elemente (data-agent-id), snapshot, rectOf/ensureVisible + executorul uneltelor web (agent-bridge)
+  depends_on: [B1]
+  branch: b2-registru
+  status: auto
+  note: "vin 21:00. Gata = registry.snapshot() întoarce UISnapshot corect; tool_call patch_config/navigate/get_ui_snapshot executat din WebSocket."
+
+- id: B3
+  owner: B
+  title: Elemente generate la cerere - ComponentRenderer pe catalog, validare, generate_component/remove_component (specs/03)
+  depends_on: [B2]
+  branch: b3-generate
+  status: auto
+  note: "sâm 01:00. Gata = cele 2 exemple din specs/03 se randează, primesc data-agent-id și trec auditul."
+
+- id: B4
+  owner: B
+  title: Aplicația demo - mesaje, conversație, poze, contacte, apeluri, setări, cu datele de test și id-urile din specs/04
+  depends_on: [B1]
+  branch: b4-demo-app
+  status: auto
+  note: "sâm 01:00. Gata = trimiterea unei poze Anei merge manual, cu meniul „Mai mult” care ascunde butonul de atașat."
+
+# ---------- C: Adelin — accesibilitate și testul inițial ----------
+
+- id: C1
+  owner: C
+  title: Motorul de audit - min-font, contrast, target-size, overlap, clipped, offscreen, line-height + scor (specs/07)
+  depends_on: [D1]
+  branch: c1-audit
+  status: auto
+  note: "vin 21:00. Gata = funcții pure pe UISnapshot + DOM, cu teste unitare (contrast #777 pe alb = 4.48)."
+
+- id: C2
+  owner: C
+  title: Reparațiile (fix) din audit + funcțiile de contrast folosite și de poarta din store; unealta audit_ui
+  depends_on: [C1, B2]
+  branch: c2-reparatii
+  status: auto
+  note: "sâm 01:00. Gata = audit_ui prin WebSocket întoarce AuditReport cu fix-uri aplicabile cu patch_config."
+
+- id: C3
+  owner: C
+  title: Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10)
+  depends_on: [B1, E1]
+  branch: c3-onboarding
+  status: auto
+  note: "sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding."
+
+# ---------- E: Iulia — profil, semnale, adaptare, demo ----------
+
+- id: E1
+  owner: E
+  title: Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08)
+  depends_on: [D1]
+  branch: e1-profil
+  status: auto
+  note: "vin 20:00. Gata = GET/PUT profil, PUT onboarding, profileSummary(profile) sub 150 de cuvinte."
+
+- id: E2
+  owner: E
+  title: Colectarea semnalelor în frontend - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)
+  depends_on: [B2]
+  branch: e2-semnale
+  status: auto
+  note: "vin 23:00. Gata = loturile de semnale ajung pe server și se văd în log."
+
+- id: E3
+  owner: E
+  title: Regulile de adaptare automată + încrederea (autoApplyLowRisk) + pornirea agentului cu origin adaptation
+  depends_on: [E1, E2, A3]
+  branch: e3-adaptare
+  status: auto
+  note: "sâm 04:00. Gata = 3 ratări lângă Trimite pornesc singure propunerea „butoane mai mari”."
+
+- id: E4
+  owner: E
+  title: Datele de test, butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă
+  depends_on: [D5]
+  status: auto
+  note: "sâm 11:00. Datele de test se pot face din prima seară (fără dependențe); videoul după D5."

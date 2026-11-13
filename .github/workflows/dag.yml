@@ -1,0 +1,98 @@
+# Redesenează DAG.md la fiecare push și la fiecare schimbare de PR. Fără AI.
+#
+# Unde stă fiecare lucru:
+#   main  -> dag/tasks.yaml (planul, scris de oameni prin PR) și codul
+#   comms -> mesajele `git comms`, cu etichetele [blocat …] [deblocat …] [gata …]
+#   dag   -> DAG.md și dag/state.json, scrise DOAR de acest workflow
+# Botul nu împinge niciodată pe main: nu vă respinge push-urile și merge și cu main protejat.
+name: dag
+
+on:
+  push:
+    # Orice branch de lucru: un push pe `B-schema` mută taskul B1 în „în lucru”.
+    # Nu `dag` (îl scrie botul) și nu `comms` (îl pornește dag-trigger.yml, doar pentru mesajele cu etichete).
+    branches: ["**", "!dag", "!comms"]
+  pull_request:
+    types: [opened, reopened, closed, synchronize]
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Ignoră cursorul și citește tot"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+# O singură rulare odată, ca două commit-uri `dag: update` să nu se calce.
+concurrency:
+  group: dag
+  cancel-in-progress: false
+
+jobs:
+  dag:
+    # PR-urile din fork-uri n-au drept de scriere; push-ul pe main le prinde la merge.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Mereu main, chiar și pentru un eveniment de PR: de acolo vin planul și istoricul.
+          ref: ${{ github.event.repository.default_branch }}
+          # Istoric complet + toate branch-urile (cursorul, regula „branch cu commit-uri”, origin/comms, origin/dag).
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install --quiet pyyaml==6.0.2
+
+      - name: Pregătește worktree-ul branch-ului dag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git rev-parse --verify --quiet refs/remotes/origin/dag >/dev/null; then
+            git worktree add --detach "$RUNNER_TEMP/dag-out" origin/dag
+          else
+            # Prima rulare: branch orfan, fără istoria lui main.
+            git worktree add --detach "$RUNNER_TEMP/dag-out"
+            git -C "$RUNNER_TEMP/dag-out" checkout --quiet --orphan dag
+            git -C "$RUNNER_TEMP/dag-out" rm -rf --quiet .
+          fi
+
+      - name: Construiește DAG.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          python dag/build_dag.py ${{ inputs.full && '--full' || '' }}
+          --out "$RUNNER_TEMP/dag-out" --ready-out "$RUNNER_TEMP/ready.json"
+
+      - name: Commit pe dag dacă s-a schimbat ceva
+        working-directory: ${{ runner.temp }}/dag-out
+        run: |
+          git add DAG.md dag/state.json
+          if git diff --cached --quiet; then
+            echo "nimic nou"
+            exit 0
+          fi
+          git commit --quiet -m "dag: update [skip ci]"
+          # Doar botul scrie pe dag, iar `concurrency` ține rulările una după alta: push-ul nu are cu cine să se certe.
+          git push origin HEAD:refs/heads/dag
+
+      - name: Anunță prin comms taskurile care pot începe
+        # Vine după push: dacă push-ul pică, state.json nu s-a salvat, iar rularea următoare anunță din nou.
+        run: |
+          if [ ! -f tools/comms/install.py ]; then
+            echo "comms nu e instalat în repo: sar peste anunțuri"
+            exit 0
+          fi
+          if [ "$(cat "$RUNNER_TEMP/ready.json")" = "[]" ]; then
+            echo "niciun task nou de anunțat"
+            exit 0
+          fi
+          # Instalarea atinge fișiere din main (CLAUDE.md, .claude/), dar aici nu se comite nimic pe main.
+          python tools/comms/install.py dag
+          python dag/notify_ready.py "$RUNNER_TEMP/ready.json"
