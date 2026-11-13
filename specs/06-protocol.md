@@ -21,9 +21,12 @@ Un tab închis în timpul rulării → `tool_result` cu `TIMEOUT` după `RUN_LIM
 ## Mesaje
 
 1. La conectare, service worker-ul trimite `hello { userId, sessionId }`. Fără `hello` în 5 s, serverul închide socket-ul.
-   `userId` e cel anonim generat la instalare; `sessionId` e unul pe tab.
+   `userId` e cel anonim generat la instalare; `sessionId` e **unul pe service worker** (un singur socket), ținut în
+   `chrome.storage.session`, ca să rămână același când MV3 oprește și repornește worker-ul și o rulare în curs să se
+   lege de socket-ul nou. Tab-urile se deosebesc după `runId → tabId`, ținut de service worker.
 2. `user_message { text, source, page? }`: pornește o rulare. `page` (`PageInfo { url, host, title }`) spune pe ce site
-   e omul; fără el (pagina de probă), agentul lucrează fără rețetă. Serverul răspunde `run_started`.
+   e omul; fără el (pagina de probă), agentul lucrează fără rețetă. `host` pleacă fără `www.` și cu litere mici (serverul îl
+validează: litere, cifre, `.`, `-`, fiindcă ajunge în calea fișierului rețetei). Serverul răspunde `run_started`.
 3. `tool_call { callId, name, args }` pentru uneltele `web` (`get_page_snapshot`, `apply_css`, `say`); pagina răspunde
    `tool_result { callId, result }`.
 4. `step` după fiecare pas, inclusiv pentru uneltele `server` (panoul).
