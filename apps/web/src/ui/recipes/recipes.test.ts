@@ -2,7 +2,7 @@
 // „Revino la original”.
 
 import { afterEach, describe, expect, test } from "vitest";
-import { RECIPE_LIMITS } from "@uishapeshifter/contracts";
+import { DOM_OP_LIMITS, RECIPE_LIMITS } from "@uishapeshifter/contracts";
 import { createRecipeEngine, RECIPE_STYLE_ID, selectorsOf } from "./recipe-engine";
 import { loadRecipe, recipeKey, type RecipeStorage } from "./recipe-store";
 
@@ -220,6 +220,155 @@ describe("ops în stocare", () => {
     await engine.load();
     await engine.revertTo(1);
     expect((await loadRecipe(storage, "a.ro", "now")).recipe.ops).toEqual(ops);
+  });
+});
+
+describe("operațiile de structură în motor (B6)", () => {
+  const PAGE =
+    '<main id="main"><form role="search">căutare</form><div class="ad">R1</div><div class="ad">R2</div><p id="t">Titlu</p></main>';
+  const moveSearch = {
+    op: "move",
+    selector: "[role='search']",
+    to: { selector: "body", position: "prepend" },
+  } as const;
+  const hideAds = { op: "remove", selector: ".ad" } as const;
+
+  async function engineOn(html = PAGE, storage = memoryStorage(), isOurUiVisible?: () => boolean) {
+    document.body.innerHTML = html;
+    const engine = createRecipeEngine({ host: "test.ro", storage, isOurUiVisible });
+    await engine.load();
+    return { engine, storage };
+  }
+
+  test("applyOps aplică, creează o revizie cu lista completă și o salvează", async () => {
+    const { engine, storage } = await engineOn();
+    const result = await engine.applyOps({ ops: [moveSearch], reason: "căutarea sus", runId: "r1" });
+    expect(result).toEqual({ ok: true, data: { revision: 1, applied: 1, skipped: [], htmlDropped: [] } });
+    expect(document.body.firstElementChild?.getAttribute("role")).toBe("search");
+
+    const second = await engine.applyOps({ ops: [hideAds], reason: "fără reclame" });
+    expect(second.ok && second.data.revision).toBe(2);
+    const saved = await loadRecipe(storage, "test.ro", "now");
+    expect(saved.recipe.ops).toEqual([moveSearch, hideAds]);
+    expect(saved.revisions.map((r) => r.ops?.length)).toEqual([1, 2]);
+    expect(saved.revisions[0]!.runId).toBe("r1");
+  });
+
+  test("în rețetă intră doar operațiile aplicate; skipped are pozițiile din apel, sortate", async () => {
+    const { engine, storage } = await engineOn();
+    const result = await engine.applyOps({
+      ops: [
+        { op: "remove", selector: "#nu-exista" },
+        hideAds,
+        { op: "insertHtml" },
+        { op: "setText", selector: "#main", text: "x" },
+      ],
+      reason: "amestec",
+    });
+    expect(result.ok && result.data.applied).toBe(1);
+    expect(result.ok && result.data.skipped.map((s) => [s.index, s.reason])).toEqual([
+      [0, "SELECTOR_NOT_FOUND"],
+      [2, "INVALID"],
+      [3, "INVALID"],
+    ]);
+    expect((await loadRecipe(storage, "test.ro", "now")).recipe.ops).toEqual([hideAds]);
+  });
+
+  test("dacă nu se aplică nimic: ok, applied 0, revizia neschimbată, nimic salvat", async () => {
+    const { engine, storage } = await engineOn();
+    const result = await engine.applyOps({ ops: [{ op: "remove", selector: "#nu" }], reason: "x" });
+    expect(result).toMatchObject({ ok: true, data: { revision: 0, applied: 0 } });
+    expect(storage.data[recipeKey("test.ro")]).toBeUndefined();
+  });
+
+  test("aceeași operație a doua oară: ALREADY_APPLIED, fără dublură", async () => {
+    const { engine } = await engineOn();
+    await engine.applyOps({ ops: [moveSearch], reason: "x" });
+    const again = await engine.applyOps({ ops: [moveSearch], reason: "x" });
+    expect(again.ok && again.data.skipped[0]!.reason).toBe("ALREADY_APPLIED");
+    expect(engine.view().revision).toBe(1);
+  });
+
+  test("limitele: prea multe pe apel sau în rețetă → INVALID_ARGS, nimic schimbat", async () => {
+    const { engine } = await engineOn();
+    const tooMany = Array.from({ length: DOM_OP_LIMITS.maxOpsPerCall + 1 }, () => hideAds);
+    expect((await engine.applyOps({ ops: tooMany, reason: "x" })).ok).toBe(false);
+    expect((await engine.applyOps({ ops: [], reason: "x" })).ok).toBe(false);
+
+    const storage = memoryStorage();
+    const full = Array.from({ length: DOM_OP_LIMITS.maxOpsPerRecipe }, (_, i) => ({
+      op: "setAttr",
+      selector: "#t",
+      name: "title",
+      value: String(i),
+    }));
+    storage.data[recipeKey("test.ro")] = {
+      recipe: { host: "test.ro", revision: 1, css: "", ops: full, updatedAt: "t" },
+      revisions: [],
+    };
+    const { engine: fullEngine } = await engineOn(PAGE, storage);
+    const result = await fullEngine.applyOps({ ops: [hideAds], reason: "x" });
+    expect(result.ok ? null : result.error.code).toBe("INVALID_ARGS");
+    expect(fullEngine.view().revision).toBe(1);
+  });
+
+  test("dacă schimbarea ascunde interfața noastră, e anulată și nu se salvează", async () => {
+    let visible = true;
+    const { engine, storage } = await engineOn(PAGE, memoryStorage(), () => visible);
+    const before = document.body.innerHTML;
+    visible = false;
+    const result = await engine.applyOps({ ops: [hideAds], reason: "x" });
+    expect(result.ok ? null : result.error.code).toBe("INVALID_ARGS");
+    expect(document.body.innerHTML).toBe(before);
+    expect(storage.data[recipeKey("test.ro")]).toBeUndefined();
+  });
+
+  test("load pe o pagină nouă reaplică operațiile salvate, fără server", async () => {
+    const storage = memoryStorage();
+    const { engine } = await engineOn(PAGE, storage);
+    await engine.applyOps({ ops: [moveSearch, hideAds], reason: "x" });
+    const { engine: reloaded } = await engineOn(PAGE, storage); // „reîncărcare”: pagina ca la început, motor nou
+    expect(document.body.firstElementChild?.getAttribute("role")).toBe("search");
+    expect(document.querySelectorAll(".ad[data-uishapeshifter-hidden]")).toHaveLength(2);
+    expect(reloaded.view().revision).toBe(1);
+  });
+
+  test("revertTo scoate exact ultima schimbare de structură; revertTo(0) și reset aduc pagina la original", async () => {
+    const { engine } = await engineOn();
+    const original = document.body.innerHTML;
+    await engine.applyOps({ ops: [moveSearch], reason: "unu" });
+    const afterFirst = document.body.innerHTML;
+    await engine.applyOps({ ops: [hideAds], reason: "doi" });
+    await engine.revertTo(1);
+    expect(document.body.innerHTML).toBe(afterFirst);
+    await engine.revertTo(0);
+    expect(document.body.innerHTML).toBe(original);
+
+    await engine.applyOps({ ops: [moveSearch, hideAds], reason: "trei" });
+    await engine.reset();
+    expect(document.body.innerHTML).toBe(original);
+  });
+
+  test("applyCss nu pierde operațiile; Anulez după CSS păstrează structura", async () => {
+    const { engine, storage } = await engineOn();
+    await engine.applyOps({ ops: [hideAds], reason: "ops" });
+    await engine.applyCss({ css: "#t { color: red }", reason: "css" });
+    expect((await loadRecipe(storage, "test.ro", "now")).recipe.ops).toEqual([hideAds]);
+    await engine.revertTo(1);
+    expect(style()).toBe("");
+    expect(document.querySelectorAll(".ad[data-uishapeshifter-hidden]")).toHaveLength(2);
+  });
+
+  test("adopt (alt tab sau popup-ul) aduce pagina la rețeta primită", async () => {
+    const { engine } = await engineOn();
+    const original = document.body.innerHTML;
+    engine.adopt({
+      recipe: { host: "test.ro", revision: 3, css: "", ops: [moveSearch], updatedAt: "t" },
+      revisions: [],
+    });
+    expect(document.body.firstElementChild?.getAttribute("role")).toBe("search");
+    engine.adopt({ recipe: { host: "test.ro", revision: 0, css: "", updatedAt: "t" }, revisions: [] });
+    expect(document.body.innerHTML).toBe(original);
   });
 });
 

@@ -2,14 +2,19 @@
 // salvează rețeta pe site și o reaplică fără AI. Etapa 1 folosește doar `css`; DomOp vine în B6.
 
 import {
+  DOM_OP_LIMITS,
   RECIPE_LIMITS,
   type ApplyCssData,
+  type ApplyOpsData,
+  type DomOp,
+  type SkippedOp,
   type CssDropped,
   type RecipeRevision,
   type ToolResult,
 } from "@uishapeshifter/contracts";
 import { validateCss } from "../../validation";
 import type { RecipeView } from "../page-registry/registry";
+import { checkOps, createDomOpsApplier } from "./dom-ops";
 import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRecipe } from "./recipe-store";
 
 /** Id-ul <style>-ului rețetei: conține „uishapeshifter”, deci CSS-ul agentului nu-l poate ținti. */
@@ -38,6 +43,12 @@ export interface RecipeEngine {
     reason: string;
     runId?: string;
   }): Promise<ToolResult<ApplyCssData>>;
+  /**
+   * Schimbări de structură (specs/02, 03): validate, aplicate după CSS, adăugate la `recipe.ops` într-o revizie nouă.
+   * În rețetă intră doar operațiile aplicate; cele sărite sunt în `skipped`. Dacă nu s-a aplicat niciuna, răspunsul
+   * e tot `ok`, cu `applied: 0` și revizia neschimbată.
+   */
+  applyOps(args: { ops: unknown[]; reason: string; runId?: string }): Promise<ToolResult<ApplyOpsData>>;
   /**
    * „Anulez”: rețeta devine exact cea de la `revision`, iar reviziile de după ea se șterg (revizia coboară, specs/02).
    * `revertTo(0)` = rețeta goală. O revizie care nu mai e în istoric întoarce INVALID_ARGS și nu schimbă nimic.
@@ -101,6 +112,15 @@ function splitSelectorList(prelude: string): string[] {
   return parts.filter(Boolean);
 }
 
+/** `ops` pe o revizie doar dacă există, ca rețetele din etapa 1 să rămână cum erau. */
+function opsField(ops: DomOp[] | undefined): { ops?: DomOp[] } {
+  return ops ? { ops } : {};
+}
+
+function opsInvalid(message: string, skipped: SkippedOp[]): ToolResult<ApplyOpsData> {
+  return { ok: false, error: { code: "INVALID_ARGS", message, details: { skipped } } };
+}
+
 function invalid(message: string, dropped: CssDropped[]): ToolResult<ApplyCssData> {
   return { ok: false, error: { code: "INVALID_ARGS", message, details: { dropped } } };
 }
@@ -123,14 +143,22 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     return style;
   }
 
-  function render() {
+  function renderCss() {
     const style = styleElement();
     if (style.textContent !== stored.recipe.css) style.textContent = stored.recipe.css;
   }
 
+  const domOps = createDomOpsApplier({ doc });
+
+  /** Pagina adusă exact la rețetă: foaia de stil, apoi operațiile (anulează tot ce era aplicat, aplică tot în ordine). */
+  function render() {
+    renderCss();
+    domOps.sync(stored.recipe.ops ?? []);
+  }
+
   // Unele site-uri își rescriu <head>-ul: dacă ne scot foaia, o punem la loc (specs/02, „Reaplicarea fără AI”).
   const keeper = new MutationObserver(() => {
-    if (stored.recipe.css && !doc.getElementById(RECIPE_STYLE_ID)) render();
+    if (stored.recipe.css && !doc.getElementById(RECIPE_STYLE_ID)) renderCss();
   });
   keeper.observe(doc.documentElement, { childList: true, subtree: true });
 
@@ -171,17 +199,17 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
       const at = now().toISOString();
       const revision = previous.recipe.revision + 1;
       stored = {
-        recipe: { host: options.host, revision, css: nextCss, updatedAt: at },
+        recipe: { ...previous.recipe, revision, css: nextCss, updatedAt: at },
         revisions: [
           ...previous.revisions,
-          { revision, css: nextCss, reason, runId, at } satisfies RecipeRevision,
+          { revision, css: nextCss, ...opsField(previous.recipe.ops), reason, runId, at } satisfies RecipeRevision,
         ].slice(-RECIPE_LIMITS.maxRevisions),
       };
-      render();
+      renderCss();
 
       if (options.isOurUiVisible && !options.isOurUiVisible()) {
         stored = previous;
-        render();
+        renderCss();
         return invalid(
           "Regulile noi ascundeau interfața extensiei; revizia a fost anulată. Țintește doar elementele site-ului.",
           [
@@ -201,6 +229,56 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
         ok: true,
         data: { revision, cssBytes: bytes, dropped, unmatchedSelectors: unmatched(kept) },
       };
+    },
+
+    async applyOps({ ops, reason, runId }) {
+      if (ops.length === 0 || ops.length > DOM_OP_LIMITS.maxOpsPerCall) {
+        return opsInvalid(`apply_ops primește între 1 și ${DOM_OP_LIMITS.maxOpsPerCall} operații pe apel.`, []);
+      }
+      const current = stored.recipe.ops ?? [];
+      const { accepted, skipped } = checkOps(ops, current, doc);
+      if (current.length + accepted.length > DOM_OP_LIMITS.maxOpsPerRecipe) {
+        return opsInvalid(
+          `Rețeta ar avea ${current.length + accepted.length} operații, peste limita de ${DOM_OP_LIMITS.maxOpsPerRecipe}. ` +
+            "Scoate ce nu mai trebuie (Anulez) sau folosește CSS.",
+          skipped,
+        );
+      }
+
+      // Aplicăm rețeta de acum plus operațiile noi; în rețetă rămân doar cele noi care chiar s-au aplicat.
+      const outcomes = domOps.sync([...current, ...accepted.map((a) => a.op)]);
+      const added: DomOp[] = [];
+      accepted.forEach(({ index, op }, i) => {
+        const outcome = outcomes[current.length + i]!;
+        if (outcome.ok) added.push(op);
+        else skipped.push({ index, reason: outcome.reason, message: outcome.message });
+      });
+      skipped.sort((a, b) => a.index - b.index);
+      const nextOps = [...current, ...added];
+      if (added.length !== accepted.length) domOps.sync(nextOps); // fără cele sărite, ca pozițiile să corespundă
+
+      if (added.length === 0) {
+        return { ok: true, data: { revision: stored.recipe.revision, applied: 0, skipped, htmlDropped: [] } };
+      }
+      if (options.isOurUiVisible && !options.isOurUiVisible()) {
+        domOps.sync(current);
+        return opsInvalid(
+          "Schimbarea ascundea interfața extensiei; am anulat-o. Țintește doar elementele site-ului.",
+          skipped,
+        );
+      }
+
+      const at = now().toISOString();
+      const revision = stored.recipe.revision + 1;
+      stored = {
+        recipe: { ...stored.recipe, revision, ops: nextOps, updatedAt: at },
+        revisions: [
+          ...stored.revisions,
+          { revision, css: stored.recipe.css, ops: nextOps, reason, runId, at } satisfies RecipeRevision,
+        ].slice(-RECIPE_LIMITS.maxRevisions),
+      };
+      await saveRecipe(options.storage, stored);
+      return { ok: true, data: { revision, applied: added.length, skipped, htmlDropped: [] } };
     },
 
     async revertTo(revision) {
@@ -245,7 +323,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
 
     async reset() {
       stored = { recipe: { host: options.host, revision: 0, css: "", updatedAt: now().toISOString() }, revisions: [] };
-      render();
+      render(); // fără ops: anulează tot ce era aplicat
       await clearRecipe(options.storage, options.host);
     },
 
