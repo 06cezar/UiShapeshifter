@@ -1,3 +1,3 @@
-2026-11-14 00:58
+2026-11-14 01:21
 
-C: C1–C5 unite (C3 #9 unit la 01:0x); #54 reparațiile review D pe C3 (review D); E leagă pagina testului pentru M3; blocat: nimic
+C: C1–C5 unite; #54 (reparații C3) și #56 (fals pozitiv overlap) unite; pagina testului o leagă E (e-onboarding-legat) pentru M3; blocat: nimic
