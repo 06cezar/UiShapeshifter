@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 5/21 · **În lucru:** 6 · **Poate începe:** 1 · **Așteaptă:** 9 · **Blocat:** 0
+**Gata:** 6/21 · **În lucru:** 5 · **Poate începe:** 1 · **Așteaptă:** 9 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ flowchart LR
     t_D1["D1 · Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev)<br/>✅ gata"]
     t_D2["D2 · Mascota SVG + Framer Motion, cele 7 stări, pointAt cu lăbuța (specs/11, specs/04)<br/>⏳ așteaptă"]
     t_D3["D3 · Chat text + voce (Web Speech ro-RO) + bula mascotei, conectate la WebSocket<br/>⏳ așteaptă"]
-    t_D4["D4 · Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas<br/>🔨 în lucru"]
+    t_D4["D4 · Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas<br/>✅ gata"]
     t_D5["D5 · Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție<br/>⏳ așteaptă"]
     t_D6["D6 · Pitch de 5 minute, descrierea de o pagină, screenshot-uri, README final, trimiterea pe Slack<br/>⏳ așteaptă"]
   end
@@ -78,8 +78,8 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_A1,t_B1,t_C1,t_E1 done
-  class t_D4,t_A2,t_A3,t_B2,t_C2,t_C3 progress
+  class t_D1,t_D4,t_A1,t_B1,t_C1,t_E1 done
+  class t_A2,t_A3,t_B2,t_C2,t_C3 progress
   class t_B4 ready
   class t_D2,t_D3,t_D5,t_D6,t_A4,t_B3,t_E2,t_E3,t_E4 wait
 ```
@@ -94,7 +94,6 @@ _nimic_
 
 ## În lucru
 
-- **D4** (D) Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas: PR #11 deschis _(sâm 03:00. Gata = o rulare se vede pas cu pas live și se poate relua după terminare.)_
 - **A2** (A) Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get\_ui\_snapshot, patch\_config, point\_at: branch `a2-bucla` are commit-uri; încă așteaptă B2 _(vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point\_at, cu pașii în jurnal.)_
 - **A3** (A) Toate uneltele + promptul de sistem + profilul în context (specs/05): branch `a3-unelte` are commit-uri; încă așteaptă A2 _(sâm 02:00. Gata = ask\_user, propose\_changes, audit\_ui, generate\_component, navigate, wait\_for\_user\_click, say, update\_profile, finish.)_
 - **B2** (B) Registrul de elemente (data-agent-id), snapshot, rectOf/ensureVisible + executorul uneltelor web (agent-bridge): branch `b2-registru` are commit-uri _(vin 21:00. Gata = registry.snapshot() întoarce UISnapshot corect; tool\_call patch\_config/navigate/get\_ui\_snapshot executat din WebSocket.)_
@@ -105,7 +104,7 @@ _nimic_
 
 - **D2** (D) Mascota SVG + Framer Motion, cele 7 stări, pointAt cu lăbuța (specs/11, specs/04): așteaptă B2 _(vin 21:00. Gata = mascot.pointAt('nav.messages') arată elementul și se recalculează la scroll/resize.)_
 - **D3** (D) Chat text + voce (Web Speech ro-RO) + bula mascotei, conectate la WebSocket: așteaptă D2 _(vin 23:00. Gata = mesaj scris sau vorbit ajunge la server; agent\_message apare în bulă și în chat.)_
-- **D5** (D) Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție: așteaptă A4, B3, B4, C2, C3, D3, D4, E3 _(sâm 09:00 (înghețul). Gata = cei 6 pași din demo merg de 3 ori la rând.)_
+- **D5** (D) Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție: așteaptă A4, B3, B4, C2, C3, D3, E3 _(sâm 09:00 (înghețul). Gata = cei 6 pași din demo merg de 3 ori la rând.)_
 - **D6** (D) Pitch de 5 minute, descrierea de o pagină, screenshot-uri, README final, trimiterea pe Slack: așteaptă D5 _(sâm 13:30. Se marchează cu \[gata D6\] după trimitere.)_
 - **A4** (A) Tratarea eșecurilor - LIMIT\_VIOLATION, NOT\_VISIBLE, TIMEOUT, reîncercări, maxSteps, erori OpenRouter: așteaptă A3 _(sâm 05:00. Gata = fiecare eroare din specs/05 are un test sau un scenariu manual care arată reacția agentului.)_
 - **B3** (B) Elemente generate la cerere - ComponentRenderer pe catalog, validare, generate\_component/remove\_component (specs/03): așteaptă B2 _(sâm 01:00. Gata = cele 2 exemple din specs/03 se randează, primesc data-agent-id și trec auditul.)_

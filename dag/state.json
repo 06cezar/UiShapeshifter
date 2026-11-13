@@ -1,8 +1,8 @@
 {
   "comms": {},
-  "last_comms_sha": "8ab508e164bca610bf3531c30359c4e4acb4b6ed",
-  "last_run": "2026-11-13T14:47:07Z",
-  "last_sha": "ef649990a86feba0b170ac5ce1935826b1872e13",
+  "last_comms_sha": "608952d192acc86833a665830adb00d1cf50ba10",
+  "last_run": "2026-11-13T14:48:13Z",
+  "last_sha": "0bc4c2f5b6e6d5d863ac56c1df8b46cead510ff7",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -16,8 +16,8 @@
     },
     "11": {
       "head": "d4-panou",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T14:48:00Z",
+      "state": "MERGED"
     },
     "12": {
       "head": "e1-tmp-unic",
@@ -90,7 +90,7 @@
     "D1": "done",
     "D2": "wait",
     "D3": "wait",
-    "D4": "progress",
+    "D4": "done",
     "D5": "wait",
     "D6": "wait",
     "E1": "done",
