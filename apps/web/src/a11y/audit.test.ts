@@ -39,14 +39,27 @@ function el(over: Partial<ElementInfo> & { id: string }): ElementInfo {
 }
 
 function snap(elements: ElementInfo[]): UISnapshot {
-  return { route: "messages", configRevision: 7, viewport: VIEWPORT, openOverlays: [], elements, takenAt: "2026-11-13T18:00:00.000Z" };
+  return {
+    route: "messages",
+    configRevision: 7,
+    viewport: VIEWPORT,
+    openOverlays: [],
+    elements,
+    takenAt: "2026-11-13T18:00:00.000Z",
+  };
 }
 
 const NOW = () => new Date("2026-11-13T18:00:01.000Z");
 
 describe("thresholdsFor", () => {
   it("fără profil: limitele globale", () => {
-    expect(T).toEqual({ minFontPx: 16, minContrastText: 4.5, minContrastLargeText: 3, minTargetPx: 44, minLineHeight: 1.5 });
+    expect(T).toEqual({
+      minFontPx: 16,
+      minContrastText: 4.5,
+      minContrastLargeText: 3,
+      minTargetPx: 44,
+      minLineHeight: 1.5,
+    });
   });
   it("profilul Mariei ridică pragurile", () => {
     expect(MARIA).toMatchObject({ minFontPx: 20, minTargetPx: 48, minContrastText: 7, minContrastLargeText: 4.5 });
@@ -98,9 +111,15 @@ describe("contrast", () => {
     expect(checkTextContrast(el({ id: "a", color: undefined, background: undefined }), T)).toHaveLength(0);
   });
   it("marginea unui buton: sub 3:1 e eroare", () => {
-    expect(checkNonTextContrast(el({ id: "a" }), { nonText: { color: "#DDDDDD", background: "#FFFFFF" } })).toHaveLength(1);
-    expect(checkNonTextContrast(el({ id: "a" }), { nonText: { color: "#888888", background: "#FFFFFF" } })).toHaveLength(0);
-    expect(checkNonTextContrast(el({ id: "a", interactive: false }), { nonText: { color: "#EEE", background: "#FFF" } })).toHaveLength(0);
+    expect(
+      checkNonTextContrast(el({ id: "a" }), { nonText: { color: "#DDDDDD", background: "#FFFFFF" } }),
+    ).toHaveLength(1);
+    expect(
+      checkNonTextContrast(el({ id: "a" }), { nonText: { color: "#888888", background: "#FFFFFF" } }),
+    ).toHaveLength(0);
+    expect(
+      checkNonTextContrast(el({ id: "a", interactive: false }), { nonText: { color: "#EEE", background: "#FFF" } }),
+    ).toHaveLength(0);
   });
 });
 
@@ -115,7 +134,9 @@ describe("target-size", () => {
     expect(checkTargetSize(e, MARIA)).toHaveLength(1);
   });
   it("ignoră elementele neinteractive", () => {
-    expect(checkTargetSize(el({ id: "a", interactive: false, rect: { x: 0, y: 0, width: 10, height: 10 } }), T)).toHaveLength(0);
+    expect(
+      checkTargetSize(el({ id: "a", interactive: false, rect: { x: 0, y: 0, width: 10, height: 10 } }), T),
+    ).toHaveLength(0);
   });
 });
 
@@ -164,10 +185,16 @@ describe("clipped, offscreen, line-height", () => {
   });
   it("line-height sub 1.5 la textul de conținut e avertisment", () => {
     const p = el({ id: "chat.ana.msg", role: "text", interactive: false });
-    expect(checkLineHeight(p, T, { lineHeight: 1.2 })[0]).toMatchObject({ rule: "line-height", severity: "warning", measured: 1.2 });
+    expect(checkLineHeight(p, T, { lineHeight: 1.2 })[0]).toMatchObject({
+      rule: "line-height",
+      severity: "warning",
+      measured: 1.2,
+    });
     expect(checkLineHeight(p, T, { lineHeight: 1.5 })).toHaveLength(0);
     expect(checkLineHeight(el({ id: "b" }), T, { lineHeight: 1.2 })).toHaveLength(0); // buton
-    expect(checkLineHeight(el({ id: "h", role: "heading", interactive: false }), T, { lineHeight: 1.1 })).toHaveLength(0);
+    expect(checkLineHeight(el({ id: "h", role: "heading", interactive: false }), T, { lineHeight: 1.1 })).toHaveLength(
+      0,
+    );
   });
 });
 
@@ -192,7 +219,10 @@ describe("auditSnapshot", () => {
   it("raportul complet, pe modulul curent", () => {
     const report = auditSnapshot(snap(elements), T, { moduleId: "messages", now: NOW });
     expect(report.ok).toBe(false);
-    expect(report.issues.map((i) => `${i.rule}:${i.elementId}`).sort()).toEqual(["min-font:messages.send", "target-size:messages.send"]);
+    expect(report.issues.map((i) => `${i.rule}:${i.elementId}`).sort()).toEqual([
+      "min-font:messages.send",
+      "target-size:messages.send",
+    ]);
     expect(report.score).toBe(84);
     expect(report.checkedElements).toBe(3);
     expect(report.configRevision).toBe(7);

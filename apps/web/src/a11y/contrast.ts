@@ -15,6 +15,11 @@ export interface Rgba {
 export const LARGE_BOLD_TEXT_PX = 18.66;
 export const BOLD_WEIGHT = 700;
 
+/** Pașii căutării binare a luminozității: 30 de înjumătățiri ajung sub o miime de procent. */
+const LIGHTNESS_SEARCH_STEPS = 30;
+/** Cât împingem luminozitatea (0–1) când rotunjirea la hex coboară raportul sub prag. */
+const HEX_ROUNDING_NUDGE = 0.002;
+
 const NAMED: Record<string, Rgba> = {
   white: { r: 255, g: 255, b: 255, a: 1 },
   black: { r: 0, g: 0, b: 0, a: 1 },
@@ -53,7 +58,10 @@ export function parseColor(input: string): Rgba | null {
 
 /** `#RRGGBB` (alfa ignorat; compune întâi cu `composite` dacă e cazul). */
 export function toHex(c: Rgba): string {
-  const h = (v: number) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, "0");
+  const h = (v: number) =>
+    Math.round(clamp(v, 0, 255))
+      .toString(16)
+      .padStart(2, "0");
   return ("#" + h(c.r) + h(c.g) + h(c.b)).toUpperCase();
 }
 
@@ -68,7 +76,7 @@ export function composite(fg: Rgba, bg: Rgba): Rgba {
   };
 }
 
-/** Luminanța relativă WCAG 2.x, 0 (negru) – 1 (alb). */
+/** Luminanța relativă WCAG 2.x, 0 (negru) – 1 (alb). Constantele sunt cele din definiția WCAG (sRGB). */
 export function relativeLuminance(color: Rgba | string): number {
   const c = typeof color === "string" ? mustParse(color) : color;
   const lin = (v: number) => {
@@ -158,13 +166,13 @@ function searchLightness(start: Hsl, bg: Rgba, target: number, towards: 0 | 1): 
   if (contrastRatio(at(towards), bg) < target) return null;
   let near = start.l; // nu atinge pragul
   let far: number = towards; // îl atinge
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < LIGHTNESS_SEARCH_STEPS; i++) {
     const mid = (near + far) / 2;
     if (contrastRatio(at(mid), bg) >= target) far = mid;
     else near = mid;
   }
   // rotunjirea la hex poate coborî raportul sub prag: mai împingem puțin spre capăt
-  const step = towards === 0 ? -0.002 : 0.002;
+  const step = towards === 0 ? -HEX_ROUNDING_NUDGE : HEX_ROUNDING_NUDGE;
   for (let l = far; towards === 0 ? l >= 0 : l <= 1; l += step) {
     const hex = toHex(at(l));
     if (contrastRatio(hex, bg) >= target) return hex;
@@ -193,7 +201,17 @@ function hslToRgb({ h, s, l }: Hsl): Rgba {
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
   const [r, g, b] =
-    h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    h < 60
+      ? [c, x, 0]
+      : h < 120
+        ? [x, c, 0]
+        : h < 180
+          ? [0, c, x]
+          : h < 240
+            ? [0, x, c]
+            : h < 300
+              ? [x, 0, c]
+              : [c, 0, x];
   return { r: (r + m) * 255, g: (g + m) * 255, b: (b + m) * 255, a: 1 };
 }
 

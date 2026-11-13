@@ -4,7 +4,14 @@
 // Reparațiile (`fix`) le adaugă C2.
 
 import { HARD_LIMITS } from "@uishapeshifter/contracts";
-import type { AuditIssue, AuditReport, AuditThresholds, ElementInfo, Rect, UISnapshot } from "@uishapeshifter/contracts";
+import type {
+  AuditIssue,
+  AuditReport,
+  AuditThresholds,
+  ElementInfo,
+  Rect,
+  UISnapshot,
+} from "@uishapeshifter/contracts";
 import { contrastRatio, formatRatio, parseColor, requiredTextContrast } from "./contrast";
 
 /** Ce se măsoară din DOM și nu e în snapshot. Toate câmpurile sunt opționale: lipsa lor sare regula. */
@@ -40,6 +47,7 @@ export const SCORE_WARNING_PENALTY = 2;
 /** Toleranțe pentru rotunjirile din browser (subpixeli, zoom). */
 const FONT_EPS = 0.05;
 const RECT_EPS = 0.5;
+const LINE_HEIGHT_EPS = 0.01;
 const OFFSCREEN_EPS = 1;
 const OVERLAP_MAX_AREA = 4;
 
@@ -73,7 +81,10 @@ export function computeScore(issues: Pick<AuditIssue, "severity">[]): number {
   return Math.max(0, 100 - SCORE_ERROR_PENALTY * errors - SCORE_WARNING_PENALTY * warnings);
 }
 
-export function selectElements(snapshot: UISnapshot, opts: Pick<AuditOptions, "moduleId" | "scope"> = {}): ElementInfo[] {
+export function selectElements(
+  snapshot: UISnapshot,
+  opts: Pick<AuditOptions, "moduleId" | "scope"> = {},
+): ElementInfo[] {
   const agent = opts.scope === "agent";
   return snapshot.elements.filter((el) => {
     if (!el.visible) return false;
@@ -209,7 +220,7 @@ export function checkOffscreen(el: ElementInfo, viewport: UISnapshot["viewport"]
 
 export function checkLineHeight(el: ElementInfo, t: AuditThresholds, f: DomFacts = {}): AuditIssue[] {
   if (f.lineHeight === undefined || !isContentText(el)) return [];
-  if (f.lineHeight >= t.minLineHeight - 0.01) return [];
+  if (f.lineHeight >= t.minLineHeight - LINE_HEIGHT_EPS) return [];
   return [
     {
       rule: "line-height",
