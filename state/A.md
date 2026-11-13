@@ -1,3 +1,3 @@
-2026-11-13 23:40
+2026-11-14 00:54
 
-gata: A1-A3 unite; #46 deschis (vreau doar X); pe branch: A4 (a4-esecuri), A5 (a5-retete), A6 (a6-context-profil, probat cu E8); urmează: PR-uri după M2/E8/M3; la M2 DEFAULT_STAGE=2; blocat: nimic
+gata: A1-A3 unite, M2 trecut; PR-uri deschise: #52 (etapa implicită 2), #53 (fără rulare după testul inițial), #46 (prompt „doar X” + hiddenBy site); pe branch: A4, A5, A6 (A6 adus la zi de E cu E8); urmează: PR A6 după #49; blocat: nimic
