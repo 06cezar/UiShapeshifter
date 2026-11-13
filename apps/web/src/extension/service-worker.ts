@@ -7,8 +7,23 @@ import { PAGE_PORT, POPUP_PORT, parseToWorker, type FromWorker } from "./message
 import { createRunRouter } from "./run-router";
 import { startServerLink, type ServerLink } from "./server-link";
 import { getOrCreateSessionId, getOrCreateUserId } from "./storage";
+import { PROFILE_RETRY_MS, syncProfile } from "../sync/profile-sync";
 
 const SERVER_WS_URL = `ws://localhost:${SERVER_PORT}/ws`;
+const SERVER_API_URL = `http://localhost:${SERVER_PORT}/api`;
+
+/**
+ * Profilul (E8) ținut și local: îl aducem de pe server la pornire și după fiecare rulare (agentul îl poate schimba cu
+ * update_profile). Fără server, păstrăm copia locală și mai încercăm peste puțin.
+ */
+let profileRetry: ReturnType<typeof setTimeout> | undefined;
+function refreshProfile(): void {
+  if (!userId) return;
+  clearTimeout(profileRetry);
+  void syncProfile({ apiUrl: SERVER_API_URL, userId, storage: chrome.storage.local }).then((outcome) => {
+    if (outcome === "offline") profileRetry = setTimeout(refreshProfile, PROFILE_RETRY_MS);
+  });
+}
 
 const pagePorts = new Set<chrome.runtime.Port>();
 const popupPorts = new Set<chrome.runtime.Port>();
@@ -40,6 +55,7 @@ function broadcastStatus(): void {
 }
 
 function routeFromServer(message: ServerMessage): void {
+  if (message.type === "run_finished") refreshProfile();
   for (const port of router.targetsFor(message, pagePorts)) post(port, { type: "from_server", message });
 }
 
@@ -54,6 +70,7 @@ const linkReady: Promise<ServerLink> = (async () => {
     onStatus: broadcastStatus,
   });
   broadcastStatus();
+  refreshProfile();
   return link;
 })();
 

@@ -256,7 +256,7 @@ export function Onboarding({
           </div>
         );
       case "touch":
-        return <TouchTest onDone={(touch: TouchTrial[]) => next({ touch })} />;
+        return <TouchTest onDone={(touch: TouchTrial[]) => next({ touch })} inputGuardMs={inputGuardMs} />;
       case "dislikes":
         return (
           <>
@@ -268,6 +268,9 @@ export function Onboarding({
                   pressed={answers.dislikes?.includes(category) ?? false}
                   onClick={() => setAnswers((prev) => ({ ...prev, dislikes: toggle(prev.dislikes ?? [], category) }))}
                 >
+                  <span className="onboarding__icon" aria-hidden="true">
+                    {DISLIKE_CHOICES[category].icon}
+                  </span>
                   {DISLIKE_CHOICES[category].label}
                 </Toggle>
               ))}

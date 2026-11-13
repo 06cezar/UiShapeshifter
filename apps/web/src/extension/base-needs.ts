@@ -5,6 +5,29 @@
 import type { UserNeeds } from "@uishapeshifter/contracts";
 
 export const ONBOARDING_KEY = "onboarding";
+/** Cheia userId-ului anonim (E5); profilul local stă sub chiar acest userId (E8, specs/08). */
+export const USER_ID_KEY = "userId";
+
+/**
+ * Nevoile, din cea mai bună sursă disponibilă: profilul local (E8, ținut la zi de service worker), altfel ce a salvat
+ * testul inițial, altfel nimic (valorile implicite).
+ */
+export function needsFromStored(values: Record<string, unknown>): Partial<UserNeeds> {
+  const userId = values[USER_ID_KEY];
+  const profile = typeof userId === "string" ? values[userId] : undefined;
+  const onboarding = values[ONBOARDING_KEY];
+  // Profilul local câștigă doar dacă știe ceva: testul a fost făcut sau sărit (onboarding completat pe server).
+  // Fără server, profilul adus mai devreme poate fi cel gol, „de la zero”: atunci rezultatul testului e mai bun
+  // (C și D pe #49).
+  const profileKnows =
+    isRecord(profile) &&
+    isRecord(profile.needs) &&
+    isRecord(profile.onboarding) &&
+    (profile.onboarding.completed === true || profile.onboarding.skipped === true);
+  if (profileKnows) return needsFromStorage(profile);
+  if (isRecord(onboarding) && isRecord(onboarding.needs)) return needsFromStorage(onboarding);
+  return isRecord(profile) && isRecord(profile.needs) ? needsFromStorage(profile) : {};
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
