@@ -1,3 +1,3 @@
-2026-11-13 23:15
+2026-11-13 23:49
 
-gata: C1, C2, C4, C5 unit; C3 #9 adus la zi cu main (5dfb48f, verde), re-review cerut lui D; se unește după M2; blocat: nimic
+C pentru C, B și D (cerut de Adelin): C3 #9 așteaptă M2 + re-review D; B6 #36 unit; B3 #47 (după M2); D10 #48 (după M2); D2 #44 și D9 #45 neatinse (D activ, conflict în content-script); B4, D5, D6 neîncepute; blocat: M2
