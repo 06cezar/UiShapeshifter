@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compactResult } from "./compact-result";
 
 describe("compactResult", () => {
-  it("auditul păstrează doar ce trebuie reparat: introduced și fixCss, fără praguri", () => {
+  it("auditul trimite doar problemele aduse de agent, cu fixCss; pe ale site-ului doar le numără", () => {
     const text = compactResult("audit_ui", {
       ok: true,
       data: {
@@ -45,16 +45,16 @@ describe("compactResult", () => {
       data: {
         ok: false,
         score: 81,
+        siteIssues: 1,
         issues: [
           {
             rule: "target-size",
             severity: "error",
             elementId: "e.4",
             message: "Butonul are 30px.",
-            fixCss: "a.btn{min-height:44px}",
             introduced: true,
+            fixCss: "a.btn{min-height:44px}",
           },
-          { rule: "contrast", severity: "warning", elementId: "e.9", message: "Contrast mic." },
         ],
       },
     });

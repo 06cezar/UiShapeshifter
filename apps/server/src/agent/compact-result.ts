@@ -63,18 +63,24 @@ function compactPageSnapshot(snapshot: PageSnapshot): Record<string, unknown> {
   };
 }
 
-/** Auditul: modelul are nevoie de ce să repare (introduced, fixCss), nu de praguri și ore. */
+/**
+ * Auditul: modelul repară doar ce a adus el (introduced, cu fixCss). Problemele site-ului (pe o pagină reală pot fi
+ * sute) nu are voie să le atingă, deci primește doar câte sunt: mai puțini tokeni la fiecare pas de după audit.
+ */
 function compactAudit(report: AuditReport): Record<string, unknown> {
+  const issues = report.issues ?? [];
+  const introduced = issues.filter((issue) => issue.introduced);
   return {
     ok: report.ok,
     score: report.score,
-    issues: (report.issues ?? []).map(({ rule, severity, elementId, message, fixCss, introduced }) => ({
+    siteIssues: issues.length - introduced.length,
+    issues: introduced.map(({ rule, severity, elementId, message, fixCss }) => ({
       rule,
       severity,
       elementId,
       message: label(message),
+      introduced: true,
       ...(fixCss && { fixCss }),
-      ...(introduced && { introduced: true }),
     })),
   };
 }
