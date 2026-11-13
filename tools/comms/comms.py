@@ -32,17 +32,24 @@ TYPES = ("ask", "answer", "approve", "reject", "review", "fyi", "contract", "clo
 OPENS = ("ask", "review", "contract")         # cer un răspuns: firul e deschis
 UPSTREAM = "refs/remotes/origin/comms"
 SYNC_EVERY = float(os.environ.get("COMMS_SYNC_EVERY", "60"))   # secunde între fetch-urile comenzilor de citire
+# Cât așteptăm rețeaua. Hook-urile au 30 s de la Claude Code; `inbox` (rulat din hook-uri) primește timpi mai scurți,
+# ca să termine sigur înainte să fie omorât (un hook omorât lasă lock-ul în urmă).
+NET = {"fetch": 20, "push": 30}
+NET_HOOK = {"fetch": 8, "push": 10}
+INBOX_PATIENCE = 8                            # secunde cât așteaptă `inbox` o altă comandă comms din aceeași clonă
+STALE_LOCK = 90                               # un lock neatins de atâtea secunde e părăsit, chiar dacă nu știm cine l-a luat
 ENV = {k: v for k, v in os.environ.items()
        if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_PREFIX", "GIT_COMMON_DIR")}
 ENV["GIT_TERMINAL_PROMPT"] = "0"              # într-un hook nu are cine să tasteze o parolă
+OFFLINE = []                                  # nevid după un fetch eșuat: restul comenzii nu mai încearcă rețeaua
 
 
 class Fail(Exception):
     pass
 
 
-def git(*args, cwd=None, check=True, timeout=None):
-    p = subprocess.Popen(("git",) + args, cwd=cwd, env=ENV, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+def git(*args, cwd=None, check=True, timeout=None, env=None):
+    p = subprocess.Popen(("git",) + args, cwd=cwd, env=env or ENV, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, encoding="utf-8", errors="replace",
                          start_new_session=os.name != "nt")
     try:
@@ -104,24 +111,67 @@ class Ctx:
         return ("-c", "user.name=" + self.me, "-c", "user.email=%s@comms.local" % self.me)
 
 
+def alive(pid):
+    """Mai rulează procesul `pid` pe calculatorul ăsta? La îndoială răspundem da: lock-ul nu se ia pe ghicite."""
+    if pid <= 0:
+        return True
+    if os.name == "nt":                        # pe Windows, os.kill(pid, 0) ar OMORÎ procesul: întrebăm sistemul
+        import ctypes
+        from ctypes import wintypes
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.OpenProcess.restype, k.OpenProcess.argtypes = wintypes.HANDLE, (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        k.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        k.CloseHandle.argtypes = (wintypes.HANDLE,)
+        h = k.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return ctypes.get_last_error() != 87   # 87: niciun proces cu PID-ul ăsta; 5 (acces refuzat): există
+        try:
+            code = wintypes.DWORD()
+            return not k.GetExitCodeProcess(h, ctypes.byref(code)) or code.value == 259   # 259: STILL_ACTIVE
+        finally:
+            k.CloseHandle(h)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        pass
+    return True
+
+
 class Lock:
-    """O singură comandă comms odată pe clonă (hook, `wait` și `send` pot porni în același timp)."""
+    """O singură comandă comms odată pe clonă (hook, `wait` și `send` pot porni în același timp).
+    Fișierul de lock ține PID-ul celui care l-a luat: dacă procesul acela a murit (ex. un hook omorât la timeout),
+    lock-ul se ia imediat, nu după STALE_LOCK secunde."""
 
     def __init__(self, c, patience=None):
         self.c, self.path, self.patience = c, os.path.join(c.state, "lock"), patience
+
+    def owner(self):
+        try:
+            with open(self.path) as f:
+                return int(f.read().strip() or 0)
+        except (OSError, ValueError):
+            return 0                           # tocmai creat, încă fără PID: decide vârsta fișierului
 
     def __enter__(self):
         start = time.time()
         while True:
             try:
-                os.close(os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                try:
+                    os.write(fd, str(os.getpid()).encode())
+                finally:
+                    os.close(fd)
                 heal(self.c)
                 return self
             except OSError:
                 try:
-                    stale = abs(time.time() - os.path.getmtime(self.path)) > 90
+                    stale = abs(time.time() - os.path.getmtime(self.path)) > STALE_LOCK
                 except OSError:
                     continue
+                pid = self.owner()
+                stale = stale or (pid > 0 and pid != os.getpid() and not alive(pid))
                 if stale:                      # o comandă a murit cu lock-ul luat (sau ceasul a fost mutat)
                     self.__exit__()
                 elif self.patience and time.time() - start > self.patience:
@@ -158,6 +208,8 @@ def sync(c, force=True, fetch=True):
             pass
     if git("config", "remote.origin.url", cwd=c.wt, check=False).returncode:
         return True                            # repo fără remote: totul rămâne local
+    if OFFLINE:
+        return False                           # un fetch din aceeași comandă tocmai a picat: nu mai așteptăm rețeaua
     open(stamp, "w").close()
     for attempt in range(TRIES):
         try:
@@ -165,8 +217,13 @@ def sync(c, force=True, fetch=True):
         except OSError:
             pass
         blind = not fetch and attempt == 0     # abia am făcut fetch: încercăm întâi direct push
-        fetched = not blind and git("fetch", "--quiet", "origin", "+refs/heads/comms:" + UPSTREAM,
-                                    cwd=c.wt, check=False, timeout=20).returncode == 0
+        if not blind:
+            # mesajele lui git în engleză, ca să recunoaștem „branch-ul încă nu există” (remote-ul a răspuns)
+            r = git("fetch", "--quiet", "origin", "+refs/heads/comms:" + UPSTREAM, cwd=c.wt, check=False,
+                    timeout=NET["fetch"], env=dict(ENV, LC_ALL="C", LANGUAGE="C"))
+            if r.returncode and "couldn't find remote ref" not in (r.stderr or ""):
+                OFFLINE.append(True)           # fără rețea (sau remote-ul nu răspunde): fără push, ar aștepta degeaba
+                return False
         head, up = c.rev("HEAD"), c.rev(UPSTREAM)
         if up and up != head and not blind:
             # -X theirs: la un conflict pe un fișier rescris (state/, away/) câștigă varianta locală, cea mai nouă
@@ -176,17 +233,14 @@ def sync(c, force=True, fetch=True):
                 raise Fail("rebase pe branch-ul comms a eșuat: " + (r.stderr or r.stdout).strip())
             head = c.rev("HEAD")
         if up == head:
-            return fetched or blind            # nimic de împins
+            return True                        # nimic de împins
         pushed = git("push", "--quiet", "--no-verify", "origin", "HEAD:refs/heads/comms",
-                     cwd=c.wt, check=False, timeout=30)
+                     cwd=c.wt, check=False, timeout=NET["push"])
         if pushed.returncode == 0:
             git("update-ref", UPSTREAM, head, cwd=c.wt)
             return True
-        if blind:
-            continue                           # respins sau fără rețea: tura următoare face fetch
-        if not fetched:
-            return False                       # fără rețea: commit-ul rămâne local și pleacă la următorul sync
-        time.sleep(random.uniform(0.1, 0.3 * (attempt + 2)))   # altcineva a împins între timp: încă o tură
+        if not blind:                          # respins: altcineva a împins între timp; încă o tură, cu fetch
+            time.sleep(random.uniform(0.1, 0.3 * (attempt + 2)))
     return False
 
 
@@ -587,6 +641,7 @@ def cmd_show(c, a):
 def cmd_wait(c, a):
     start = time.time()
     while True:
+        OFFLINE.clear()                        # fiecare tură încearcă din nou rețeaua
         with Lock(c):
             sync(c)
             new = unread(c)
@@ -714,11 +769,13 @@ def main(argv=None):
                 return 0
         except OSError:
             pass
+    if a.cmd == "inbox":                       # rulează din hook-uri: trebuie să termine sub limita de 30 s
+        NET.update(NET_HOOK)
     try:
         c = Ctx(a.me)
         if a.cmd == "wait":
             return cmd_wait(c, a)
-        with Lock(c, patience=15 if a.cmd == "inbox" else None):   # un hook nu ține promptul omului pe loc
+        with Lock(c, patience=INBOX_PATIENCE if a.cmd == "inbox" else None):   # un hook nu ține promptul pe loc
             return a.fn(c, a) or 0
     except Fail as e:
         if quiet:
