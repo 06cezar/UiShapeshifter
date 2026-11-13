@@ -43,7 +43,7 @@ export function handleConnection(socket: WebSocket): void {
 
     switch (message.type) {
       case "user_message":
-        startRunInSession(session, message.text, "user");
+        startRunInSession(session, message.text, "user", message.page);
         return;
       case "tool_result":
         if (!receiveToolResult(session, message.callId, message.result)) {

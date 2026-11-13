@@ -1,7 +1,7 @@
 // Cine decide în bucla reală: modelul din OpenRouter, cu tool calling (specs/05).
 // Ține istoricul conversației cu modelul; bucla din run-agent.ts îi dă rezultatul fiecărui pas.
 
-import { TOOL_DEFINITIONS, TOOL_RUNS_ON, type ToolName } from "@uishapeshifter/contracts";
+import { SITE_TOOL_DEFINITIONS, TOOL_RUNS_ON, type PageInfo, type ToolName } from "@uishapeshifter/contracts";
 import { compactResult } from "./compact-result";
 import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
@@ -12,8 +12,11 @@ const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
 // de câte ori îi cerem modelului să repare un tool call stricat (nume necunoscut, JSON invalid) în același pas
 const MAX_MALFORMED_CALLS = 2;
 
-// A2: drumul „fă textul mai mare”. A3 deschide restul uneltelor.
-export const A2_TOOLS: readonly ToolName[] = ["get_ui_snapshot", "patch_config", "point_at", "finish"];
+/** O definiție de unealtă în formatul OpenAI / OpenRouter. */
+export interface ToolDefinition {
+  type: "function";
+  function: { name: string; description: string; parameters: unknown };
+}
 
 function isToolName(name: string): name is ToolName {
   return Object.hasOwn(TOOL_RUNS_ON, name);
@@ -31,17 +34,19 @@ function parseArgs(raw: string): Record<string, unknown> | null {
 }
 
 export interface OpenRouterDeciderOptions {
-  tools?: readonly ToolName[];
+  /** Uneltele etapei la care e extensia; etapa 1: get_page_snapshot, apply_css, say, finish (specs/05). */
+  definitions?: readonly ToolDefinition[];
+  /** Site-ul de pe care a scris omul; lipsește pe pagina de probă. */
+  page?: PageInfo;
   retryDelaysMs?: readonly number[]; // testele le pun pe 0
 }
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
-  const { tools = A2_TOOLS, retryDelaysMs = RETRY_DELAYS_MS } = options;
+  const { definitions = SITE_TOOL_DEFINITIONS, page, retryDelaysMs = RETRY_DELAYS_MS } = options;
   const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
-  const allowed = new Set<ToolName>(tools);
-  const definitions = TOOL_DEFINITIONS.filter((definition) => allowed.has(definition.function.name));
+  const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt() },
+    { role: "system", content: buildSystemPrompt({ page }) },
     { role: "user", content: goal },
   ];
   let pendingCallId: string | null = null;

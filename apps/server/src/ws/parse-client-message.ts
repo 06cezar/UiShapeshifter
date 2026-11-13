@@ -1,6 +1,6 @@
 // Mesajele de la frontend vin din afară: le verificăm forma înainte să le folosim (ClientMessage, specs/06).
 
-import type { ClientMessage, ToolResult, UsageSignal } from "@uishapeshifter/contracts";
+import type { ClientMessage, PageInfo, ToolResult, UsageSignal } from "@uishapeshifter/contracts";
 
 type Json = Record<string, unknown>;
 
@@ -10,6 +10,18 @@ function isObject(value: unknown): value is Json {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+// host ajunge în calea fișierelor de rețete (data/recipes): fără „www.”, litere mici (specs/06)
+const HOST_PATTERN = /^[a-z0-9.-]{1,253}$/;
+
+/** `page` lipsește pe pagina de probă; dacă vine, trebuie să aibă forma PageInfo. undefined = lipsă, null = stricat. */
+function parsePage(value: unknown): PageInfo | undefined | null {
+  if (value === undefined) return undefined;
+  if (!isObject(value)) return null;
+  const { url, host, title } = value;
+  if (typeof url !== "string" || typeof host !== "string" || typeof title !== "string") return null;
+  return HOST_PATTERN.test(host) ? { url, host, title } : null;
 }
 
 function isToolResult(value: unknown): value is ToolResult {
@@ -32,10 +44,17 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return isNonEmptyString(message.userId) && isNonEmptyString(message.sessionId)
         ? { type: "hello", userId: message.userId, sessionId: message.sessionId }
         : null;
-    case "user_message":
-      return isNonEmptyString(message.text) && (message.source === "text" || message.source === "voice")
-        ? { type: "user_message", text: message.text.trim(), source: message.source }
-        : null;
+    case "user_message": {
+      const page = parsePage(message.page);
+      if (
+        !isNonEmptyString(message.text) ||
+        (message.source !== "text" && message.source !== "voice") ||
+        page === null
+      ) {
+        return null;
+      }
+      return { type: "user_message", text: message.text.trim(), source: message.source, ...(page && { page }) };
+    }
     case "tool_result":
       return isNonEmptyString(message.callId) && isToolResult(message.result)
         ? { type: "tool_result", callId: message.callId, result: message.result }

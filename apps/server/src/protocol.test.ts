@@ -7,13 +7,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
+import { pageElement, pageSnapshot } from "./agent/page-snapshot.fixture";
 import {
   DEFAULT_CONFIG,
   type AgentRun,
   type RunListItem,
   type ServerMessage,
   type ToolResult,
-  type UISnapshot,
 } from "@uishapeshifter/contracts";
 
 const MESSAGE_WAIT_MS = 3000;
@@ -69,25 +69,7 @@ async function connect(userId = "maria", sessionId = `s-${Math.random()}`) {
   return { socket, inbox, next, send, hello, sessionId };
 }
 
-const snapshot: UISnapshot = {
-  route: "home",
-  configRevision: 0,
-  viewport: { width: 400, height: 800 },
-  openOverlays: [],
-  takenAt: new Date().toISOString(),
-  elements: [
-    {
-      id: "nav.messages",
-      role: "button",
-      label: "Mesaje",
-      rect: { x: 0, y: 740, width: 80, height: 60 },
-      visible: true,
-      inViewport: true,
-      interactive: true,
-      fontPx: 16,
-    },
-  ],
-};
+const PAGE = { url: "https://video.example/", host: "video.example", title: "Video de test" };
 
 async function getJson<T>(path: string): Promise<{ status: number; body: T }> {
   const response = await fetch(baseUrl + path);
@@ -95,50 +77,64 @@ async function getJson<T>(path: string): Promise<{ status: number; body: T }> {
 }
 
 describe("WebSocket cu agentul fals", () => {
-  it("„fă textul mai mare”: snapshot → patch → point_at → finish, cu pașii în jurnal", async () => {
+  it("„ascunde Shorts”: snapshot → apply_css → snapshot de verificare → finish, cu pașii în jurnal", async () => {
     const web = await connect();
     web.hello();
-    web.send({ type: "user_message", text: "Fă textul mai mare", source: "text" });
+    web.send({ type: "user_message", text: "Ascunde Shorts", source: "text", page: PAGE });
 
     const started = await web.next("run_started");
     expect(started.origin).toBe("user");
 
-    const answers: Record<string, ToolResult> = {
-      get_ui_snapshot: { ok: true, data: snapshot },
-      patch_config: { ok: true, data: { revision: 1, applied: 1 } },
-      point_at: { ok: true, data: { scrolledIntoView: false, rect: snapshot.elements[0].rect } },
-    };
+    const before = pageSnapshot();
+    const after = pageSnapshot({
+      recipe: { revision: 1, css: "section[aria-label='Shorts'] { display: none !important; }" },
+      elements: [before.elements[0], pageElement({ ...before.elements[1], visible: false, hiddenBy: "recipe" })],
+    });
+    const answers: ToolResult[] = [
+      { ok: true, data: before },
+      { ok: true, data: { revision: 1, cssBytes: 58, dropped: [], unmatchedSelectors: [] } },
+      { ok: true, data: after },
+    ];
     const calls: string[] = [];
-    for (const name of ["get_ui_snapshot", "patch_config", "point_at"]) {
+    for (const answer of answers) {
       const call = await web.next("tool_call");
-      expect(call.name).toBe(name);
       expect(call.runId).toBe(started.runId);
       calls.push(call.name);
-      if (name === "patch_config") {
-        expect(call.args).toMatchObject({ ops: [{ op: "replace", path: "/theme/baseFontPx", value: 18 }] });
+      if (call.name === "apply_css") {
+        expect(call.args).toMatchObject({ css: "section[aria-label='Shorts'] { display: none !important; }" });
       }
-      if (name === "point_at") expect(call.args).toMatchObject({ elementId: "nav.messages" });
-      web.send({ type: "tool_result", callId: call.callId, result: answers[name] });
+      web.send({ type: "tool_result", callId: call.callId, result: answer });
       const step = await web.next("step");
-      expect(step.step.tool).toBe(name);
+      expect(step.step.tool).toBe(call.name);
       expect(step.step.observation).not.toBe("");
     }
-    const finishStep = await web.next("step");
-    expect(finishStep.step.tool).toBe("finish");
+    expect(calls).toEqual(["get_page_snapshot", "apply_css", "get_page_snapshot"]);
+    expect((await web.next("step")).step.tool).toBe("finish");
     expect((await web.next("agent_message")).mascot).toBe("happy");
-    const finished = await web.next("run_finished");
-    expect(finished).toMatchObject({ runId: started.runId, success: true });
-    expect(calls).toEqual(["get_ui_snapshot", "patch_config", "point_at"]);
+    expect(await web.next("run_finished")).toMatchObject({ runId: started.runId, success: true });
 
     const { status, body: run } = await getJson<AgentRun>(`/api/runs/${started.runId}`);
     expect(status).toBe(200);
     expect(run.status).toBe("succeeded");
     expect(run.model).toBe("fake");
-    expect(run.steps.map((step) => step.tool)).toEqual(["get_ui_snapshot", "patch_config", "point_at", "finish"]);
-    expect(run.steps[1]).toMatchObject({ configRevisionBefore: 0, configRevisionAfter: 1 });
+    expect(run.steps.map((step) => step.tool)).toEqual([
+      "get_page_snapshot",
+      "apply_css",
+      "get_page_snapshot",
+      "finish",
+    ]);
+    expect(run.steps[1]).toMatchObject({ recipeRevisionBefore: 0, recipeRevisionAfter: 1 });
 
     const list = await getJson<RunListItem[]>("/api/runs?userId=maria");
     expect(list.body.map((item) => item.runId)).toContain(started.runId);
+    web.socket.close();
+  });
+
+  it("refuză un user_message cu page stricat (host care ar ieși din folder)", async () => {
+    const web = await connect();
+    web.hello();
+    web.send({ type: "user_message", text: "ascunde x", source: "text", page: { ...PAGE, host: "../etc" } });
+    expect((await web.next("error")).message).toMatch(/nerecunoscut/);
     web.socket.close();
   });
 
@@ -171,7 +167,7 @@ describe("WebSocket cu agentul fals", () => {
   it("o unealtă în zbor la deconectare devine TIMEOUT; după reconectare rularea continuă", async () => {
     const first = await connect("maria", "tab-reconectare");
     first.hello();
-    first.send({ type: "user_message", text: "Fă textul mai mare", source: "text" });
+    first.send({ type: "user_message", text: "Ascunde Shorts", source: "text" });
     const started = await first.next("run_started");
     await first.next("tool_call");
     first.socket.close(); // tab-ul pierde conexiunea în mijlocul unei unelte
@@ -181,7 +177,8 @@ describe("WebSocket cu agentul fals", () => {
     // rularea merge mai departe pe socket-ul nou: următoarea unealtă ajunge aici
     const call = await second.next("tool_call");
     expect(call.runId).toBe(started.runId);
-    expect(call.name).toBe("patch_config");
+    // primul snapshot a picat (TIMEOUT), deci agentul fals spune că n-a găsit elementul
+    expect(call.name).toBe("say");
     second.send({ type: "cancel_run", runId: started.runId });
     await second.next("run_finished");
 
