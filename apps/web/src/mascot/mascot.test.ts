@@ -23,11 +23,12 @@ function rectAt(element: Element, x: number, y: number, width: number, height: n
 
 let mascot: MascotController | null = null;
 
-async function setup() {
+/** `reducedMotion: true` = fără mers animat: poziția se schimbă pe loc, testul nu așteaptă cadre. */
+async function setup(reducedMotion = true) {
   document.getElementById(HOST_ID)?.remove();
   const fake = fakeRenderer();
   mascot = mountMascot(mountOurRoot(document), {
-    reducedMotion: () => true, // fără mers animat: poziția se schimbă pe loc, testul nu așteaptă cadre
+    reducedMotion: () => reducedMotion,
     createRenderer: async () => fake.renderer,
   });
   await Promise.resolve(); // randarea falsă se creează asincron, ca modelul adevărat
@@ -63,7 +64,23 @@ describe("stări", () => {
     expect(q<HTMLElement>(".mascot").dataset.state).toBe("thinking");
     expect(fake.played.at(-1)).toBe("crouch");
     mascot.setState("happy");
-    expect(fake.played.at(-1)).toBe("jump");
+    expect(fake.played.at(-1)).toBe("dance");
+  });
+});
+
+describe("dansul", () => {
+  test("după o rulare reușită dansează câteva secunde, apoi revine la idle", async () => {
+    vi.useFakeTimers();
+    try {
+      const { mascot, fake } = await setup();
+      mascot.setState("happy");
+      expect(fake.played.at(-1)).toBe("dance");
+      vi.advanceTimersByTime(4_501); // DANCE_MS: trei ture de dans
+      expect(mascot.state()).toBe("idle");
+      expect(fake.played.at(-1)).toBe("idle");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -112,8 +129,8 @@ describe("point_at", () => {
     });
     expect(q<HTMLElement>(".mascot").dataset.state).toBe("pointing");
     // vine din colțul din dreapta: stă în dreapta butonului, cu fața spre stânga, la mijlocul lui pe verticală
-    // (mărimea de rezervă, 99×99: happy-dom nu aplică CSS-ul)
-    expect(q<HTMLElement>(".mascot").style.transform).toBe("translate(504px, 271px)");
+    // (mărimea de rezervă, 132×112: happy-dom nu aplică CSS-ul)
+    expect(q<HTMLElement>(".mascot").style.transform).toBe("translate(504px, 264px)");
     expect(fake.faced.at(-1)).toBe("left");
     expect(q<HTMLElement>(".mascot-highlight").hidden).toBe(false);
     // conturul, cu 4px în afara butonului, ca să nu acopere textul
@@ -160,5 +177,70 @@ describe("point_at", () => {
 
     expect(q<HTMLElement>(".mascot-highlight").hidden).toBe(true);
     expect(q<HTMLElement>(".mascot").style.transform).toBe(home);
+  });
+});
+
+describe("mersul animat nu ține point_at agățat", () => {
+  let tabHidden = false;
+
+  beforeEach(() => {
+    tabHidden = false;
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => tabHidden });
+    // Niciun cadru nu sosește, ca într-un tab din fundal: un mers care așteaptă cadre n-ar ajunge niciodată.
+    vi.stubGlobal("requestAnimationFrame", () => 0);
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+  });
+
+  afterEach(() => {
+    mascot?.destroy();
+    mascot = null;
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(document, "hidden");
+  });
+
+  function buttonAt(x: number, y: number) {
+    const button = document.createElement("button");
+    document.body.append(button);
+    rectAt(button, x, y, 100, 40);
+    return button;
+  }
+
+  test("tab ascuns: ajunge direct la element și răspunde", async () => {
+    const { mascot, q } = await setup(false);
+    tabHidden = true;
+
+    const result = await mascot.pointAt(buttonAt(400, 300), "Aici.");
+
+    expect(result.ok).toBe(true);
+    expect(q<HTMLElement>(".mascot").style.transform).toBe("translate(504px, 264px)");
+    expect(q<HTMLElement>(".mascot").dataset.state).toBe("pointing");
+  });
+
+  test("tabul trece în fundal în timpul mersului: mersul se încheie la țintă", async () => {
+    const { mascot, q } = await setup(false);
+    const pending = mascot.pointAt(buttonAt(400, 300), "Aici.");
+    expect(q<HTMLElement>(".mascot").dataset.state).toBe("walking");
+
+    tabHidden = true;
+    document.dispatchEvent(new Event("visibilitychange"));
+    const result = await pending;
+
+    expect(result.ok).toBe(true);
+    expect(q<HTMLElement>(".mascot").style.transform).toBe("translate(504px, 264px)");
+    expect(q<HTMLElement>(".mascot-highlight").hidden).toBe(false);
+  });
+
+  test("al doilea point_at îl întrerupe pe primul, iar amândouă răspund", async () => {
+    const { mascot, q } = await setup(false);
+    const first = mascot.pointAt(buttonAt(400, 300), "Primul.");
+    tabHidden = true; // al doilea ajunge pe loc; primul rămăsese în mers
+    const second = mascot.pointAt(buttonAt(100, 500), "Al doilea.");
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+
+    expect(firstResult.ok).toBe(true);
+    expect(secondResult.ok).toBe(true);
+    expect(q<HTMLElement>(".mascot-bubble").textContent).toBe("Al doilea.");
+    expect(q<HTMLElement>(".mascot-highlight").style.transform).toBe("translate(96px, 496px)");
   });
 });

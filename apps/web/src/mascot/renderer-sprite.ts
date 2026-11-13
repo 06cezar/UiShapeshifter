@@ -1,10 +1,10 @@
-// Desenează vulpea (Sunny Land, ansimuz, CC0) pe un canvas din shadow DOM-ul nostru, cadru cu cadru.
-// Cadrele vin din octeți (fox-sprites.ts) prin createImageBitmap: nimic cerut prin URL, nimic de blocat de CSP-ul site-ului.
-// Canvas-ul are mărimea cadrului (33×33); CSS-ul îl mărește, cu pixelii păstrați (image-rendering: pixelated).
+// Desenează ratonul (null-painter-error, CC-BY 4.0) pe un canvas din shadow DOM-ul nostru, cadru cu cadru.
+// Cadrele vin din octeți (mascot-sprites.ts) prin createImageBitmap: nimic cerut prin URL, nimic de blocat de CSP-ul
+// site-ului. Canvas-ul are mărimea unui cadru; CSS-ul îl potrivește în cutia mascotei.
 
 import { IDLE_ANIMATION, type SpriteAnimation } from "./animations";
-import { FOX_SPRITES, type FoxSheet } from "./fox-sprites";
 import type { Facing } from "./geometry";
+import { MASCOT_SPRITE_TYPE, MASCOT_SPRITES, type SpriteSheet } from "./mascot-sprites";
 
 /** Interfața de care are nevoie mascota; testele dau una falsă (happy-dom nu decodează imagini). */
 export interface MascotRenderer {
@@ -19,30 +19,28 @@ export type CreateRenderer = (
   options: { reducedMotion: boolean },
 ) => Promise<MascotRenderer>;
 
-/** Cadrele au 33×32 px; canvas-ul e pătrat, cu vulpea lipită de marginea de jos. */
-const FRAME_WIDTH = 33;
-const FRAME_HEIGHT = 32;
-const CANVAS_SIZE = 33;
 /** În colțul din dreapta, „față” înseamnă privind spre pagină, adică spre stânga. */
 const FRONT_FACING: Facing = "left";
 
 async function decode(base64: string): Promise<ImageBitmap> {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  return createImageBitmap(new Blob([bytes], { type: "image/png" }));
+  return createImageBitmap(new Blob([bytes], { type: MASCOT_SPRITE_TYPE }));
 }
 
 export const createSpriteRenderer: CreateRenderer = async (canvas, { reducedMotion }) => {
   const entries = await Promise.all(
-    (Object.keys(FOX_SPRITES) as FoxSheet[]).map(
-      async (sheet) => [sheet, await Promise.all(FOX_SPRITES[sheet].map(decode))] as const,
+    (Object.keys(MASCOT_SPRITES) as SpriteSheet[]).map(
+      async (sheet) => [sheet, await Promise.all(MASCOT_SPRITES[sheet].map(decode))] as const,
     ),
   );
-  const frames = new Map<FoxSheet, ImageBitmap[]>(entries);
-  canvas.width = CANVAS_SIZE;
-  canvas.height = CANVAS_SIZE;
+  const frames = new Map<SpriteSheet, ImageBitmap[]>(entries);
+  const first = frames.get("idle")?.[0];
+  if (!first) throw new Error("mascota nu are cadre de idle");
+  const { width, height } = first;
+  canvas.width = width;
+  canvas.height = height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("canvas 2d indisponibil");
-  context.imageSmoothingEnabled = false;
 
   let animation: SpriteAnimation = IDLE_ANIMATION;
   let startedAt = performance.now();
@@ -64,13 +62,13 @@ export const createSpriteRenderer: CreateRenderer = async (canvas, { reducedMoti
     const key = `${animation.sheet}:${index % Math.max(1, sheet.length)}:${facing}`;
     if (image && key !== lastDrawn) {
       lastDrawn = key;
-      context!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      context!.clearRect(0, 0, width, height);
       context!.save();
       if (facing === "left") {
-        context!.translate(CANVAS_SIZE, 0);
+        context!.translate(width, 0);
         context!.scale(-1, 1);
       }
-      context!.drawImage(image, 0, CANVAS_SIZE - FRAME_HEIGHT, FRAME_WIDTH, FRAME_HEIGHT);
+      context!.drawImage(image, 0, 0, width, height);
       context!.restore();
     }
     frame = requestAnimationFrame(draw);

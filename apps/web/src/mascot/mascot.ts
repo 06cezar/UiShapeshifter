@@ -1,5 +1,6 @@
-// Mascota (specs/11): o vulpe pixel art care stă în colțul de jos, merge până la un element și îl arată (point_at),
-// cu o bulă de mesaj și un contur pulsatoriu desenat în stratul nostru (nu atingem stilul site-ului).
+// Mascota (specs/11): un raton care stă în colțul de jos, merge până la un element și îl arată (point_at),
+// cu o bulă de mesaj și un contur pulsatoriu desenat în stratul nostru (nu atingem stilul site-ului). La o rulare
+// reușită dansează (happy).
 // Nu primește click-uri (pointer-events: none), ca să nu acopere niciodată ce vrea omul să apese.
 
 import type { MascotState, ToolData, ToolResult } from "@uishapeshifter/contracts";
@@ -32,7 +33,9 @@ const BUBBLE_MS_PER_WORD = 400;
 /** Cât așteptăm derularea lină a paginii până la element. */
 const SCROLL_SETTLE_MS = 450;
 /** Mărimea de rezervă, când CSS-ul n-a fost încă aplicat (happy-dom, prima randare). */
-const FALLBACK_SIZE = { width: 99, height: 99 };
+const FALLBACK_SIZE = { width: 132, height: 112 };
+/** Cât dansează după o rulare reușită (trei ture întregi, vezi mascot-dance-turn în CSS), apoi revine la idle. */
+const DANCE_MS = 4_500;
 
 export interface MascotController {
   setState(state: MascotState): void;
@@ -90,7 +93,13 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   container.setAttribute("aria-hidden", "true"); // decor; mesajele ei ajung și în chat, unde le citește cititorul de ecran
   container.innerHTML = `
     <p class="mascot-bubble" hidden></p>
-    <canvas class="mascot-canvas"></canvas>
+    <div class="mascot-stage">
+      <span class="mascot-shadow"></span>
+      <div class="mascot-hop"><canvas class="mascot-canvas"></canvas></div>
+      <span class="mascot-note" style="--i: 0; --dx: -1">♪</span>
+      <span class="mascot-note" style="--i: 1; --dx: 1">♫</span>
+      <span class="mascot-note" style="--i: 2; --dx: -0.5">♪</span>
+    </div>
   `;
   const highlight = document.createElement("div");
   highlight.className = "mascot-highlight";
@@ -101,7 +110,8 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   const canvas = container.querySelector<HTMLCanvasElement>(".mascot-canvas")!;
 
   let state: MascotState = "idle";
-  let walking = false;
+  /** Mersul în curs: unde merge și cum îl anunțăm pe cel care îl așteaptă (true = a ajuns, false = întrerupt). */
+  let walk: { target: Point; done: (arrived: boolean) => void } | null = null;
   let renderer: MascotRenderer | null = null;
   let position: Point = { x: 0, y: 0 };
   let walkFrame = 0;
@@ -110,6 +120,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   let holdTimer: ReturnType<typeof setTimeout> | undefined;
   let pointed: Element | null = null;
   let destroyed = false;
+  let danceTimer: ReturnType<typeof setTimeout> | undefined;
 
   function size() {
     const rect = container.getBoundingClientRect();
@@ -133,27 +144,41 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     moveTo(homePosition(viewport(), size(), EDGE_MARGIN_PX));
   }
 
-  /** Merge până la `target`; promisiunea se rezolvă la sosire (sau imediat, cu reducedMotion). */
-  function walkTo(target: Point): Promise<void> {
+  /**
+   * Încheie mersul în curs și îl anunță pe cel care îl așteaptă. Fără asta, un mers întrerupt (alt point_at, tab
+   * ascuns) ar lăsa promisiunea nerezolvată, iar point_at n-ar mai răspunde agentului.
+   */
+  function endWalk(arrived: boolean) {
+    if (!walk) return;
+    const { target, done } = walk;
+    walk = null;
     cancelAnimationFrame(walkFrame);
-    if (reducedMotion()) {
+    if (arrived) moveTo(target);
+    showPose(state);
+    done(arrived);
+  }
+
+  /** Merge până la `target`; promisiunea spune dacă a ajuns (true) sau dacă mersul a fost întrerupt de altul (false). */
+  function walkTo(target: Point): Promise<boolean> {
+    endWalk(false);
+    // Într-un tab ascuns browserul nu dă cadre (requestAnimationFrame stă pe loc): mutăm direct, ca la reducedMotion.
+    if (reducedMotion() || document.hidden) {
       moveTo(target);
-      return Promise.resolve();
+      showPose(state);
+      return Promise.resolve(true);
     }
-    walking = true;
     showPose("walking");
     renderer?.face(target.x >= position.x ? "right" : "left");
     return new Promise((resolve) => {
+      walk = { target, done: resolve };
       let last = performance.now();
       const step = (now: number) => {
         const seconds = (now - last) / 1000;
         last = now;
         const next = stepToward(position, target, WALK_SPEED_PX_PER_SECOND * seconds);
         moveTo(next.point);
-        if (next.arrived || destroyed) {
-          walking = false;
-          showPose(state);
-          resolve();
+        if (next.arrived) {
+          endWalk(true);
           return;
         }
         walkFrame = requestAnimationFrame(step);
@@ -179,7 +204,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
       }
       const rect = boxOf(element);
       placeHighlight(rect);
-      if (!walking) {
+      if (!walk) {
         const place = pointPlacement(rect, size(), viewport(), position, EDGE_MARGIN_PX, ELEMENT_GAP_PX);
         if (Math.abs(place.x - position.x) > 1 || Math.abs(place.y - position.y) > 1) moveTo(place);
         renderer?.face(place.facing);
@@ -198,9 +223,12 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   }
 
   function setState(next: MascotState) {
+    clearTimeout(danceTimer);
     state = next;
-    if (!walking) showPose(next);
+    if (!walk) showPose(next);
     if (next !== "pointing" && !pointed) renderer?.face("front");
+    if (next === "happy")
+      danceTimer = setTimeout(() => state === "happy" && setState(pointed ? "pointing" : "idle"), DANCE_MS);
   }
 
   function release() {
@@ -236,8 +264,9 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     state = "pointing";
     const rect = boxOf(element);
     const place: Placement = pointPlacement(rect, size(), viewport(), position, EDGE_MARGIN_PX, ELEMENT_GAP_PX);
-    await walkTo(place);
-    if (pointed !== element) return { ok: true, data: { scrolledIntoView, rect } }; // a venit între timp alt point_at
+    const arrived = await walkTo(place);
+    // a venit între timp alt point_at (sau release): mascota e a lui, noi doar răspundem agentului
+    if (!arrived || pointed !== element) return { ok: true, data: { scrolledIntoView, rect } };
 
     renderer?.face(place.facing);
     showPose("pointing");
@@ -250,21 +279,27 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   }
 
   function onResize() {
-    if (!pointed && !walking) goHomeInstantly();
+    if (!pointed && !walk) goHomeInstantly();
+  }
+
+  /** Tabul a trecut în fundal în timpul mersului: cadrele s-au oprit, deci ajunge direct la țintă. */
+  function onVisibilityChange() {
+    if (document.hidden) endWalk(true);
   }
 
   goHomeInstantly();
   showPose("idle");
   window.addEventListener("resize", onResize);
+  document.addEventListener("visibilitychange", onVisibilityChange);
   (options.createRenderer ?? createSpriteRenderer)(canvas, { reducedMotion: reducedMotion() })
     .then((created) => {
       if (destroyed) return created.dispose();
       renderer = created;
       renderer.face(pointed ? "right" : "front");
-      showPose(walking ? "walking" : state);
+      showPose(walk ? "walking" : state);
     })
     .catch(() => {
-      // Cadrele n-au putut fi decodate: vulpea lipsește, dar conturul și bula încă arată elementul.
+      // Cadrele n-au putut fi decodate: ratonul lipsește, dar conturul și bula încă arată elementul.
       container.dataset.noModel = "true";
     });
 
@@ -278,9 +313,11 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
       destroyed = true;
       clearTimeout(bubbleTimer);
       clearTimeout(holdTimer);
-      cancelAnimationFrame(walkFrame);
+      clearTimeout(danceTimer);
+      endWalk(false);
       cancelAnimationFrame(trackFrame);
       window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       renderer?.dispose();
       container.remove();
       highlight.remove();
