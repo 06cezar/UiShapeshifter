@@ -33,7 +33,9 @@ validează: litere, cifre, `.`, `-`, fiindcă ajunge în calea fișierului rețe
 5. `agent_message`: ce spune mascota (bulă + chat), cu starea ei.
 6. `run_finished` încheie rularea. Pe `success: true`, content script-ul salvează rețeta în stocarea locală (deja
    salvată după fiecare `apply_css`; aici se închide și revizia).
-7. `signals` (loturi, cel mult o dată la 5 s): adaptarea automată (se rescrie în D8).
+7. `signals { signals, page? }` (loturi, cel mult o dată la 5 s): adaptarea automată (`09`).
+7a. `suggestion { suggestion }` (server → pagină): mascota propune singură ceva; omul răspunde cu `suggestion_decision`
+   (`accept` | `dismiss`). La `accept`, serverul pornește o rulare cu scopul propunerii (`origin: "adaptation"`).
 8. `cancel_run`: serverul oprește bucla după pasul curent și răspunde `run_finished { success: false }`. Rețeta rămâne la
    revizia de acum; „Revino la original” o golește.
 
@@ -57,6 +59,9 @@ validează: litere, cifre, `.`, `-`, fiindcă ajunge în calea fișierului rețe
 | `GET /api/recipes/:userId/:host` | – | `SiteRecipe`, sau 404 |
 | `PUT /api/recipes/:userId/:host` | `SiteRecipe` | `{ revision }` |
 | `DELETE /api/recipes/:userId/:host` | – | `{ ok: true }` („Revino la original”) |
+| `POST /api/accounts/register`, `/login` | `RegisterRequest` / `LoginRequest` | `AuthResult` |
+| `GET /api/sync` (Bearer) | – | `SyncBundle` (profil + rețete) |
+| `PUT /api/sync` (Bearer) | `SyncBundle` | `{ updatedAt }` |
 
 Rețetele pe server sunt copia pentru cine are cont (sincronizare pe alt dispozitiv, etapa 4); sursa pentru reaplicare e
 mereu stocarea locală. `GET/PUT /api/config/:userId` rămâne doar pentru aplicația veche.

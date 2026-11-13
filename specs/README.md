@@ -3,8 +3,8 @@
 Sursa de adevăr pentru tipuri e **`packages/contracts/src/`**; documentele de aici explică regulile și comportamentul.
 Dacă un document și tipurile se contrazic, tipurile câștigă, iar documentul se repară.
 
-> **După schimbarea de direcție (vineri 17:00):** `00`, `01`, `02`, `04`, `05`, `06` sunt la zi pentru etapa 1 (D7). `03` și
-> `07`–`12` descriu încă vechea aplicație și se rescriu în **D8**. Până atunci, la contradicții câștigă fișierele la zi.
+> **După schimbarea de direcție (vineri 17:00):** toate specificațiile sunt la zi pentru extensie (D7 pentru etapa 1, D8 pentru
+> etapele 2–4). Dacă apar contradicții, câștigă tipurile din `packages/contracts/src/`.
 
 | Fișier | Despre | Cine îl ține |
 |---|---|---|

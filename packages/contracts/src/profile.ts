@@ -47,6 +47,44 @@ export interface TrustState {
   autoApplyLowRisk: boolean;         // devine true după 3 propuneri păstrate la rând (vezi specs/09)
 }
 
+/**
+ * Ce îl deranjează pe om, în cuvinte pe care le recunoaște. Din testul inițial și din cereri.
+ * „promos” = promoții și bannere din pagină; nu blocăm reclame la nivel de rețea (specs/00).
+ */
+export type PreferenceCategory =
+  | "ai-features"   // rezumate, butoane și „moduri” AI din site-uri
+  | "short-video"   // Shorts, Reels și rafturi de clipuri scurte
+  | "stories"       // benzi de Stories
+  | "promos"        // bannere și blocuri promoționale
+  | "clutter"       // coloane de umplutură, boilerplate, funcții pe care nu le folosește
+  | "popups"        // ferestre care apar peste pagină
+  | "autoplay";     // redare automată
+
+/**
+ * O preferință care se aplică pe ORICE site, nu doar pe cel unde a fost spusă. Pe un site fără rețetă, agentul
+ * o propune singur (Suggestion „general-preferences”); după „Păstrez” devine parte din rețeta site-ului.
+ */
+export interface GeneralPreference {
+  id: string;
+  category?: PreferenceCategory;
+  /** Ce a vrut omul, pe scurt, în română (ex. „fără rezumate AI”); intră în scopul dat agentului. */
+  text: string;
+  source: "onboarding" | "conversation" | "usage";
+  /** Id-uri de rulări sau citate scurte; ca la `ProfileFact`. */
+  evidence: string[];
+  createdAt: string;
+  /** Pe ce site-uri s-a aplicat deja (host); o preferință nu se mai propune acolo. */
+  appliedOn: string[];
+}
+
+/** Un site pe care omul îl cunoaște bine: sursă pentru „fă-l să arate ca site-ul cu care sunt obișnuit”. */
+export interface FamiliarSite {
+  host: string;                      // fără „www.”, litere mici
+  level: "daily" | "sometimes";
+  /** Din testul inițial (omul l-a ales) sau dedus din utilizare. */
+  source: "onboarding" | "conversation" | "usage";
+}
+
 export interface UserProfile {
   userId: string;
   displayName: string;
@@ -58,6 +96,9 @@ export interface UserProfile {
   persona: Persona;
   facts: ProfileFact[];
   trust: TrustState;
+  /** Din etapa 3 (E8). Lipsește la profilurile vechi; se tratează ca listă goală. */
+  generalPreferences?: GeneralPreference[];
+  familiarSites?: FamiliarSite[];
 }
 
 export const DEFAULT_PROFILE_NEEDS: UserNeeds = {
@@ -74,5 +115,9 @@ export interface OnboardingResult {
   needs?: Partial<UserNeeds>;
   preferences?: Partial<UserPreferences>;
   persona?: Partial<Persona>;
+  /** Ce îl deranjează (pas nou al testului); serverul le face `generalPreferences` cu `source: "onboarding"`. */
+  dislikes?: PreferenceCategory[];
+  /** Site-urile pe care le cunoaște bine; serverul le face `familiarSites`. */
+  familiarSites?: string[];
   answers: { questionId: string; answer: string | number | boolean }[];
 }
