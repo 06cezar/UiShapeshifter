@@ -9,8 +9,6 @@
   /* Restul mărimilor derivă din spațiere și din țintă, ca totul să crească odată cu tema. */
   --onb-hairline: calc(var(--spacing) / 4);
   --onb-thick: calc(var(--spacing) / 2);
-  --onb-sketch-gap: calc(var(--spacing) / 2);
-  --onb-sketch-radius: calc(var(--radius) / 3);
 
   box-sizing: border-box;
   min-height: 100vh;
@@ -180,68 +178,6 @@
 }
 
 /* Pasul 6: desenele structurilor. */
-.onboarding__sketch {
-  display: flex;
-  gap: var(--onb-sketch-gap);
-  height: calc(var(--onb-target) * 2);
-  padding: var(--onb-sketch-gap);
-  border: var(--onb-hairline) solid var(--color-text-muted);
-  border-radius: var(--radius);
-  background: var(--color-background);
-}
-
-.onboarding__sketch--bottom-nav-stories {
-  flex-direction: column;
-}
-
-.onboarding__sketch-side {
-  flex: 0 0 25%;
-  border-radius: var(--onb-sketch-radius);
-  background: var(--color-primary);
-}
-
-.onboarding__sketch-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--onb-sketch-gap);
-}
-
-.onboarding__sketch-line {
-  flex: 1;
-  border-radius: var(--onb-sketch-radius);
-  background: var(--color-surface);
-}
-
-.onboarding__sketch-dots {
-  display: flex;
-  gap: var(--onb-sketch-gap);
-}
-
-.onboarding__sketch-dot {
-  width: calc(var(--spacing) * 2);
-  height: calc(var(--spacing) * 2);
-  border-radius: 50%;
-  background: var(--color-primary);
-}
-
-.onboarding__sketch-bar {
-  flex: 0 0 calc(var(--spacing) * 2);
-  border-radius: var(--onb-sketch-radius);
-  background: var(--color-primary);
-}
-
-.onboarding__sketch-tiles {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--onb-sketch-gap);
-}
-
-.onboarding__sketch-tile {
-  border-radius: var(--onb-sketch-radius);
-  background: var(--color-primary);
-}
 
 .onboarding__error {
   padding: var(--onb-gap);
@@ -257,4 +193,24 @@
   .onboarding button {
     transition: box-shadow 150ms ease;
   }
+}
+
+/* Pasul „Ce site-uri cunoști”: câmpul pentru alt site, la fel de mare ca butoanele. */
+.onboarding__label {
+  align-self: center;
+}
+
+.onboarding__input {
+  flex: 1;
+  min-height: var(--onb-target);
+  font: inherit;
+  padding: 0 var(--onb-gap);
+  border: var(--onb-hairline) solid var(--color-text-muted);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+.onboarding__input:focus-visible {
+  outline: var(--onb-thick) solid var(--color-focus);
 }

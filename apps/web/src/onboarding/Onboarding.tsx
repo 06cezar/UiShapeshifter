@@ -1,24 +1,23 @@
-// Testul inițial (specs/10): pașii pe rând, „Omite” pe fiecare ecran, rezumat, trimis la server.
-// După PUT /onboarding, serverul pornește rularea agentului cu origin "onboarding" (A1 + E1).
+// Testul inițial (specs/10): pașii pe rând, „Omite” pe fiecare ecran, rezumat. Rulează ca pagină a extensiei,
+// deschisă la instalare. Rezultatul se salvează întâi local (merge și fără server), apoi pe server, care îl face profil.
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
+import type { CSSProperties, FormEvent, ReactNode, SyntheticEvent } from "react";
 import { DEFAULT_CONFIG } from "@uishapeshifter/contracts";
-import type { LayoutTemplate, OnboardingResult, UserProfile } from "@uishapeshifter/contracts";
+import type { OnboardingResult, PreferenceCategory, UserProfile } from "@uishapeshifter/contracts";
 import { themeToCssVars } from "../ui/theme-css";
 import { submitOnboarding } from "./api";
-import { LAYOUT_NAMES, LayoutSketch } from "./LayoutSketch";
 import {
   buildOnboardingResult,
+  DISLIKE_CHOICES,
+  DISLIKE_ORDER,
+  FAMILIAR_SITE_CHOICES,
   FONT_CHOICES_PX,
-  LAYOUT_CHOICES,
-  NAV_CHOICES,
-  NAV_NAMES,
+  normalizeHost,
   skippedResult,
   summaryText,
-  TASK_CHOICES,
+  TECH_COMFORT_CHOICES,
   type OnboardingAnswers,
-  type TaskChoice,
   type TouchTrial,
 } from "./result";
 import { TouchTest } from "./TouchTest";
@@ -34,45 +33,62 @@ const ONBOARDING_TARGET_PX = 56;
 export const STEP_INPUT_GUARD_MS = 400;
 /** Ce vede omul când nu se poate salva; detaliul tehnic merge în consolă. */
 const SAVE_ERROR_TEXT = "Nu am putut salva răspunsurile. Încearcă din nou peste câteva clipe.";
+const SERVER_ERROR_TEXT = "Am păstrat răspunsurile pe calculatorul tău, dar serverul nu răspunde acum.";
 /**
- * Testul rulează înaintea aplicației (OnboardingGate), deci înainte ca store-ul să scrie tema pe :root.
- * Își pune singur tema implicită, ca variabilele CSS să existe oricând e montat.
+ * Testul rulează într-o pagină a extensiei, fără tema din store: își pune singur tema implicită și mărimile de start.
+ * Exportat pentru ecranul de final din page.tsx, care folosește aceleași clase.
  */
-const THEME_VARS = themeToCssVars(DEFAULT_CONFIG.theme, DEFAULT_CONFIG.minTargetPx);
+export const ONBOARDING_STYLE = {
+  ...themeToCssVars(DEFAULT_CONFIG.theme, DEFAULT_CONFIG.minTargetPx),
+  "--onboarding-font": `${ONBOARDING_FONT_PX}px`,
+  "--onboarding-target": `${ONBOARDING_TARGET_PX}px`,
+} as CSSProperties;
 
 const FONT_SAMPLE = "Ana ți-a trimis o poză cu pisica.";
 const CONTRAST_SAMPLE = "Ion: Vin duminică la masă.";
 
-type StepId = "welcome" | "font" | "contrast" | "touch" | "tasks" | "layout" | "nav" | "voice" | "summary";
+type StepId = "welcome" | "font" | "contrast" | "touch" | "dislikes" | "sites" | "comfort" | "voice" | "summary";
 
-const STEPS: { id: StepId; mascot: string }[] = [
-  { id: "welcome", mascot: "Bună! Eu sunt vulpița. Te ajut să-ți faci aplicația pe gustul tău." },
-  { id: "font", mascot: "Pe care o citești ușor, fără să te apleci?" },
-  { id: "contrast", mascot: "Care se vede mai bine?" },
-  { id: "touch", mascot: "Apasă pe cercul care apare. Fără grabă." },
-  { id: "tasks", mascot: "Ce folosești cel mai des? Poți alege mai multe." },
-  { id: "layout", mascot: "Cu care dintre acestea ești obișnuit?" },
-  { id: "nav", mascot: "Unde vrei meniul?" },
-  { id: "voice", mascot: "Vrei să-mi vorbești în loc să scrii?" },
-  { id: "summary", mascot: "" }, // textul vine din răspunsuri (summaryText)
+const STEPS: { id: StepId; mascot: string; title: string }[] = [
+  { id: "welcome", mascot: "Bună! Te ajut să-ți faci site-urile pe gustul tău.", title: "Bun venit" },
+  { id: "font", mascot: "Pe care o citești ușor, fără să te apleci?", title: "Ce mărime de text îți place?" },
+  { id: "contrast", mascot: "Care se vede mai bine?", title: "Ce se vede mai bine?" },
+  { id: "touch", mascot: "Apasă pe cercul care apare. Fără grabă.", title: "Cât de mari să fie butoanele?" },
+  { id: "dislikes", mascot: "Alege tot ce te deranjează. Le scot eu.", title: "Ce te deranjează pe site-uri?" },
+  { id: "sites", mascot: "Pe cele cunoscute le las cum ești obișnuit.", title: "Ce site-uri cunoști bine?" },
+  { id: "comfort", mascot: "Ca să știu cât să-ți explic.", title: "Cât de obișnuit ești cu calculatorul?" },
+  { id: "voice", mascot: "Vrei să-mi vorbești în loc să scrii?", title: "Vrei să vorbești cu mine?" },
+  { id: "summary", mascot: "", title: "Gata" }, // textul mascotei vine din răspunsuri (summaryText)
 ];
 
 export interface OnboardingProps {
   userId: string;
-  /** Profilul salvat; `null` dacă serverul nu răspunde și omul a ales să intre fără să salveze. */
+  /** Profilul salvat pe server; `null` dacă serverul nu răspunde și omul a ales să continue. */
   onDone: (profile: UserProfile | null) => void;
+  /** Salvarea locală (chrome.storage.local în extensie), înaintea serverului; o eroare aici oprește salvarea. */
+  saveLocal?: (result: OnboardingResult) => Promise<void>;
   fetchFn?: typeof fetch;
   /** Pentru teste: pauza după schimbarea pasului (implicit STEP_INPUT_GUARD_MS). */
   inputGuardMs?: number;
 }
 
 type SaveState =
-  { status: "idle" } | { status: "saving" } | { status: "error"; message: string; result: OnboardingResult };
+  | { status: "idle" }
+  | { status: "saving" }
+  | { status: "error"; message: string; result: OnboardingResult; savedLocally: boolean };
 
-export function Onboarding({ userId, onDone, fetchFn, inputGuardMs = STEP_INPUT_GUARD_MS }: OnboardingProps) {
+export function Onboarding({
+  userId,
+  onDone,
+  saveLocal,
+  fetchFn,
+  inputGuardMs = STEP_INPUT_GUARD_MS,
+}: OnboardingProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [save, setSave] = useState<SaveState>({ status: "idle" });
+  const [otherSite, setOtherSite] = useState("");
+  const [otherSiteError, setOtherSiteError] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const stepShownAt = useRef(performance.now());
 
@@ -102,21 +118,40 @@ export function Onboarding({ userId, onDone, fetchFn, inputGuardMs = STEP_INPUT_
   async function send(toSend: OnboardingResult) {
     setSave({ status: "saving" });
     try {
+      await saveLocal?.(toSend);
+    } catch (error) {
+      console.error("onboarding: rezultatul nu s-a salvat local", error);
+      setSave({ status: "error", message: SAVE_ERROR_TEXT, result: toSend, savedLocally: false });
+      return;
+    }
+    try {
       onDone(await submitOnboarding(userId, toSend, fetchFn));
     } catch (error) {
-      console.error("onboarding: rezultatul nu s-a salvat", error);
-      setSave({ status: "error", message: SAVE_ERROR_TEXT, result: toSend });
+      console.error("onboarding: rezultatul nu a ajuns la server", error);
+      const savedLocally = saveLocal !== undefined;
+      setSave({
+        status: "error",
+        message: savedLocally ? SERVER_ERROR_TEXT : SAVE_ERROR_TEXT,
+        result: toSend,
+        savedLocally,
+      });
     }
   }
 
-  const style = {
-    ...THEME_VARS,
-    "--onboarding-font": `${ONBOARDING_FONT_PX}px`,
-    "--onboarding-target": `${ONBOARDING_TARGET_PX}px`,
-  } as CSSProperties;
+  function addOtherSite(event: FormEvent) {
+    event.preventDefault();
+    const host = normalizeHost(otherSite);
+    if (!host) {
+      setOtherSiteError(true);
+      return;
+    }
+    setAnswers((prev) => ({ ...prev, familiarSites: unique([...(prev.familiarSites ?? []), host]) }));
+    setOtherSite("");
+    setOtherSiteError(false);
+  }
 
   return (
-    <main className="onboarding" style={style} aria-labelledby="onboarding-title">
+    <main className="onboarding" style={ONBOARDING_STYLE} aria-labelledby="onboarding-title">
       <header className="onboarding__header">
         <span className="onboarding__progress">
           Pasul {stepIndex + 1} din {STEPS.length}
@@ -137,7 +172,7 @@ export function Onboarding({ userId, onDone, fetchFn, inputGuardMs = STEP_INPUT_
       </p>
 
       <h1 id="onboarding-title" className="onboarding__title" ref={headingRef} tabIndex={-1}>
-        {TITLES[step.id]}
+        {step.title}
       </h1>
 
       <section className="onboarding__body" onClickCapture={ignoreEarlyInput} onPointerDownCapture={ignoreEarlyInput}>
@@ -152,7 +187,7 @@ export function Onboarding({ userId, onDone, fetchFn, inputGuardMs = STEP_INPUT_
               Încearcă din nou
             </button>
             <button type="button" className="onboarding__secondary" onClick={() => onDone(null)}>
-              Intră fără să salvez
+              {save.savedLocally ? "Continuă" : "Continuă fără să salvez"}
             </button>
           </div>
         </div>
@@ -222,59 +257,90 @@ export function Onboarding({ userId, onDone, fetchFn, inputGuardMs = STEP_INPUT_
         );
       case "touch":
         return <TouchTest onDone={(touch: TouchTrial[]) => next({ touch })} />;
-      case "tasks":
+      case "dislikes":
         return (
           <>
             <div className="onboarding__grid">
-              {(Object.keys(TASK_CHOICES) as TaskChoice[]).map((task) => {
-                const chosen = answers.tasks?.includes(task) ?? false;
-                return (
-                  <button
-                    key={task}
-                    type="button"
-                    className="onboarding__card"
-                    aria-pressed={chosen}
-                    onClick={() => setAnswers((prev) => ({ ...prev, tasks: toggle(prev.tasks ?? [], task) }))}
-                    data-agent-id={`onboarding.task.${task}`}
-                  >
-                    {TASK_CHOICES[task].label}
-                  </button>
-                );
-              })}
+              {DISLIKE_ORDER.map((category: PreferenceCategory) => (
+                <Toggle
+                  key={category}
+                  id={`onboarding.dislike.${category}`}
+                  pressed={answers.dislikes?.includes(category) ?? false}
+                  onClick={() => setAnswers((prev) => ({ ...prev, dislikes: toggle(prev.dislikes ?? [], category) }))}
+                >
+                  {DISLIKE_CHOICES[category].label}
+                </Toggle>
+              ))}
             </div>
             <PrimaryButton id="onboarding.next" onClick={() => next()}>
               Mai departe
             </PrimaryButton>
           </>
         );
-      case "layout":
+      case "sites":
         return (
-          <div className="onboarding__grid">
-            {LAYOUT_CHOICES.map((template: LayoutTemplate) => (
-              <Choice
-                key={template}
-                id={`onboarding.layout.${template}`}
-                className="onboarding__card"
-                selected={answers.layout === template}
-                onClick={() => next({ layout: template })}
-              >
-                <LayoutSketch template={template} />
-                {LAYOUT_NAMES[template]}
-              </Choice>
-            ))}
-          </div>
+          <>
+            <div className="onboarding__grid">
+              {FAMILIAR_SITE_CHOICES.map(({ host, name }) => (
+                <Toggle
+                  key={host}
+                  id={`onboarding.site.${host}`}
+                  pressed={answers.familiarSites?.includes(host) ?? false}
+                  onClick={() =>
+                    setAnswers((prev) => ({ ...prev, familiarSites: toggle(prev.familiarSites ?? [], host) }))
+                  }
+                >
+                  {name}
+                </Toggle>
+              ))}
+            </div>
+            <form className="onboarding__row" onSubmit={addOtherSite}>
+              <label className="onboarding__label" htmlFor="onboarding-other-site">
+                Alt site
+              </label>
+              <input
+                id="onboarding-other-site"
+                className="onboarding__input"
+                value={otherSite}
+                onChange={(event) => setOtherSite(event.target.value)}
+                aria-invalid={otherSiteError}
+                aria-describedby={otherSiteError ? "onboarding-other-site-error" : undefined}
+                placeholder="ex. exemplu.ro"
+                data-agent-id="onboarding.site.other"
+              />
+              <button type="submit" className="onboarding__secondary" data-agent-id="onboarding.site.add">
+                Adaugă
+              </button>
+            </form>
+            {otherSiteError && (
+              <p id="onboarding-other-site-error" role="alert">
+                Scrie adresa site-ului, de exemplu exemplu.ro.
+              </p>
+            )}
+            {(answers.familiarSites ?? []).some((host) => !FAMILIAR_SITE_CHOICES.some((s) => s.host === host)) && (
+              <p>
+                Adăugate:{" "}
+                {(answers.familiarSites ?? [])
+                  .filter((h) => !FAMILIAR_SITE_CHOICES.some((s) => s.host === h))
+                  .join(", ")}
+              </p>
+            )}
+            <PrimaryButton id="onboarding.next" onClick={() => next()}>
+              Mai departe
+            </PrimaryButton>
+          </>
         );
-      case "nav":
+      case "comfort":
         return (
           <div className="onboarding__row">
-            {NAV_CHOICES.map((position) => (
+            {(Object.keys(TECH_COMFORT_CHOICES) as (keyof typeof TECH_COMFORT_CHOICES)[]).map((level) => (
               <Choice
-                key={position}
-                id={`onboarding.nav.${position}`}
-                selected={answers.navPosition === position}
-                onClick={() => next({ navPosition: position })}
+                key={level}
+                id={`onboarding.comfort.${level}`}
+                selected={answers.techComfort === level}
+                onClick={() => next({ techComfort: level })}
               >
-                {capitalize(NAV_NAMES[position])}
+                {TECH_COMFORT_CHOICES[level]}
               </Choice>
             ))}
           </div>
@@ -301,24 +367,12 @@ export function Onboarding({ userId, onDone, fetchFn, inputGuardMs = STEP_INPUT_
       case "summary":
         return (
           <PrimaryButton id="onboarding.finish" onClick={() => send(result)} disabled={save.status === "saving"}>
-            {save.status === "saving" ? "Salvez…" : "Gata, intru în aplicație"}
+            {save.status === "saving" ? "Salvez…" : "Gata"}
           </PrimaryButton>
         );
     }
   }
 }
-
-const TITLES: Record<StepId, string> = {
-  welcome: "Bun venit",
-  font: "Ce mărime de text îți place?",
-  contrast: "Ce se vede mai bine?",
-  touch: "Cât de mari să fie butoanele?",
-  tasks: "Ce folosești des?",
-  layout: "Cu ce ești obișnuit?",
-  nav: "Unde vrei meniul?",
-  voice: "Vrei să vorbești cu mine?",
-  summary: "Aplicația ta e gata",
-};
 
 function PrimaryButton(props: { id: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return (
@@ -357,10 +411,25 @@ function Choice(props: {
   );
 }
 
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
+/** Un card de alegere multiplă: apăsat o dată e ales, încă o dată nu mai e. */
+function Toggle(props: { id: string; pressed: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      className="onboarding__card"
+      aria-pressed={props.pressed}
+      onClick={props.onClick}
+      data-agent-id={props.id}
+    >
+      {props.children}
+    </button>
+  );
 }
 
 function toggle<T>(items: T[], item: T): T[] {
   return items.includes(item) ? items.filter((x) => x !== item) : [...items, item];
+}
+
+function unique<T>(items: T[]): T[] {
+  return [...new Set(items)];
 }

@@ -4,7 +4,7 @@ import {
   minFontFromChoice,
   minTargetFromTouch,
   needsOnboarding,
-  pinnedModulesFor,
+  normalizeHost,
   skippedResult,
   summaryText,
   type TouchTrial,
@@ -72,15 +72,14 @@ describe("atingerea", () => {
   });
 });
 
-describe("ce folosești", () => {
-  it("sarcinile frecvente sunt acțiuni, ca în contract", () => {
-    expect(buildOnboardingResult({ tasks: ["calls", "news"] }).persona).toEqual({
-      frequentTasks: ["call", "readNews"],
-    });
+describe("site-urile cunoscute", () => {
+  it("„alt site” devine host-ul din profil: fără schemă, www., cale sau port, cu litere mici", () => {
+    expect(normalizeHost("https://www.Exemplu.ro/pagina?x=1")).toBe("exemplu.ro");
+    expect(normalizeHost("  magazin.exemplu.com:8080 ")).toBe("magazin.exemplu.com");
+    expect(normalizeHost("exemplu.ro")).toBe("exemplu.ro");
   });
-  it("fixează modulele cardurilor alese, fără dubluri", () => {
-    expect(pinnedModulesFor(["messages", "calls"])).toEqual(["messages", "calls", "contacts"]);
-    expect(pinnedModulesFor(["news", "news"])).toEqual(["feed", "stories"]);
+  it("ce nu arată a adresă de site e refuzat", () => {
+    for (const bad of ["", "nu știu", "localhost", "exemplu", "http://"]) expect(normalizeHost(bad)).toBeUndefined();
   });
 });
 
@@ -89,24 +88,21 @@ describe("buildOnboardingResult", () => {
     fontPx: 20,
     contrast: "high",
     touch: trials({ 72: true, 64: true, 56: true, 48: false, 40: false }),
-    tasks: ["messages", "photos"],
-    layout: "simple-tiles",
-    navPosition: "bottom",
+    dislikes: ["ai-features", "short-video"],
+    familiarSites: ["youtube.com", "exemplu.ro"],
+    techComfort: "low",
     prefersVoice: true,
   });
 
-  it("rezultatul complet pentru Maria", () => {
+  it("rezultatul complet pentru Maria, în forma din contract", () => {
     expect(MARIA).toMatchObject({
       skipped: false,
       needs: { minFontPx: 20, contrast: "high", minTargetPx: 56, prefersVoice: true },
-      preferences: {
-        pinnedModules: ["messages", "photos"],
-        familiarLayouts: ["simple-tiles"],
-        template: "simple-tiles",
-        navPosition: "bottom",
-      },
-      persona: { frequentTasks: ["sendMessage", "sendPhoto"] },
+      dislikes: ["ai-features", "short-video"],
+      familiarSites: ["youtube.com", "exemplu.ro"],
+      persona: { techComfort: "low" },
     });
+    expect(MARIA).not.toHaveProperty("preferences"); // structura familiară vine acum din site-urile cunoscute
   });
 
   it("păstrează răspunsurile brute, cu id-ul întrebării, și măsurătorile de atingere", () => {
@@ -115,14 +111,16 @@ describe("buildOnboardingResult", () => {
     expect(MARIA.answers).toContainEqual({ questionId: "touch.48.misses", answer: 1 });
     expect(MARIA.answers).toContainEqual({ questionId: "touch.48.ms", answer: 900 });
     expect(MARIA.answers).toContainEqual({ questionId: "touch.48.input", answer: "pointer" });
-    expect(MARIA.answers).toContainEqual({ questionId: "nav", answer: "bottom" });
+    expect(MARIA.answers).toContainEqual({ questionId: "dislikes", answer: "ai-features,short-video" });
+    expect(MARIA.answers).toContainEqual({ questionId: "techComfort", answer: "low" });
   });
 
   it("un pas omis nu schimbă profilul", () => {
     const result = buildOnboardingResult({ fontPx: 24 });
     expect(result.needs).toEqual({ minFontPx: 24 });
-    expect(result.preferences).toEqual({});
     expect(result.persona).toEqual({});
+    expect(result).not.toHaveProperty("dislikes");
+    expect(result).not.toHaveProperty("familiarSites");
   });
 
   it("„Omite” trimite doar skipped", () => {
@@ -135,13 +133,13 @@ describe("rezumatul", () => {
     const result = buildOnboardingResult({
       fontPx: 20,
       touch: trials({ 72: true, 64: true, 56: false }),
-      navPosition: "bottom",
+      dislikes: ["ai-features"],
     });
     expect(summaryText(result)).toBe(
-      "Am pregătit aplicația așa: text de 20px, butoane mari, meniul jos. Poți schimba oricând.",
+      "Am pregătit așa: text de 20px, butoane mari, fără rezumate AI. Poți schimba oricând.",
     );
   });
   it("fără răspunsuri", () => {
-    expect(summaryText(buildOnboardingResult({}))).toBe("Am păstrat aplicația obișnuită. Poți schimba oricând.");
+    expect(summaryText(buildOnboardingResult({}))).toBe("Am păstrat site-urile cum sunt. Poți schimba oricând.");
   });
 });

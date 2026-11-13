@@ -3,7 +3,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OnboardingResult, UserProfile } from "@uishapeshifter/contracts";
 import { Onboarding, type OnboardingProps } from "./Onboarding";
-import { OnboardingGate } from "./OnboardingGate";
 import { testProfile } from "./test-fixtures";
 
 let container: HTMLDivElement;
@@ -22,23 +21,22 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** Un server de test: GET întoarce profilul, PUT îl întoarce actualizat și ține minte ce a primit. */
+/** Un server de test: PUT întoarce profilul actualizat și ține minte ce a primit. */
 function fakeServer(profile: UserProfile = testProfile()) {
   const sent: OnboardingResult[] = [];
   const fetchFn = vi.fn(async (_url: string, init?: RequestInit) => {
-    if (init?.method === "PUT") {
-      const result = JSON.parse(String(init.body)) as OnboardingResult;
-      sent.push(result);
-      return Response.json({ ...profile, onboarding: { completed: !result.skipped, skipped: result.skipped } });
-    }
-    return Response.json(profile);
+    const result = JSON.parse(String(init?.body)) as OnboardingResult;
+    sent.push(result);
+    return Response.json({ ...profile, onboarding: { completed: !result.skipped, skipped: result.skipped } });
   });
   return { fetchFn: fetchFn as unknown as typeof fetch, sent };
 }
 
+const offline = () => vi.fn().mockRejectedValue(new TypeError("Failed to fetch")) as unknown as typeof fetch;
+
 /** Fără pauza de după schimbarea pasului, ca testele să poată apăsa repede; pauza are testul ei. */
 async function renderOnboarding(props: Partial<OnboardingProps> & Pick<OnboardingProps, "fetchFn">) {
-  await act(async () => root.render(<Onboarding userId="demo-fresh" onDone={vi.fn()} inputGuardMs={0} {...props} />));
+  await act(async () => root.render(<Onboarding userId="u-test" onDone={vi.fn()} inputGuardMs={0} {...props} />));
 }
 
 function byId(id: string): HTMLElement {
@@ -71,6 +69,23 @@ async function missTouchArea() {
   });
 }
 
+/** Pașii 5–8 cu răspunsuri neutre: nimic nu deranjează, niciun site, confort mediu, fără voce. */
+async function passNewSteps() {
+  for (const id of ["onboarding.next", "onboarding.next", "onboarding.comfort.medium", "onboarding.voice.no"]) {
+    await click(id);
+  }
+}
+
+async function typeOtherSite(text: string) {
+  const input = byId("onboarding.site.other") as HTMLInputElement;
+  await act(async () => {
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    setValue.call(input, text);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await click("onboarding.site.add");
+}
+
 describe("Onboarding", () => {
   it("„Omite” e pe fiecare ecran și trimite skipped", async () => {
     const { fetchFn, sent } = fakeServer();
@@ -88,10 +103,11 @@ describe("Onboarding", () => {
     expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ onboarding: { completed: false, skipped: true } }));
   });
 
-  it("parcurs cap-coadă, trimite profilul Mariei", async () => {
+  it("parcurs cap-coadă: salvează local, apoi trimite profilul Mariei la server", async () => {
     const { fetchFn, sent } = fakeServer();
+    const saveLocal = vi.fn(async () => {});
     const onDone = vi.fn();
-    await renderOnboarding({ fetchFn, onDone });
+    await renderOnboarding({ fetchFn, onDone, saveLocal });
 
     await click("onboarding.next");
     await click("onboarding.font.20");
@@ -104,29 +120,50 @@ describe("Onboarding", () => {
     for (let i = 0; i < 3; i++) await missTouchArea();
     await tap("onboarding.touch.target");
 
-    await click("onboarding.task.messages");
-    await click("onboarding.task.photos");
-    expect(byId("onboarding.task.photos").getAttribute("aria-pressed")).toBe("true");
+    await click("onboarding.dislike.ai-features");
+    await click("onboarding.dislike.short-video");
+    expect(byId("onboarding.dislike.short-video").getAttribute("aria-pressed")).toBe("true");
     await click("onboarding.next");
-    await click("onboarding.layout.simple-tiles");
-    expect(byId("onboarding.nav.bottom").textContent).toBe("Jos");
-    await click("onboarding.nav.bottom");
+
+    await click("onboarding.site.youtube.com");
+    await typeOtherSite("https://www.Exemplu.ro/acasa");
+    expect(container.textContent).toContain("Adăugate: exemplu.ro");
+    await click("onboarding.next");
+
+    await click("onboarding.comfort.low");
     await click("onboarding.voice.yes");
 
     expect(container.textContent).toContain(
-      "Am pregătit aplicația așa: text de 20px, contrast mare, butoane mari, meniul jos, îmi poți vorbi.",
+      "Am pregătit așa: text de 20px, contrast mare, butoane mari, fără rezumate AI, fără clipuri scurte, îmi poți vorbi.",
     );
     await click("onboarding.finish");
 
-    expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({
+    const expected = {
       skipped: false,
       needs: { minFontPx: 20, contrast: "high", minTargetPx: 56, prefersVoice: true },
-      preferences: { pinnedModules: ["messages", "photos"], template: "simple-tiles", navPosition: "bottom" },
-      persona: { frequentTasks: ["sendMessage", "sendPhoto"] },
-    });
+      dislikes: ["ai-features", "short-video"],
+      familiarSites: ["youtube.com", "exemplu.ro"],
+      persona: { techComfort: "low" },
+    };
+    expect(saveLocal).toHaveBeenCalledWith(expect.objectContaining(expected));
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject(expected);
     expect(sent[0].answers).toContainEqual({ questionId: "touch.48.misses", answer: 3 });
     expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("„alt site” care nu e o adresă: mesaj, nimic adăugat", async () => {
+    const { fetchFn, sent } = fakeServer();
+    await renderOnboarding({ fetchFn });
+    for (const id of ["onboarding.next", "onboarding.font.20", "onboarding.contrast.normal"]) await click(id);
+    for (let i = 0; i < 5; i++) await tap("onboarding.touch.target");
+    await click("onboarding.next");
+    await typeOtherSite("nu știu");
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Scrie adresa site-ului");
+    for (const id of ["onboarding.next", "onboarding.comfort.high", "onboarding.voice.no", "onboarding.finish"]) {
+      await click(id);
+    }
+    expect(sent[0]).not.toHaveProperty("familiarSites");
   });
 
   it("testul de atingere făcut cu tastatura nu decide mărimea țintelor", async () => {
@@ -136,8 +173,7 @@ describe("Onboarding", () => {
     await click("onboarding.font.20");
     await click("onboarding.contrast.normal");
     for (let i = 0; i < 5; i++) await click("onboarding.touch.target"); // Enter: click fără pointerdown
-    for (const id of ["onboarding.next", "onboarding.layout.simple-tiles", "onboarding.nav.bottom"]) await click(id);
-    await click("onboarding.voice.no");
+    await passNewSteps();
     await click("onboarding.finish");
     expect(sent[0].needs).not.toHaveProperty("minTargetPx");
     expect(sent[0].answers).toContainEqual({ questionId: "touch.72.input", answer: "keyboard" });
@@ -163,16 +199,37 @@ describe("Onboarding", () => {
     expect(container.textContent).toContain("Cât de mari să fie butoanele?");
   });
 
-  it("serverul oprit: mesaj în română, fără textul tehnic", async () => {
-    const fetchFn = vi.fn().mockRejectedValue(new TypeError("Failed to fetch")) as unknown as typeof fetch;
+  it("serverul oprit, fără salvare locală: mesaj în română, fără textul tehnic", async () => {
     const onDone = vi.fn();
-    await renderOnboarding({ fetchFn, onDone });
+    await renderOnboarding({ fetchFn: offline(), onDone });
     await click("onboarding.skip");
     const alert = container.querySelector('[role="alert"]')?.textContent ?? "";
     expect(alert).toContain("Nu am putut salva răspunsurile.");
     expect(alert).not.toContain("Failed to fetch");
-    await act(async () => buttonByText("Intră fără să salvez").click());
+    await act(async () => buttonByText("Continuă fără să salvez").click());
     expect(onDone).toHaveBeenCalledWith(null);
+  });
+
+  it("serverul oprit, dar salvat local: spune asta și lasă omul să continue", async () => {
+    const saveLocal = vi.fn(async () => {});
+    const onDone = vi.fn();
+    await renderOnboarding({ fetchFn: offline(), onDone, saveLocal });
+    await click("onboarding.skip");
+    expect(saveLocal).toHaveBeenCalledWith({ skipped: true, answers: [] });
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      "Am păstrat răspunsurile pe calculatorul tău",
+    );
+    await act(async () => buttonByText("Continuă").click());
+    expect(onDone).toHaveBeenCalledWith(null);
+  });
+
+  it("dacă nici salvarea locală nu merge, nu trimite nimic la server", async () => {
+    const { fetchFn, sent } = fakeServer();
+    const saveLocal = vi.fn().mockRejectedValue(new Error("stocare plină"));
+    await renderOnboarding({ fetchFn, saveLocal });
+    await click("onboarding.skip");
+    expect(sent).toEqual([]);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Nu am putut salva răspunsurile.");
   });
 
   it("după un „Omite” eșuat, eroarea dispare la pasul următor și „Gata” trimite răspunsurile, nu skipped", async () => {
@@ -195,14 +252,7 @@ describe("Onboarding", () => {
     expect(container.textContent).toContain("Bun venit");
     for (const id of ["onboarding.next", "onboarding.font.24", "onboarding.contrast.normal"]) await click(id);
     for (let i = 0; i < 5; i++) await tap("onboarding.touch.target");
-    for (const id of [
-      "onboarding.next",
-      "onboarding.layout.sidebar-feed",
-      "onboarding.nav.left",
-      "onboarding.voice.no",
-    ]) {
-      await click(id);
-    }
+    await passNewSteps();
     await click("onboarding.finish");
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ skipped: false, needs: { minFontPx: 24 } });
@@ -227,80 +277,11 @@ describe("Onboarding", () => {
     expect(style?.getPropertyValue("--onboarding-font")).toBe("20px");
   });
 
-  it("opțiunile de font au etichete pentru cititorul de ecran", async () => {
+  it("opțiunile de font au etichete pentru cititorul de ecran, iar focusul e pe titlu", async () => {
     const { fetchFn } = fakeServer();
     await renderOnboarding({ fetchFn });
     await click("onboarding.next");
     expect(byId("onboarding.font.20").getAttribute("aria-label")).toBe("Textul de 20 pixeli");
     expect(document.activeElement?.textContent).toBe("Ce mărime de text îți place?");
-  });
-});
-
-describe("OnboardingGate", () => {
-  const APP = <p data-agent-id="home.messages">Aplicația</p>;
-
-  it("cât se citește profilul: „Se încarcă…”, anunțat", async () => {
-    const pending = vi.fn(() => new Promise<Response>(() => {})) as unknown as typeof fetch;
-    await act(async () =>
-      root.render(
-        <OnboardingGate userId="demo-fresh" fetchFn={pending}>
-          {APP}
-        </OnboardingGate>,
-      ),
-    );
-    expect(container.querySelector('[role="status"]')?.textContent).toBe("Se încarcă…");
-  });
-
-  it("profil nou: arată testul", async () => {
-    const { fetchFn } = fakeServer();
-    await act(async () =>
-      root.render(
-        <OnboardingGate userId="demo-fresh" fetchFn={fetchFn}>
-          {APP}
-        </OnboardingGate>,
-      ),
-    );
-    expect(byId("onboarding.skip")).toBeTruthy();
-    expect(container.textContent).not.toContain("Aplicația");
-  });
-
-  it("profil cu testul făcut: arată aplicația și dă profilul mai departe", async () => {
-    const done = testProfile({ userId: "maria", onboarding: { completed: true, skipped: false } });
-    const { fetchFn } = fakeServer(done);
-    const onProfile = vi.fn<(p: UserProfile) => void>();
-    await act(async () =>
-      root.render(
-        <OnboardingGate userId="maria" fetchFn={fetchFn} onProfile={onProfile}>
-          {APP}
-        </OnboardingGate>,
-      ),
-    );
-    expect(container.textContent).toBe("Aplicația");
-    expect(onProfile).toHaveBeenCalledWith(done);
-  });
-
-  it("după „Omite” intră în aplicație", async () => {
-    const { fetchFn } = fakeServer();
-    await act(async () =>
-      root.render(
-        <OnboardingGate userId="demo-fresh" fetchFn={fetchFn}>
-          {APP}
-        </OnboardingGate>,
-      ),
-    );
-    await click("onboarding.skip");
-    expect(container.textContent).toBe("Aplicația");
-  });
-
-  it("serverul oprit nu blochează aplicația", async () => {
-    const fetchFn = vi.fn().mockRejectedValue(new Error("oprit")) as unknown as typeof fetch;
-    await act(async () =>
-      root.render(
-        <OnboardingGate userId="demo-fresh" fetchFn={fetchFn}>
-          {APP}
-        </OnboardingGate>,
-      ),
-    );
-    expect(container.textContent).toBe("Aplicația");
   });
 });

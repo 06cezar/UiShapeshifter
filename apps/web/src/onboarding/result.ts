@@ -2,7 +2,7 @@
 // Funcții pure: ecranele adună răspunsurile, aici se decid valorile din profil.
 
 import { HARD_LIMITS } from "@uishapeshifter/contracts";
-import type { LayoutTemplate, NavPosition, OnboardingResult, UserProfile } from "@uishapeshifter/contracts";
+import type { OnboardingResult, Persona, PreferenceCategory, UserProfile } from "@uishapeshifter/contracts";
 
 /** Pasul 2: aceeași propoziție la mărimile astea (14px e acolo ca omul să vadă diferența, nu ca opțiune bună). */
 export const FONT_CHOICES_PX = [14, 16, 18, 20, 24, 28] as const;
@@ -10,22 +10,39 @@ export const FONT_CHOICES_PX = [14, 16, 18, 20, 24, 28] as const;
 export const TOUCH_TARGETS_PX = [72, 64, 56, 48, 40] as const;
 
 /**
- * Pasul 5: cardurile „Ce folosești”, cu modulele pe care le fixăm și sarcina din `persona.frequentTasks`.
- * Sarcinile sunt acțiuni în formatul din contract (`"openChat:ana"`, `"sendPhoto"`), fără contact: testul nu știe încă
- * cu cine vorbește omul.
+ * Pasul 5: ce îl deranjează pe site-uri. `label` e pe card, `summary` în rezumatul de la final („fără …”).
+ * Ordinea e cea din specs/10.
  */
-export const TASK_CHOICES = {
-  messages: { label: "Mesaje", modules: ["messages"], task: "sendMessage" },
-  photos: { label: "Poze", modules: ["photos"], task: "sendPhoto" },
-  calls: { label: "Apeluri", modules: ["calls", "contacts"], task: "call" },
-  news: { label: "Noutăți de la alții", modules: ["feed", "stories"], task: "readNews" },
-} as const satisfies Record<string, { label: string; modules: readonly string[]; task: string }>;
-export type TaskChoice = keyof typeof TASK_CHOICES;
+export const DISLIKE_CHOICES: Record<PreferenceCategory, { label: string; summary: string }> = {
+  "ai-features": { label: "Rezumate și butoane AI", summary: "fără rezumate AI" },
+  "short-video": { label: "Clipuri scurte", summary: "fără clipuri scurte" },
+  stories: { label: "Stories", summary: "fără Stories" },
+  promos: { label: "Bannere și promoții", summary: "fără bannere" },
+  clutter: { label: "Pagini aglomerate", summary: "pagini mai simple" },
+  popups: { label: "Ferestre care apar", summary: "fără ferestre care apar" },
+  autoplay: { label: "Redare automată", summary: "fără redare automată" },
+};
+export const DISLIKE_ORDER = Object.keys(DISLIKE_CHOICES) as PreferenceCategory[];
 
-export const LAYOUT_CHOICES: readonly LayoutTemplate[] = ["sidebar-feed", "bottom-nav-stories", "simple-tiles"];
-export const NAV_CHOICES: readonly NavPosition[] = ["bottom", "top", "left"];
-/** „meniul jos”; pe butoane se scrie cu majusculă. */
-export const NAV_NAMES: Record<NavPosition, string> = { bottom: "jos", top: "sus", left: "în stânga" };
+/**
+ * Pasul 6: site-uri pe care omul le poate cunoaște, doar cu nume (fără logo-uri). D le poate schimba cu cele din demo;
+ * `host` e cheia din profil (fără „www.”, litere mici).
+ */
+export const FAMILIAR_SITE_CHOICES: readonly { host: string; name: string }[] = [
+  { host: "youtube.com", name: "YouTube" },
+  { host: "google.com", name: "Google" },
+  { host: "facebook.com", name: "Facebook" },
+  { host: "instagram.com", name: "Instagram" },
+  { host: "wikipedia.org", name: "Wikipedia" },
+  { host: "emag.ro", name: "eMAG" },
+];
+
+/** Pasul 7. */
+export const TECH_COMFORT_CHOICES: Record<Persona["techComfort"], string> = {
+  low: "Puțin",
+  medium: "Mediu",
+  high: "Mult",
+};
 
 /** O țintă din testul de atingere. */
 export interface TouchTrial {
@@ -42,9 +59,9 @@ export interface OnboardingAnswers {
   fontPx?: number;
   contrast?: "normal" | "high";
   touch?: TouchTrial[];
-  tasks?: TaskChoice[];
-  layout?: LayoutTemplate;
-  navPosition?: NavPosition;
+  dislikes?: PreferenceCategory[];
+  familiarSites?: string[];
+  techComfort?: Persona["techComfort"];
   prefersVoice?: boolean;
 }
 
@@ -76,8 +93,18 @@ export function minTargetFromTouch(trials: TouchTrial[]): number | undefined {
   return Math.max(HARD_LIMITS.minTargetPx, Math.ceil(smallestReliable));
 }
 
-export function pinnedModulesFor(tasks: TaskChoice[]): string[] {
-  return unique(tasks.flatMap((task) => TASK_CHOICES[task].modules));
+/**
+ * Ce scrie omul la „alt site” → host-ul din profil: fără schemă, „www.”, cale sau port, cu litere mici.
+ * `undefined` dacă nu arată a adresă de site (ex. „nu știu”).
+ */
+export function normalizeHost(input: string): string | undefined {
+  const host = input
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z]+:\/\//, "")
+    .replace(/^www\./, "")
+    .split(/[/?#:]/)[0];
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(host) ? host : undefined;
 }
 
 export function skippedResult(): OnboardingResult {
@@ -85,8 +112,8 @@ export function skippedResult(): OnboardingResult {
 }
 
 export function buildOnboardingResult(answers: OnboardingAnswers): OnboardingResult {
-  const result: OnboardingResult = { skipped: false, needs: {}, preferences: {}, persona: {}, answers: [] };
-  const { needs, preferences, persona } = result as Required<OnboardingResult>;
+  const result: OnboardingResult = { skipped: false, needs: {}, persona: {}, answers: [] };
+  const { needs, persona } = result as Required<OnboardingResult>;
 
   if (answers.fontPx !== undefined) {
     needs.minFontPx = minFontFromChoice(answers.fontPx);
@@ -108,19 +135,17 @@ export function buildOnboardingResult(answers: OnboardingAnswers): OnboardingRes
       { questionId: `${id}.input`, answer: trial.input },
     );
   }
-  if (answers.tasks && answers.tasks.length > 0) {
-    persona.frequentTasks = unique(answers.tasks.map((choice) => TASK_CHOICES[choice].task));
-    preferences.pinnedModules = pinnedModulesFor(answers.tasks);
-    result.answers.push({ questionId: "tasks", answer: answers.tasks.join(",") });
+  if (answers.dislikes && answers.dislikes.length > 0) {
+    result.dislikes = [...answers.dislikes];
+    result.answers.push({ questionId: "dislikes", answer: answers.dislikes.join(",") });
   }
-  if (answers.layout) {
-    preferences.familiarLayouts = [answers.layout];
-    preferences.template = answers.layout;
-    result.answers.push({ questionId: "layout", answer: answers.layout });
+  if (answers.familiarSites && answers.familiarSites.length > 0) {
+    result.familiarSites = [...answers.familiarSites];
+    result.answers.push({ questionId: "familiarSites", answer: answers.familiarSites.join(",") });
   }
-  if (answers.navPosition) {
-    preferences.navPosition = answers.navPosition;
-    result.answers.push({ questionId: "nav", answer: answers.navPosition });
+  if (answers.techComfort) {
+    persona.techComfort = answers.techComfort;
+    result.answers.push({ questionId: "techComfort", answer: answers.techComfort });
   }
   if (answers.prefersVoice !== undefined) {
     needs.prefersVoice = answers.prefersVoice;
@@ -129,7 +154,7 @@ export function buildOnboardingResult(answers: OnboardingAnswers): OnboardingRes
   return result;
 }
 
-/** Pasul 9: „Am pregătit aplicația așa: text de 20px, butoane mari, meniul jos. Poți schimba oricând.” */
+/** Pasul 9: „Am pregătit așa: text de 20px, butoane mari, fără rezumate AI. Poți schimba oricând.” */
 export function summaryText(result: OnboardingResult): string {
   const parts: string[] = [];
   const needs = result.needs ?? {};
@@ -138,13 +163,8 @@ export function summaryText(result: OnboardingResult): string {
   if (needs.minTargetPx !== undefined) {
     parts.push(needs.minTargetPx > HARD_LIMITS.minTargetPx ? "butoane mari" : "butoane obișnuite");
   }
-  const nav = result.preferences?.navPosition;
-  if (nav) parts.push(`meniul ${NAV_NAMES[nav]}`);
+  for (const dislike of result.dislikes ?? []) parts.push(DISLIKE_CHOICES[dislike].summary);
   if (needs.prefersVoice) parts.push("îmi poți vorbi");
-  if (parts.length === 0) return "Am păstrat aplicația obișnuită. Poți schimba oricând.";
-  return `Am pregătit aplicația așa: ${parts.join(", ")}. Poți schimba oricând.`;
-}
-
-function unique<T>(items: T[]): T[] {
-  return [...new Set(items)];
+  if (parts.length === 0) return "Am păstrat site-urile cum sunt. Poți schimba oricând.";
+  return `Am pregătit așa: ${parts.join(", ")}. Poți schimba oricând.`;
 }
