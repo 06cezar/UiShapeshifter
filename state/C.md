@@ -1,3 +1,3 @@
-2026-11-13 17:00
+2026-11-13 18:10
 
-gata: C1; C3 PR #9 (reparat, la zi cu main, verde, aștept re-review D); preluat B: #16 B2 cu descriere + review D, #15 E aprobat; C2 PR #17 (audit_ui montat în App, test prin WebSocket, depinde de #16); urmează: unire #16 apoi #17, #9 după review D; blocat: nimic
+gata: C1; C5 PR #22 (validateCss/validateHtml, verde, se unește după M0, review E); urmează: C2 în etapa 2 (după M1, D8), din #17 refolosesc auditul, reparațiile devin CSS; #9 și #17 pe planul vechi; blocat: nimic
