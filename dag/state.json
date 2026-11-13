@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "1de8ae18afab437789b0e6dcb8f4e455bbf449f8",
-  "last_run": "2026-11-13T23:07:11Z",
+  "last_run": "2026-11-13T23:07:26Z",
   "last_sha": "d5434979a0c5f0b3c14392cb3832a5186a558fe0",
   "prs": {
     "1": {
@@ -332,7 +332,7 @@
     "E3": "progress",
     "E4": "wait",
     "E5": "done",
-    "E6": "wait",
+    "E6": "progress",
     "E7": "done",
     "E8": "progress",
     "M0": "done",
