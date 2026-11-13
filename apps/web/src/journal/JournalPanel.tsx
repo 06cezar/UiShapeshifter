@@ -1,25 +1,22 @@
 // Panoul de control (specs/11): ce face agentul acum, pas cu pas, cu Oprește, Păstrez / Anulez, scorul de
-// accesibilitate, istoricul config-ului cu „Revino aici” și reluarea pas cu pas a unei rulări terminate.
-// Mesajele vin în `journal` de la cine ține WebSocket-ul; `send` trimite `cancel_run` înapoi.
+// accesibilitate, „Revino la original” și reluarea pas cu pas a unei rulări terminate.
+// Mesajele vin în `journal` de la cine ține legătura cu serverul; `send` trimite `cancel_run` înapoi.
+// În extensie (D9) stă în shadow DOM-ul nostru, peste site; stilul e în journal-styles.ts.
 
 import { useState } from "react";
 import { useStore } from "zustand";
-import type { AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
-import { useConfigState, useConfigStoreApi } from "../ui/config-store-context";
-import type { HistoryEntry } from "../ui/config-store";
+import type { AgentRun, AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
 import { activeRun, auditScores, revisionAtStep } from "./journal-store";
 import type { JournalStore, RunStatus, RunView } from "./journal-store";
-import { fetchRun } from "./run-api";
-import "./journal.css";
 
 export interface JournalPanelProps {
   journal: JournalStore;
   send: (message: ClientMessage) => void;
-  apiUrl: string;
+  /** Citește o rulare terminată (GET /api/runs/:runId); fără ea, panoul nu oferă reluarea pas cu pas. */
+  loadRun?: (runId: string) => Promise<AgentRun>;
+  /** „Revino la original”: golește rețeta site-ului curent; fără ea, butonul nu apare. */
+  revertToOriginal?: () => Promise<void>;
 }
-
-/** Câte revizii arată istoricul; restul rămân în store. */
-const HISTORY_SHOWN = 10;
 
 const TOOL_ICONS: Record<ToolName, string> = {
   get_page_snapshot: "👀",
@@ -49,18 +46,16 @@ const STATUS_TEXT: Record<RunStatus, string> = {
   cancelled: "Oprit",
 };
 
-const AUTHOR_TEXT: Record<HistoryEntry["meta"]["by"], string> = {
-  agent: "Vulpița",
-  user: "Tu",
-  adaptation: "Adaptare automată",
-  system: "Pornire",
-};
-
-export function JournalPanel({ journal, send, apiUrl }: JournalPanelProps) {
+export function JournalPanel(props: JournalPanelProps) {
+  const { journal } = props;
   const [open, setOpen] = useState(true);
   const runs = useStore(journal, (s) => s.runs);
   const replay = useStore(journal, (s) => s.replay);
+  const proposal = useStore(journal, (s) => s.proposal);
   const current = activeRun(runs) ?? runs[runs.length - 1];
+
+  // Pe un site unde agentul n-a lucrat încă, panoul nu ocupă loc.
+  if (!current && !proposal && !replay) return null;
 
   return (
     <aside className="journal" data-agent-id="journal-panel" aria-label="Panoul de control">
@@ -73,14 +68,8 @@ export function JournalPanel({ journal, send, apiUrl }: JournalPanelProps) {
       {open && (
         <div className="journal-body">
           <ProposalBar journal={journal} />
-          {replay ? (
-            <ReplayView journal={journal} />
-          ) : current ? (
-            <RunSection run={current} journal={journal} send={send} apiUrl={apiUrl} />
-          ) : (
-            <p>Vulpița nu a lucrat încă.</p>
-          )}
-          <ConfigHistory />
+          {replay ? <ReplayView journal={journal} /> : current ? <RunSection run={current} {...props} /> : null}
+          {props.revertToOriginal && <RevertToOriginal revert={props.revertToOriginal} />}
         </div>
       )}
     </aside>
@@ -108,7 +97,7 @@ function ProposalBar({ journal }: { journal: JournalStore }) {
   );
 }
 
-function RunSection({ run, journal, send, apiUrl }: { run: RunView } & JournalPanelProps) {
+function RunSection({ run, journal, send, loadRun }: { run: RunView } & JournalPanelProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const cancelRequested = useStore(journal, (s) => s.cancelRequested.includes(run.runId));
 
@@ -118,9 +107,10 @@ function RunSection({ run, journal, send, apiUrl }: { run: RunView } & JournalPa
   }
 
   async function startReplay() {
+    if (!loadRun) return;
     setLoadError(null);
     try {
-      journal.getState().startReplay(await fetchRun(apiUrl, run.runId));
+      journal.getState().startReplay(await loadRun(run.runId));
     } catch {
       setLoadError("Nu am putut încărca rularea. Încearcă din nou.");
     }
@@ -139,9 +129,11 @@ function RunSection({ run, journal, send, apiUrl }: { run: RunView } & JournalPa
       ) : (
         <>
           {run.summary && <p>{run.summary}</p>}
-          <button type="button" data-agent-id="journal-panel.replay" onClick={() => void startReplay()}>
-            Reia pas cu pas
-          </button>
+          {loadRun && (
+            <button type="button" data-agent-id="journal-panel.replay" onClick={() => void startReplay()}>
+              Reia pas cu pas
+            </button>
+          )}
           {loadError && <p role="alert">{loadError}</p>}
         </>
       )}
@@ -261,40 +253,19 @@ function ReplayView({ journal }: { journal: JournalStore }) {
   );
 }
 
-function ConfigHistory() {
-  const store = useConfigStoreApi();
-  const history = useConfigState((s) => s.history);
-  const current = useConfigState((s) => s.config.revision);
-  const [error, setError] = useState<string | null>(null);
-  const shown = [...history].reverse().slice(0, HISTORY_SHOWN);
-
-  function goBack(revision: number) {
-    const result = store.getState().undo(revision, { by: "user", reason: `Revenire la revizia ${revision}` });
-    setError(result.ok ? null : "Revizia aceea nu mai respectă limitele tale, așa că am lăsat-o deoparte.");
-  }
-
+/** „Revino la original”: site-ul arată din nou ca înainte de orice schimbare a noastră (golește rețeta). */
+function RevertToOriginal({ revert }: { revert: () => Promise<void> }) {
+  const [done, setDone] = useState(false);
   return (
-    <section className="journal-history" aria-label="Istoricul schimbărilor">
-      <h3>Istoric</h3>
-      {error && <p role="alert">{error}</p>}
-      <ol>
-        {shown.map((entry) => (
-          <li key={entry.revision}>
-            <span>
-              {AUTHOR_TEXT[entry.meta.by]}: {entry.meta.reason}
-            </span>
-            {entry.revision !== current && (
-              <button
-                type="button"
-                data-agent-id={`journal-panel.revert.${entry.revision}`}
-                onClick={() => goBack(entry.revision)}
-              >
-                Revino aici
-              </button>
-            )}
-          </li>
-        ))}
-      </ol>
-    </section>
+    <div className="journal-actions">
+      <button
+        type="button"
+        data-agent-id="journal-panel.revert-original"
+        onClick={() => void revert().then(() => setDone(true))}
+      >
+        Revino la original
+      </button>
+      {done && <p role="status">Site-ul arată din nou ca la început.</p>}
+    </div>
   );
 }

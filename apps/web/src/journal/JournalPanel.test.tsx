@@ -1,16 +1,9 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { AgentRun, AgentStep, ClientMessage } from "@uishapeshifter/contracts";
-import { createConfigStore } from "../ui/config-store";
-import { ConfigStoreProvider } from "../ui/config-store-context";
-import { fakeContrast, NORMAL_THRESHOLDS } from "../ui/test-fixtures";
 import { createJournalStore } from "./journal-store";
-import { JournalPanel } from "./JournalPanel";
-
-const API_URL = "http://test/api";
-
-afterEach(() => vi.unstubAllGlobals());
+import { JournalPanel, type JournalPanelProps } from "./JournalPanel";
 
 function step(index: number, extra: Partial<AgentStep> = {}): AgentStep {
   return {
@@ -24,24 +17,32 @@ function step(index: number, extra: Partial<AgentStep> = {}): AgentStep {
   };
 }
 
-async function renderPanel() {
-  const config = createConfigStore({ contrastRatio: fakeContrast(), thresholds: NORMAL_THRESHOLDS });
+async function renderPanel(extra: Partial<Omit<JournalPanelProps, "journal" | "send">> = {}) {
   const journal = createJournalStore();
   const sent: ClientMessage[] = [];
   const container = document.createElement("div");
   document.body.appendChild(container);
   await act(async () =>
-    createRoot(container).render(
-      <ConfigStoreProvider store={config}>
-        <JournalPanel journal={journal} send={(m) => sent.push(m)} apiUrl={API_URL} />
-      </ConfigStoreProvider>,
-    ),
+    createRoot(container).render(<JournalPanel journal={journal} send={(m) => sent.push(m)} {...extra} />),
   );
   const byId = (id: string) => container.querySelector<HTMLElement>(`[data-agent-id='${id}']`);
-  return { config, journal, sent, container, byId };
+  const startRun = () =>
+    act(async () =>
+      journal
+        .getState()
+        .handleServerMessage({ type: "run_started", runId: "r1", goal: "Mută căutarea sus", origin: "user" }),
+    );
+  return { journal, sent, container, byId, startRun };
 }
 
 describe("JournalPanel", () => {
+  it("pe un site unde agentul n-a lucrat, panoul nu apare", async () => {
+    const { container, startRun } = await renderPanel();
+    expect(container.querySelector(".journal")).toBeNull();
+    await startRun();
+    expect(container.querySelector(".journal")).not.toBeNull();
+  });
+
   it("arată pașii live, scorul, și Oprește trimite cancel_run", async () => {
     const { journal, sent, container, byId } = await renderPanel();
     await act(async () => {
@@ -54,8 +55,8 @@ describe("JournalPanel", () => {
       handleServerMessage({
         type: "step",
         step: step(1, {
-          tool: "patch_config",
-          result: { ok: false, error: { code: "LIMIT_VIOLATION", message: "x" } },
+          tool: "apply_css",
+          result: { ok: false, error: { code: "INVALID_ARGS", message: "x" } },
         }),
       });
     });
@@ -81,9 +82,8 @@ describe("JournalPanel", () => {
       steps: [step(0, { configRevisionAfter: 1 }), step(1, { configRevisionAfter: 2 })],
       model: "test",
     };
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify(run)));
-    vi.stubGlobal("fetch", fetchMock);
-    const { journal, container, byId } = await renderPanel();
+    const loadRun = vi.fn(async () => run);
+    const { journal, container, byId } = await renderPanel({ loadRun });
     await act(async () => {
       const { handleServerMessage } = journal.getState();
       handleServerMessage({ type: "run_started", runId: "r1", goal: "Butoane mai mari", origin: "user" });
@@ -91,7 +91,7 @@ describe("JournalPanel", () => {
     });
 
     await act(async () => byId("journal-panel.replay")?.click());
-    expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/runs/r1`);
+    expect(loadRun).toHaveBeenCalledWith("r1");
     expect(container.textContent).toContain("Pasul 1 din 2, revizia 1");
 
     await act(async () => byId("journal-panel.replay-next")?.click());
@@ -102,45 +102,46 @@ describe("JournalPanel", () => {
     expect(byId("journal-panel.replay")).not.toBeNull();
   });
 
+  it("fără loadRun, reluarea nu se oferă", async () => {
+    const { journal, byId } = await renderPanel();
+    await act(async () => {
+      const { handleServerMessage } = journal.getState();
+      handleServerMessage({ type: "run_started", runId: "r1", goal: "x", origin: "user" });
+      handleServerMessage({ type: "run_finished", runId: "r1", success: true, summary: "Gata." });
+    });
+    expect(byId("journal-panel.replay")).toBeNull();
+  });
+
   it("Păstrez / Anulez apare pentru o propunere și o închide", async () => {
     const { journal, container, byId } = await renderPanel();
     let decision: Promise<string> = Promise.resolve("");
     await act(async () => {
-      decision = journal
-        .getState()
-        .requestProposalDecision({
-          proposalId: "p1",
-          title: "Font mai mare",
-          summary: "Textul crește la 20px.",
-          revisionBefore: 0,
-        });
+      decision = journal.getState().requestProposalDecision({
+        proposalId: "p1",
+        title: "Căutarea sus",
+        summary: "Am mutat căutarea deasupra meniului.",
+        revisionBefore: 0,
+      });
     });
-    expect(container.textContent).toContain("Font mai mare");
+    expect(container.textContent).toContain("Căutarea sus");
 
-    await act(async () => byId("journal-panel.keep")?.click());
-    await expect(decision).resolves.toBe("keep");
-    expect(byId("journal-panel.keep")).toBeNull();
+    await act(async () => byId("journal-panel.undo")?.click());
+    await expect(decision).resolves.toBe("undo");
+    expect(byId("journal-panel.undo")).toBeNull();
   });
 
-  it("istoricul arată cine a schimbat și „Revino aici” face undo", async () => {
-    const { config, container, byId } = await renderPanel();
-    await act(async () => {
-      config
-        .getState()
-        .applyPatch([{ op: "replace", path: "/theme/baseFontPx", value: 20 }], {
-          by: "agent",
-          reason: "Text mai mare",
-        });
-    });
-    expect(container.textContent).toContain("Vulpița: Text mai mare");
-
-    await act(async () => byId("journal-panel.revert.0")?.click());
-    expect(config.getState().config.theme.baseFontPx).toBe(16);
-    expect(config.getState().config.revision).toBe(2);
+  it("„Revino la original” cheamă golirea rețetei și confirmă", async () => {
+    const revertToOriginal = vi.fn(async () => {});
+    const { container, byId, startRun } = await renderPanel({ revertToOriginal });
+    await startRun();
+    await act(async () => byId("journal-panel.revert-original")?.click());
+    expect(revertToOriginal).toHaveBeenCalledOnce();
+    expect(container.textContent).toContain("Site-ul arată din nou ca la început.");
   });
 
   it("se poate ascunde", async () => {
-    const { container, byId } = await renderPanel();
+    const { container, byId, startRun } = await renderPanel();
+    await startRun();
     await act(async () => byId("journal-panel.toggle")?.click());
     expect(container.querySelector(".journal-body")).toBeNull();
     expect(byId("journal-panel.toggle")?.getAttribute("aria-expanded")).toBe("false");
