@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "f94f4729c6083c42e4c4aa7b73c7d7a25f41b1a3",
-  "last_run": "2026-11-13T16:12:35Z",
+  "last_comms_sha": "d305c833fd28865395cd6b081b4590a1ff296ca7",
+  "last_run": "2026-11-13T16:16:29Z",
   "last_sha": "e4c58aebd0e6d4d680c01de47c6da2b1640c5ac5",
   "prs": {
     "1": {
@@ -79,6 +79,11 @@
       "merged_at": null,
       "state": "OPEN"
     },
+    "23": {
+      "head": "d8-contracte-rest",
+      "merged_at": null,
+      "state": "OPEN"
+    },
     "3": {
       "head": "c1-audit",
       "merged_at": "2026-11-13T13:19:11Z",
@@ -141,7 +146,7 @@
     "D5": "wait",
     "D6": "wait",
     "D7": "done",
-    "D8": "ready",
+    "D8": "progress",
     "D9": "wait",
     "E1": "done",
     "E2": "wait",
