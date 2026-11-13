@@ -71,6 +71,18 @@ de căutare se pot scoate; butoanele din bara browserului, nu.
 | **Să facă automat după ce folosești mai mult** | Semnale → reguli fără AI → agentul pornește singur; preferințele generale propuse pe site-uri noi | P1 | `09-semnale-si-adaptare.md` |
 | **Criteriu de accesibilitate: fonturile minime** | Font minim din profil, aplicat pe orice site, fără AI și peste orice a scris agentul; auditul de după fiecare schimbare prinde ce cade sub `HARD_LIMITS` | P0 | `07-accesibilitate.md` |
 
+### Accentele din discuția cu mentorii (cele mai importante)
+
+- **Aplicații complexe, tip Jira:** agentul scoate boilerplate-ul și lasă doar ce folosește omul, deci aplicația e mai
+  ușor de folosit și omul e mai rapid. E cazul-vedetă pentru „valoare pentru utilizator”: demo-ul îl arată pe site-ul
+  nostru de test cu aspect de aplicație densă (date de test), cu cifre înainte/după (elemente scoase, click-uri până la
+  o acțiune). Fraza de pitch: „pe aplicațiile pe care le folosești zilnic, agentul păstrează doar ce folosești tu”.
+- **Mai multe site-uri, un singur profil:** preferințele generale și profilul trec de la un site la altul. Se arată
+  explicit în demo: o preferință spusă pe un site apare propusă pe alt site.
+- **Stories:** exemplul unui mentor: scos „Stories” de pe Instagram. E un caz de nivelul 1 („Scoate”), la fel ca Shorts.
+- **Pe mobil:** un mentor ar vrea extensia și pe telefon. Chrome pe Android nu rulează extensii, deci acum rămâne în
+  afara scopului (vezi mai jos); în pitch o spunem ca direcție viitoare, nu ca funcție.
+
 ## Cum bifăm criteriile de jurizare (100 de puncte)
 
 | Criteriu | Puncte | Cum |
@@ -87,9 +99,29 @@ de căutare se pot scoate; butoanele din bara browserului, nu.
   Agentul citește pagina din fața lui și găsește singur ce înseamnă „Shorts” sau „funcții AI” acolo.
 - Un **singur apel LLM** nu vede rezultatul: nu află că a ascuns și butonul de căutare sau că pagina a rămas goală.
   Agentul verifică după fiecare schimbare (snapshot nou, audit) și repară.
+- **Se vede și rămâne în jurnal:** ca să nu pară un filtru CSS, în demo bucla rulează pe ecran, pas cu pas, în panou
+  (cu cel puțin un eșec reparat, de exemplu un audit picat care duce la o corecție), iar aceiași pași sunt înregistrați în
+  jurnalul rulării și se pot reda ulterior. Ecranul e pentru juriu, jurnalul e dovada inspectabilă.
 - **AI doar la decizie:** odată găsită, rețeta se reaplică fără model, deci repede și fără cost la fiecare vizită.
 
-## Schița de demo (se rescrie în `12-demo.md`, taskul D7)
+## Cum construim: din aproape în aproape
+
+Nu construim tot și integrăm la sfârșit. Construim în etape, iar fiecare etapă se termină cu un **punct de control**:
+echipa încarcă extensia și vede că merge cap-coadă. Abia apoi începe etapa următoare (`dag/tasks.yaml`, M0–M4).
+
+| Etapa | Până la | Ce vedem la punctul de control |
+|---|---|---|
+| 0. **Se vede** | vin 19:30 | extensia apare pe orice site și un mesaj de probă ajunge la server și înapoi |
+| 1. **Ascunde și ține minte** | vin 22:00 | scriu „ascunde X”, dispare, rămâne dispărut după reîncărcare; „Revino la original” îl aduce înapoi |
+| 2. **Schimbă structura și arată** | sâm 01:00 | „mută X sus” merge și rămâne; mascota merge la element; pașii se văd; „Anulez” readuce pagina |
+| 3. **Te cunoaște și adaugă** | sâm 03:30 | instalare → test inițial → profil; un site nou are fontul minim fără AI; o scurtătură generată merge; cererea vorbită merge |
+| 4. **Wow** | sâm 06:30 | „fă-l să arate ca site-ul X”; propunere automată după click-uri ratate; preferințele apar pe alt dispozitiv după login |
+| 5. **Integrare și demo** | sâm 09:00 | scenariul de demo merge de 3 ori la rând |
+
+După fiecare punct de control avem un produs care merge și se poate arăta. Dacă o etapă întârzie, se taie din etapele
+de la coadă, nu din cea curentă: cu etapele 1–3 gata, demo-ul există și fără „wow”.
+
+## Schița de demo (se rescrie în `12-demo.md`, taskul D8)
 
 1. Instalare → testul inițial → profilul.
 2. Site de video: „nu vreau Shorts” → dispar; reîncărcare → tot dispărute, fără AI.

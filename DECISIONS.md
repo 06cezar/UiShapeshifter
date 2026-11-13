@@ -18,6 +18,14 @@ Afectează: specs/0X, fluxurile …
 
 ---
 
+## 2026-11-13 18:00 · Construim din aproape în aproape, cu puncte de control · decis de: D (Cezar)
+Decizia: planul e împărțit în etape (0–5); fiecare se termină cu un punct de control (M0–M4 în `dag/tasks.yaml`) la care
+echipa încarcă extensia și vede că merge cap-coadă; taskurile etapei următoare depind de punctul de control dinainte.
+De ce: vrem să vedem cum funcționează pe măsură ce construim, nu abia la integrarea de la sfârșit; după fiecare etapă
+rămâne un produs care se poate arăta, iar întârzierile taie din coadă, nu din ce merge deja.
+Afectează: toate fluxurile. `dag/tasks.yaml` (taskuri noi: M0–M4, C5, E7, D8, D9, D10, B6, A6, E8), `CLAUDE.md`
+(„Din aproape în aproape”), `specs/00` (tabelul etapelor), `docs/agenti/`.
+
 ## 2026-11-13 17:45 · Agentul scrie CSS și HTML liber, validat; nu rulează JavaScript · decis de: D (Cezar)
 Decizia: agentul nu e ținut la o listă fixă de operații: scrie CSS și bucăți de HTML pentru pagina din fața lui și
 mută/împachetează/scoate elemente; totul e validat de cod determinist și salvat în rețeta site-ului.
