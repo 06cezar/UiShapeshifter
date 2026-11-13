@@ -1,27 +1,44 @@
-// Ecranul de pornire al scheletului (D1): arată doar că web-ul vede serverul și contractele.
-// B îl înlocuiește cu LayoutRenderer (specs/02); tema vine din UIConfig, nu de aici.
+// Aplicația: încarcă profilul și config-ul utilizatorului (sau valorile implicite, dacă serverul nu răspunde),
+// creează store-ul UIConfig și randează interfața doar din config prin LayoutRenderer (specs/02).
 
 import { useEffect, useState } from "react";
-import { CONTRACT_VERSION } from "@uishapeshifter/contracts";
+import { configForNeeds, createAppConfigStore } from "./ui/a11y-binding";
+import { loadInitialConfig, startConfigSaver, userIdFromSearch } from "./ui/config-persistence";
+import type { ConfigStore } from "./ui/config-store";
+import { ConfigStoreProvider } from "./ui/config-store-context";
+import { LayoutRenderer } from "./ui/LayoutRenderer";
+import { bindThemeToRoot } from "./ui/theme-sync";
 import { API_URL } from "./server-url";
 
-type ServerState = "verific" | "pornit" | "oprit";
-
 export function App() {
-  const [server, setServer] = useState<ServerState>("verific");
+  const [store, setStore] = useState<ConfigStore | null>(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/health`)
-      .then((res) => res.json())
-      .then((body: { ok?: boolean }) => setServer(body.ok ? "pornit" : "oprit"))
-      .catch(() => setServer("oprit"));
+    // În StrictMode efectul rulează de două ori: prima încărcare, oprită, nu mai pornește nimic.
+    let stopped = false;
+    let stopSync = () => {};
+    const userId = userIdFromSearch(window.location.search);
+    void loadInitialConfig(userId, { apiUrl: API_URL, adjust: configForNeeds }).then(({ config, needs }) => {
+      if (stopped) return;
+      const next = createAppConfigStore(needs, config);
+      const unbindTheme = bindThemeToRoot(next);
+      const stopSaver = startConfigSaver(next, userId, { apiUrl: API_URL });
+      stopSync = () => {
+        unbindTheme();
+        stopSaver();
+      };
+      setStore(next);
+    });
+    return () => {
+      stopped = true;
+      stopSync();
+    };
   }, []);
 
+  if (!store) return <p role="status">Se încarcă…</p>;
   return (
-    <main>
-      <h1>UI Shapeshifter</h1>
-      <p>Server: {server}</p>
-      <p>Contracte: v{CONTRACT_VERSION}</p>
-    </main>
+    <ConfigStoreProvider store={store}>
+      <LayoutRenderer />
+    </ConfigStoreProvider>
   );
 }

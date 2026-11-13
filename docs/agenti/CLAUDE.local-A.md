@@ -32,7 +32,7 @@ memorie despre utilizator (profil tip ICP) și adaptare automată din felul în 
 ## Taskurile tale (din `dag/tasks.yaml`)
 
 - **A1** Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT_FAKE=1) și jurnalul rulărilor  
-  depinde de: D1 · branch: `a1-server` · vin 18:00. Gata = hello/user_message/tool_call/tool_result/step/run_finished merg cu agentul fals; GET /api/runs/:id.
+  depinde de: D1 · branch: `a1-server` · vin 18:00. Gata = hello/user_message/tool_call/tool_result/step/run_finished merg cu agentul fals; GET /api/runs/:id; GET/PUT /api/config/:userId (data/configs).
 - **A2** Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get_ui_snapshot, patch_config, point_at  
   depinde de: A1, B2 · branch: `a2-bucla` · vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point_at, cu pașii în jurnal.
 - **A3** Toate uneltele + promptul de sistem + profilul în context (specs/05)  
@@ -157,6 +157,7 @@ deblocarea, pornește în fundal `git comms wait`: te trezește când sosește m
 | ceri ceva unui coleg | `git comms send <nume> "<text>"` (cel mult 300 de caractere; detaliile în PR sau `specs/`) |
 | răspunzi | `git comms reply <id> "<text>"` (închide firul; cu `--type ask` îl lasă deschis) |
 | anunți fără să aștepți răspuns | `git comms send <nume> "<text>" --type fyi` (sau `all`) |
+| ceri ceva fiecăruia (ex. „rulați install.py”) | `git comms send B,C "<text>" --each`: câte un fir pe om, deschis până răspunde el |
 | schimbi un format folosit de alții | îl scrii în `specs/`, apoi `git comms send <afectați> "…" --type contract` |
 | salvezi o decizie | o scrii în `specs/` sau `DECISIONS.md`, apoi `git comms close <id> --saved-to <cale>` |
 | vezi un fir întreg | `git comms show <id>` |

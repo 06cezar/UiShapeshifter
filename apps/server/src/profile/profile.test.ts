@@ -1,11 +1,11 @@
-// Testele profilului (E1). Rulare: npx tsx --test apps/server/src/profile/profile.test.ts
+// Testele profilului (E1). Rulare: npm test -w @uishapeshifter/server
 
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { after, before, describe, test } from "node:test";
+import { afterAll, beforeAll, describe, test } from "vitest";
 import express from "express";
 import type { UserProfile } from "@uishapeshifter/contracts";
 import { createMariaProfile } from "./defaults";
@@ -21,11 +21,11 @@ const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 let dir: string;
 let store: ProfileStore;
 
-before(async () => {
+beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "profiles-"));
   store = createProfileStore(dir);
 });
-after(() => rm(dir, { recursive: true, force: true }));
+afterAll(() => rm(dir, { recursive: true, force: true }));
 
 describe("stocarea", () => {
   test("maria pornește cu profilul din specs/08 și se salvează pe disc", async () => {
@@ -203,7 +203,7 @@ describe("rutele HTTP", () => {
   let close: () => void;
   const onboardedUsers: string[] = [];
 
-  before(async () => {
+  beforeAll(async () => {
     const app = express();
     app.use(express.json());
     const hooks = { onOnboardingCompleted: (userId: string) => void onboardedUsers.push(userId) };
@@ -213,7 +213,7 @@ describe("rutele HTTP", () => {
     base = `http://localhost:${(server.address() as AddressInfo).port}/api/profile`;
     close = () => server.close();
   });
-  after(() => close());
+  afterAll(() => close());
 
   const send = (method: string, path: string, body?: unknown) =>
     fetch(`${base}${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
