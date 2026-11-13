@@ -53,8 +53,12 @@ function verifySection(stage: SiteToolStage): string {
   return `- Verifică după FIECARE schimbare (apply_css sau apply_ops), în ordinea asta:
   1. get_page_snapshot: s-a schimbat ce voiai? (elementele ascunse au visible: false, hiddenBy: "recipe"; ce ai mutat
      e unde trebuie) N-ai stricat altceva? Dacă nu, repari și verifici din nou.
-  2. audit_ui: repari DOAR problemele cu introduced: true (le-ai adus tu): dai fixCss lui apply_css, sau, fără fixCss,
-     îți scoți regula care a stricat. siteIssues = câte probleme avea deja site-ul; nu le atingi.
+  2. audit_ui: te uiți DOAR la problemele cu introduced: true (le-ai adus tu); siteIssues = câte avea deja site-ul.
+     - min-font, target-size, contrast, line-height (limitele tari): le repari cu fixCss prin apply_css; fără fixCss,
+       îți scoți regula care a stricat.
+     - overlap, clipped, offscreen: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și o spui în
+       propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
+       Nu anulezi ce a cerut omul pentru ele.
   3. propose_changes, o singură dată la final, cu un titlu scurt și ce s-a schimbat, pe înțeles. „keep” → finish;
      „undo” → rețeta a revenit deja, spui că ai înțeles și închei, fără să insiști.`;
 }
