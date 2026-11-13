@@ -87,3 +87,10 @@ export interface AgentBridge {
   /** Închide socket-ul și oprește reconectarea. */
   stop(): void;
 }
+
+// ---------- implementarea ----------
+
+export { startAgentBridge } from "./bridge";
+export type { StartBridgeOptions } from "./bridge";
+export { AgentBridgeProvider, useAgentBridge } from "./react";
+export { useAgentElement, useRegistry } from "../ui/registry-context";
