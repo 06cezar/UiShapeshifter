@@ -524,9 +524,18 @@ def _when(iso: str | None) -> str:
     return t.strftime("%Y-%m-%d %H:%M UTC")
 
 
+def still_waiting(info: dict) -> str:
+    """Pentru un task „în lucru” înaintea dependențelor: pe cine mai așteaptă ca să poată fi gata."""
+    if info["status"] == "progress" and info.get("waiting_on"):
+        return "încă așteaptă " + ", ".join(info["waiting_on"])
+    return ""
+
+
 def node_label(task: dict, info: dict) -> str:
     s = info["status"]
-    return f"{_mm_text(task['id'])} · {_mm_text(task['title'])}<br/>{ICON[s]} {LABEL[s]}"
+    extra = still_waiting(info)
+    return (f"{_mm_text(task['id'])} · {_mm_text(task['title'])}<br/>{ICON[s]} {LABEL[s]}"
+            + (f" · {_mm_text(extra)}" if extra else ""))
 
 
 def render_mermaid(tasks: list[dict], statuses: dict) -> str:
@@ -582,7 +591,8 @@ def render_markdown(tasks: list[dict], statuses: dict) -> str:
             parts.append("forțat în tasks.yaml")
         blocked_items.append(_item(t, " · ".join(parts)))
 
-    progress_items = [_item(t, statuses[t["id"]]["why"]) for t in by("progress")]  # text generat de noi
+    progress_items = [_item(t, "; ".join(x for x in (statuses[t["id"]]["why"], still_waiting(statuses[t["id"]])) if x))
+                      for t in by("progress")]  # text generat de noi
     wait_items = [_item(t, "așteaptă " + ", ".join(statuses[t["id"]]["waiting_on"]) if statuses[t["id"]]["waiting_on"] else "forțat în tasks.yaml") for t in by("wait")]
     chain = longest_chain(tasks, statuses)
     chain_text = (f"{' → '.join(chain)} ({len(chain)} " + ("task" if len(chain) == 1 else "taskuri") + ")") if chain else "_totul e gata_ 🎉"

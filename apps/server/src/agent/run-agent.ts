@@ -37,6 +37,8 @@ export interface RunIO {
   send(message: ServerMessage): void;
   saveRun(run: AgentRun): Promise<void>;
   isCancelled(): boolean;
+  /** Oprită pentru că omul a pornit altă rulare: fără agent_message, ca bula să arate doar rularea nouă. */
+  isReplaced(): boolean;
 }
 
 const MAX_STEPS_SUMMARY = "M-am oprit după prea mulți pași. Am păstrat ce am reușit până acum.";
@@ -68,8 +70,11 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
     run.status = status;
     run.summary = summary;
     run.finishedAt = new Date().toISOString();
-    await io.saveRun(run);
-    io.send({ type: "agent_message", runId: run.runId, text: summary, mascot });
+    // jurnalul nesalvat nu trebuie să lase interfața fără run_finished
+    await io.saveRun(run).catch((error: unknown) => console.error(`agent: n-am salvat ${run.runId}:`, error));
+    if (!(status === "cancelled" && io.isReplaced())) {
+      io.send({ type: "agent_message", runId: run.runId, text: summary, mascot });
+    }
     io.send({ type: "run_finished", runId: run.runId, success: status === "succeeded", summary });
     return run;
   };
@@ -79,6 +84,8 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
       if (io.isCancelled()) return await end("cancelled", CANCELLED_SUMMARY, "idle");
 
       const decision = await decider.decide(previous);
+      // „Oprește” apăsat cât gândea modelul: unealta decisă nu mai pleacă spre interfață
+      if (io.isCancelled()) return await end("cancelled", CANCELLED_SUMMARY, "idle");
       if (decision.kind === "text") return await end("succeeded", decision.content.trim() || "Am terminat.", "happy");
 
       const startedAt = Date.now();
