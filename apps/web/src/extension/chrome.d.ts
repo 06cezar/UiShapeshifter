@@ -16,6 +16,8 @@ declare namespace chrome {
     const onInstalled: { addListener(listener: (details: { reason: string }) => void): void };
     const onStartup: { addListener(listener: () => void): void };
     const lastError: { message?: string } | undefined;
+    /** Lipsește când extensia a fost reîncărcată și codul din pagină a rămas orfan. */
+    const id: string | undefined;
   }
 
   namespace storage {

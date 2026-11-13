@@ -22,6 +22,8 @@ export interface PageRegistry {
   idOf(element: Element): string;
   elementOf(id: string): Element | undefined;
   snapshot(options?: { regionId?: string }): PageSnapshot;
+  /** Id-ul zonei (r.nav, r.main…) care conține elementul, același ca în snapshot; pentru semnale (E2). */
+  regionIdOf(element: Element): string | undefined;
 }
 
 /** Zonele, după rol ARIA sau eticheta HTML5. */
@@ -365,9 +367,16 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
     };
   }
 
+  function regionIdOf(element: Element): string | undefined {
+    const regions = findRegions();
+    for (let i = regions.length - 1; i >= 0; i--) if (regions[i]!.element.contains(element)) return regions[i]!.id;
+    return undefined;
+  }
+
   return {
     idOf,
     elementOf: (id) => byId.get(id)?.deref(),
     snapshot,
+    regionIdOf,
   };
 }
