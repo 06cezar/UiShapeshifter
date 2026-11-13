@@ -56,8 +56,23 @@ export function createSocketClient(options: SocketClientOptions): SocketClient {
     options.onStatus?.(next);
   };
 
+  function scheduleReconnect() {
+    setStatus("connecting");
+    const delay = RECONNECT_DELAYS_MS[Math.min(attempt, RECONNECT_DELAYS_MS.length - 1)];
+    attempt += 1;
+    retryTimer = setTimeout(connect, delay);
+  }
+
   function connect() {
-    const current = createSocket(options.url);
+    let current: SocketLike;
+    try {
+      current = createSocket(options.url);
+    } catch (error) {
+      // ex. URL invalid sau WebSocket lipsă: aplicația merge mai departe, încercăm din nou mai târziu
+      console.warn("[punte] Nu pot deschide socket-ul:", error);
+      scheduleReconnect();
+      return;
+    }
     socket = current;
     current.onopen = () => {
       attempt = 0;
@@ -80,10 +95,7 @@ export function createSocketClient(options: SocketClientOptions): SocketClient {
       if (socket !== current) return;
       socket = null;
       if (stopped) return;
-      setStatus("connecting");
-      const delay = RECONNECT_DELAYS_MS[Math.min(attempt, RECONNECT_DELAYS_MS.length - 1)];
-      attempt += 1;
-      retryTimer = setTimeout(connect, delay);
+      scheduleReconnect();
     };
   }
 
