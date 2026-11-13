@@ -30,7 +30,10 @@ export type SettableAttr = (typeof SETTABLE_ATTRS)[number];
 export type ShapeId = string;
 
 export type DomOp =
-  /** Scoate elementul din pagină. Reversibil: motorul îl ține și îl pune la loc la „Anulez” / „Revino la original”. */
+  /**
+   * Ascunde elementul (atribut + `display:none`), fără să-l scoată din DOM: site-urile cu React se strică la noduri
+   * detașate. Pentru agent arată la fel; „Anulez” / „Revino la original” scot ascunderea.
+   */
   | { op: "remove"; selector: string }
   | { op: "move"; selector: string; to: DomPlace }
   /** Pune elementele într-un container nou, ca să poată fi așezate împreună (grid, flex). Containerul primește `id`. */

@@ -12,7 +12,14 @@ const SERVER_WS_URL = `ws://localhost:${SERVER_PORT}/ws`;
 
 const pagePorts = new Set<chrome.runtime.Port>();
 const popupPorts = new Set<chrome.runtime.Port>();
-const router = createRunRouter<chrome.runtime.Port>();
+/** Tab-ul activ acum: aici lucrează rulările pornite de server (adaptarea, testul inițial), care n-au tab al lor. */
+let activeTabId: number | undefined;
+chrome.tabs.onActivated.addListener(({ tabId }) => (activeTabId = tabId));
+// După o repornire a service worker-ului nu știm încă tab-ul activ: îl cerem o dată.
+void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => (activeTabId ??= tab?.id));
+const router = createRunRouter<chrome.runtime.Port>({
+  activePort: () => [...pagePorts].find((port) => port.sender?.tab?.id === activeTabId),
+});
 let userId: string | null = null;
 let link: ServerLink | null = null;
 

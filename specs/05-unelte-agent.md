@@ -79,7 +79,7 @@ Modelul primește uneltele etapei la care e extensia (`siteToolDefinitions(stage
 | `wait_for_user_click` | web | așteaptă click-ul | `TIMEOUT` → întreabă dacă are nevoie de ajutor |
 | `ask_user` | web | întrebare cu variante, în bula mascotei | `USER_CANCELLED` |
 | `propose_changes` | web | arată schimbările rulării cu Păstrez / Anulez; fără `ops` | decizia `undo` → rețeta revine la revizia dinainte; notează în profil, nu insistă |
-| `audit_ui` | web | raportul de accesibilitate pe pagină (`07`) | `issues` cu `fixCss` → `apply_css` (append); fără `fixCss` → decide agentul |
+| `audit_ui` | web | raportul de accesibilitate pe pagină (`07`); `{ regionId? }` verifică doar o zonă | repară doar `issues` cu `introduced: true`: cu `fixCss` → `apply_css` (append); fără `fixCss` → decide agentul; `regionId` necunoscut → `ELEMENT_NOT_FOUND` |
 | `get_profile` | server | profilul (nevoi, preferințe generale, site-uri familiare) | – |
 | `update_profile` | server | fapte (cu dovezi) și preferințe generale | `INVALID_ARGS` (fapt fără dovezi) |
 

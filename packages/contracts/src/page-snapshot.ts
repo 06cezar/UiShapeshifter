@@ -18,6 +18,8 @@ export interface PageRegion {
   /** Id stabil din registru, ex. „r.nav”, „r.main”, „r.aside-2”. */
   id: string;
   role: string;            // „banner”, „navigation”, „main”, „complementary”, „contentinfo”, „region”
+  /** Selectorul zonei, cu aceleași reguli ca `PageElement.selector`: agentul îl pune în `apply_css` („fă bara de sus albastră”). */
+  selector: string;
   label: string;           // titlul zonei sau primul titlu din ea, tăiat la labelMaxChars
   rect: Rect;
   visible: boolean;

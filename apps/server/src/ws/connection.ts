@@ -1,6 +1,6 @@
 // Un socket WebSocket pe /ws, de la „hello” până la închidere (specs/06).
 
-import type { UsageSignal } from "@uishapeshifter/contracts";
+import type { PageInfo, UsageSignal } from "@uishapeshifter/contracts";
 import type { WebSocket } from "ws";
 import { cancelRun, startRunInSession } from "../agent/run-manager";
 import { parseClientMessage } from "./parse-client-message";
@@ -9,7 +9,8 @@ import { bindSession, receiveToolResult, sendToSession, unbindSocket, type Sessi
 const HELLO_TIMEOUT_MS = 5000;
 const CLOSE_NO_HELLO = 4000; // cod de închidere al aplicației (4000–4999)
 
-export type SignalsHandler = (userId: string, signals: UsageSignal[]) => void;
+export type SignalsHandler = (userId: string, signals: UsageSignal[], page?: PageInfo) => void;
+export type SuggestionDecisionHandler = (userId: string, suggestionId: string, decision: "accept" | "dismiss") => void;
 
 // adaptarea automată (E3) își pune aici handler-ul; până atunci doar le vedem în log (E2: „se văd în log”)
 let signalsHandler: SignalsHandler = (userId, signals) => {
@@ -18,6 +19,15 @@ let signalsHandler: SignalsHandler = (userId, signals) => {
 
 export function setSignalsHandler(handler: SignalsHandler): void {
   signalsHandler = handler;
+}
+
+// răspunsul omului la o propunere a mascotei (specs/09); îl leagă adaptarea (E3)
+let suggestionDecisionHandler: SuggestionDecisionHandler = (userId, suggestionId, decision) => {
+  console.log(`suggestion: ${userId} a ales ${decision} pentru ${suggestionId}`);
+};
+
+export function setSuggestionDecisionHandler(handler: SuggestionDecisionHandler): void {
+  suggestionDecisionHandler = handler;
 }
 
 function sendError(socket: WebSocket, message: string): void {
@@ -43,7 +53,7 @@ export function handleConnection(socket: WebSocket): void {
 
     switch (message.type) {
       case "user_message":
-        startRunInSession(session, message.text, "user");
+        startRunInSession(session, message.text, "user", message.page);
         return;
       case "tool_result":
         if (!receiveToolResult(session, message.callId, message.result)) {
@@ -56,7 +66,10 @@ export function handleConnection(socket: WebSocket): void {
         }
         return;
       case "signals":
-        signalsHandler(session.userId, message.signals);
+        signalsHandler(session.userId, message.signals, message.page);
+        return;
+      case "suggestion_decision":
+        suggestionDecisionHandler(session.userId, message.suggestionId, message.decision);
         return;
     }
   });

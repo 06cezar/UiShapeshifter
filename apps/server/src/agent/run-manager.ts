@@ -2,10 +2,11 @@
 // adaptare (E3) nu întrerupe omul: așteaptă la coadă până se termină rularea curentă (specs/05).
 
 import { randomUUID } from "node:crypto";
-import type { AgentRun, RunOrigin } from "@uishapeshifter/contracts";
+import type { AgentRun, PageInfo, RunOrigin, SiteToolStage } from "@uishapeshifter/contracts";
 import { saveRun } from "../runs/run-store";
 import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Session } from "../ws/sessions";
 import { createFakeDecider } from "./fake-decider";
+import { createOpenRouterDecider } from "./openrouter-decider";
 import { runAgent, type Decider } from "./run-agent";
 import { callServerTool } from "./server-tools";
 
@@ -15,26 +16,36 @@ const FAKE_STEP_DELAY_MS = Number(process.env.AGENT_FAKE_DELAY_MS ?? 600);
 interface ActiveRun {
   runId: string;
   cancelled: boolean;
+  replaced: boolean; // oprită de o rulare nouă a aceluiași om, nu de „Oprește”
   done: Promise<AgentRun>;
 }
 
 const activeByUser = new Map<string, ActiveRun>();
 const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 
-function createDecider(goal: string): Decider {
-  if (process.env.AGENT_FAKE !== "1") {
-    // bucla cu OpenRouter vine în A2; până atunci, fără AGENT_FAKE=1 folosim tot agentul fals
-    console.warn("agent: AGENT_FAKE nu e 1, dar agentul real nu e încă legat; folosesc agentul fals");
-  }
-  return createFakeDecider(goal, FAKE_STEP_DELAY_MS);
+// etapa la care e extensia (specs/00), citită la fiecare rulare. Implicit 1, singura cu toate uneltele în extensie
+// acum (get_page_snapshot, apply_css, say); etapa 2 se pornește cu AGENT_STAGE=2 după M2, când extensia are și
+// apply_ops, point_at, ask_user, propose_changes. Altfel modelul cere unelte pe care pagina le refuză.
+const DEFAULT_STAGE: SiteToolStage = 1;
+
+export function agentStage(): SiteToolStage {
+  const stage = Number(process.env.AGENT_STAGE);
+  return stage === 1 || stage === 2 || stage === 3 ? stage : DEFAULT_STAGE;
+}
+
+function createDecider(goal: string, page: PageInfo | undefined): Decider {
+  const stage = agentStage();
+  return process.env.AGENT_FAKE === "1"
+    ? createFakeDecider(goal, FAKE_STEP_DELAY_MS, stage)
+    : createOpenRouterDecider(goal, { page, stage });
 }
 
 function newRunId(): string {
   return `run-${Date.now()}-${randomUUID().slice(0, 8)}`;
 }
 
-function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
-  const decider = createDecider(goal);
+function launch(session: Session, goal: string, origin: RunOrigin, page?: PageInfo): ActiveRun {
+  const decider = createDecider(goal, page);
   const run: AgentRun = {
     runId: newRunId(),
     userId: session.userId,
@@ -45,7 +56,7 @@ function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
     steps: [],
     model: decider.model,
   };
-  const active: ActiveRun = { runId: run.runId, cancelled: false, done: Promise.resolve(run) };
+  const active: ActiveRun = { runId: run.runId, cancelled: false, replaced: false, done: Promise.resolve(run) };
   sendToSession(session, { type: "run_started", runId: run.runId, goal, origin });
 
   active.done = runAgent(run, decider, {
@@ -54,14 +65,21 @@ function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
     send: (message) => sendToSession(session, message),
     saveRun,
     isCancelled: () => active.cancelled,
-  }).finally(() => {
-    if (activeByUser.get(session.userId) === active) activeByUser.delete(session.userId);
-    const next = queuedAdaptation.get(session.userId);
-    if (next && !activeByUser.has(session.userId)) {
-      queuedAdaptation.delete(session.userId);
-      startRun(session.userId, next.goal, next.origin);
-    }
-  });
+    isReplaced: () => active.replaced,
+  })
+    // o eroare scăpată din buclă nu trebuie să oprească tot serverul
+    .catch((error: unknown) => {
+      console.error(`agent: rularea ${run.runId} s-a oprit cu o eroare neprinsă:`, error);
+      return run;
+    })
+    .finally(() => {
+      if (activeByUser.get(session.userId) === active) activeByUser.delete(session.userId);
+      const next = queuedAdaptation.get(session.userId);
+      if (next && !activeByUser.has(session.userId)) {
+        queuedAdaptation.delete(session.userId);
+        startRun(session.userId, next.goal, next.origin);
+      }
+    });
   activeByUser.set(session.userId, active);
   return active;
 }
@@ -72,10 +90,14 @@ function stop(active: ActiveRun): void {
 }
 
 /** Rularea cerută din sesiunea în care a scris omul. */
-export function startRunInSession(session: Session, goal: string, origin: RunOrigin = "user"): string {
+/** `page`: site-ul de pe care a scris omul (extensia); lipsește pe pagina de probă și la rulările pornite de server. */
+export function startRunInSession(session: Session, goal: string, origin: RunOrigin = "user", page?: PageInfo): string {
   const current = activeByUser.get(session.userId);
-  if (current) stop(current);
-  return launch(session, goal, origin).runId;
+  if (current) {
+    current.replaced = true;
+    stop(current);
+  }
+  return launch(session, goal, origin, page).runId;
 }
 
 /**

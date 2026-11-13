@@ -1,85 +1,113 @@
-// Content script-ul: rulează în fiecare pagină. În etapa 0 montează rădăcina noastră (shadow DOM), arată un semn
-// că extensia e aici și duce un mesaj de probă pagină → service worker → server și înapoi (punctul de control M0).
-// Etapele următoare adaugă aici rețeta (B5), registrul și uneltele (B2), semnalele (E2), chatul și mascota (D).
+// Content script-ul: rulează în fiecare pagină, de la document_start.
+// 1. Rețeta site-ului (B5): citită din stocare și pusă în pagină înainte să se vadă, fără server și fără model.
+// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), chatul (D3), registrul paginii (B2) și executorul
+//    uneltelor. Mascota și panoul (D) vin în etapa 2, la fel și semnalele (E2).
 
-import type { ServerMessage } from "@uishapeshifter/contracts";
-import { PAGE_PORT, parseFromWorker, type LinkStatus, type ToWorker } from "./messages";
-import { pageInfo } from "./page-info";
-import { mountOurRoot } from "./shadow-root";
+import { mountChat } from "../chat";
+import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
+import type { UserNeeds } from "@uishapeshifter/contracts";
+import { runAuditUi } from "../a11y";
+import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
+import { thresholdsFor } from "../a11y/thresholds";
+import { createPageRegistry } from "../ui/page-registry/registry";
+import { buildSelector } from "../ui/page-registry/selector";
+import { createRecipeEngine } from "../ui/recipes/recipe-engine";
+import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
+import { needsFromStorage, ONBOARDING_KEY } from "./base-needs";
+import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
+import { normalizeHost, pageInfo } from "./page-info";
+import { HOST_ID, mountOurRoot } from "./shadow-root";
 
-const PROBE_TEXT = "Probă de la extensie";
+/** Pus de build.mjs: true în build-ul de dezvoltare, false cu --prod. */
+declare const __UIS_DEV__: boolean;
+
+const host = normalizeHost(location.hostname);
+/** Din chat se vede mereu una dintre ele: butonul (chat închis) sau panoul (chat deschis). */
+const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
 const RECONNECT_PORT_MS = 1000;
 
-const STATUS_TEXT: Record<LinkStatus, string> = {
-  connecting: "se conectează…",
-  open: "conectat la server",
-  closed: "serverul nu răspunde",
-};
-
-const BADGE_CSS = `
-.badge {
-  position: fixed; right: 16px; bottom: 16px; max-width: min(560px, calc(100vw - 32px));
-  display: flex; align-items: center; gap: var(--uis-space);
-  padding: var(--uis-space) calc(var(--uis-space) * 2);
-  background: var(--uis-bg); color: var(--uis-fg);
-  font: var(--uis-font-size)/1.5 var(--uis-font);
-  border-radius: var(--uis-radius);
-  box-shadow: var(--uis-shadow);
+// Interfața noastră e vizibilă? (motorul anulează o revizie care ar ascunde-o)
+function isOurUiVisible(): boolean {
+  const ourHost = document.getElementById(HOST_ID);
+  if (!ourHost) return true; // încă nemontată: nimic de stricat
+  if (getComputedStyle(ourHost).display === "none") return false;
+  const parts = ourHost.shadowRoot?.querySelectorAll(CHAT_PARTS_SELECTOR) ?? [];
+  return [...parts].some((part) => {
+    const rect = part.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  });
 }
-.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--uis-warn); flex: none; }
-.dot[data-status="open"] { background: var(--uis-ok); }
-.dot[data-status="closed"] { background: var(--uis-error); }
-.reply { color: var(--uis-muted); }
-button {
-  min-height: var(--uis-target); min-width: var(--uis-target);
-  padding: 0 calc(var(--uis-space) * 2);
-  font: inherit; color: var(--uis-bg); background: var(--uis-accent);
-  border: none; border-radius: var(--uis-radius); cursor: pointer;
-}
-button:focus-visible { outline: 3px solid var(--uis-fg); outline-offset: 2px; }
-`;
 
-/** Ce spunem pe insignă despre răspunsul serverului la probă. */
-function describeReply(message: ServerMessage): string | null {
-  switch (message.type) {
-    case "run_started":
-      return "Serverul a primit proba ✓";
-    case "agent_message":
-      return `Agentul: ${message.text}`;
-    case "run_finished":
-      return message.success ? "Rularea s-a terminat ✓" : "Rularea s-a terminat (fără unelte în pagină încă)";
-    case "error":
-      return `Eroare de la server: ${message.message}`;
-    default:
-      return null;
+const recipes = createRecipeEngine({ host, storage: chrome.storage.local, isOurUiVisible });
+// Doar în build-ul de dezvoltare: motorul în consolă, pentru probe manuale (cererea lui B). În DevTools alege contextul
+// „UI Shapeshifter” din lista de sus a consolei, apoi: uiRecipes.view(), uiRecipes.applyCss({ css, reason }).
+if (__UIS_DEV__) (globalThis as { uiRecipes?: typeof recipes }).uiRecipes = recipes;
+void recipes.load();
+// Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
+/** Preferințele de bază (C4): fontul minim, contrastul și țintele din profil, fără AI, aplicate ultimele. */
+let base: BasePreferences | null = null;
+/** Nevoile omului (testul inițial; implicite până atunci): folosite de preferințele de bază și de audit. */
+let needs: Partial<UserNeeds> = {};
+
+// Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
+// Testul inițial a salvat alte nevoi: preferințele de bază se refac după ele.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  const recipeChange = changes[recipeKey(host)];
+  if (recipeChange) {
+    recipes.adopt(parseStoredRecipe(recipeChange.newValue, host, new Date().toISOString()));
+    base?.refresh();
   }
-}
+  const needsChange = changes[ONBOARDING_KEY];
+  if (needsChange) {
+    needs = needsFromStorage(needsChange.newValue);
+    base?.update(needs);
+  }
+});
 
-function startBadge() {
-  const root = mountOurRoot();
-  root.addStyle(BADGE_CSS);
-
-  const badge = document.createElement("div");
-  badge.className = "badge";
-  badge.setAttribute("role", "status");
-  badge.innerHTML = `
-    <span class="dot" aria-hidden="true"></span>
-    <span><strong>UI Shapeshifter</strong> · <span class="status">${STATUS_TEXT.connecting}</span></span>
-    <span class="reply"></span>
-    <button type="button" data-agent-id="extension.probe">Trimite proba</button>`;
-  root.shadow.appendChild(badge);
-
-  const dot = badge.querySelector<HTMLElement>(".dot")!;
-  const statusText = badge.querySelector<HTMLElement>(".status")!;
-  const replyText = badge.querySelector<HTMLElement>(".reply")!;
-  const probeButton = badge.querySelector<HTMLButtonElement>("button")!;
-
+function start() {
   let port: chrome.runtime.Port | null = null;
 
   function send(message: ToWorker) {
     port?.postMessage(message);
   }
+
+  const chat = mountChat(mountOurRoot(), {
+    send: (message) => send({ type: "to_server", message }),
+    page: () => pageInfo(location, document.title),
+  });
+
+  // Preferințele de bază pornesc cu nevoile salvate de testul inițial (sau implicite) și se reaplică peste rețetă.
+  void chrome.storage.local.get(ONBOARDING_KEY).then((saved) => {
+    needs = needsFromStorage(saved[ONBOARDING_KEY]);
+    base = startBasePreferences({ needs, ourHostId: HOST_ID });
+  });
+
+  // Registrul paginii (B2), motorul de rețete (B5) și bula chatului pentru `say`.
+  const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
+  const tools: PageToolDeps = {
+    registry,
+    recipes: {
+      // După fiecare CSS al agentului, fontul minim se verifică din nou (C4: „ultimele, peste tot ce a scris agentul”).
+      async applyCss(args) {
+        const result = await recipes.applyCss(args);
+        if (result.ok) base?.refresh();
+        return result;
+      },
+    },
+    // Auditul (C2): aceleași id-uri și selectori ca snapshot-ul și aceleași nevoi ca preferințele de bază.
+    audit: (args) =>
+      runAuditUi(args, {
+        thresholds: () => thresholdsFor(needs),
+        identity: { idOf: registry.idOf, selectorOf: (element) => buildSelector(element) },
+        ourHostId: HOST_ID,
+        revision: () => recipes.view().revision,
+        regionElement: (regionId) => registry.elementOf(regionId),
+        pauseRecipe: recipes.pause,
+      }),
+    say: (text) => chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" }),
+  };
 
   function connect() {
     port = chrome.runtime.connect({ name: PAGE_PORT });
@@ -87,43 +115,27 @@ function startBadge() {
       const message = parseFromWorker(raw);
       if (!message) return;
       if (message.type === "status") {
-        dot.dataset.status = message.status;
-        statusText.textContent = STATUS_TEXT[message.status];
+        chat.setLinkStatus(message.status);
         return;
       }
       const server = message.message;
-      // Uneltele în pagină vin în B2 (registrul și executorul); până atunci răspundem clar, ca rularea să nu aștepte.
       if (server.type === "tool_call") {
-        send({
-          type: "to_server",
-          message: {
-            type: "tool_result",
-            callId: server.callId,
-            result: { ok: false, error: { code: "INTERNAL", message: "Extensia nu execută încă unelte în pagină." } },
-          },
-        });
+        void runPageTool(server.name, server.args, tools, server.runId).then((result) =>
+          send({ type: "to_server", message: { type: "tool_result", callId: server.callId, result } }),
+        );
         return;
       }
-      const reply = describeReply(server);
-      if (reply) replyText.textContent = reply;
+      chat.handleServerMessage(server);
     });
     port.onDisconnect.addListener(() => {
       port = null;
-      dot.dataset.status = "connecting";
-      statusText.textContent = STATUS_TEXT.connecting;
+      chat.setLinkStatus("connecting");
       setTimeout(connect, RECONNECT_PORT_MS);
     });
   }
 
-  probeButton.addEventListener("click", () => {
-    replyText.textContent = "Trimit…";
-    send({
-      type: "to_server",
-      message: { type: "user_message", text: PROBE_TEXT, source: "text", page: pageInfo(location, document.title) },
-    });
-  });
-
   connect();
 }
 
-startBadge();
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+else start();

@@ -2,7 +2,55 @@
 // tools.ts. Serverul dă modelului doar uneltele etapei la care e extensia: `siteToolDefinitions(stage)`.
 // Semantica fiecărei unelte: specs/05-unelte-agent.md.
 
+import { DOM_OP_LIMITS, SETTABLE_ATTRS } from "./dom-ops";
 import { SITE_TOOL_DEFINITIONS } from "./tools";
+
+/** Unde se pune ceva față de un element al paginii (`DomPlace`). */
+const DOM_PLACE = {
+  type: "object",
+  properties: {
+    selector: { type: "string", description: "Selectorul elementului-reper, din snapshot." },
+    position: { type: "string", enum: ["before", "after", "prepend", "append"] },
+  },
+  required: ["selector", "position"],
+} as const;
+
+/**
+ * Câmpurile unei operații din `apply_ops` (`DomOp`, dom-ops.ts). Schema e plată, ca să o înțeleagă orice model:
+ * fiecare câmp spune la ce operații se folosește, iar descrierea uneltei dă forma exactă a fiecărei operații.
+ */
+const DOM_OP_ITEM = {
+  type: "object",
+  properties: {
+    op: { type: "string", enum: ["remove", "move", "wrap", "setText", "setAttr", "insertHtml", "bind", "inject"] },
+    selector: { type: "string", description: "remove, move, setText, setAttr: selectorul elementului, din snapshot." },
+    // Fără `type`: la move e un obiect, la bind un text, iar unii furnizori de modele nu acceptă `anyOf` la unelte.
+    to: {
+      description:
+        "move: unde îl muți, ca obiect { selector, position } (position: before, after, prepend, append). " +
+        "bind: text, selectorul elementului real care e apăsat.",
+    },
+    selectors: { type: "array", items: { type: "string" }, description: "wrap: elementele puse împreună în container." },
+    id: {
+      type: "string",
+      description: `wrap, insertHtml, inject: numele elementului adăugat (litere mici, cifre și „-”, cel mult ${DOM_OP_LIMITS.maxShapeIdChars}).`,
+    },
+    tag: { type: "string", enum: ["div", "section", "nav", "aside", "header", "ul"], description: "wrap: implicit div." },
+    text: { type: "string", description: `setText: textul nou, cel mult ${DOM_OP_LIMITS.maxTextChars} de caractere.` },
+    name: { type: "string", enum: SETTABLE_ATTRS, description: "setAttr: atributul schimbat." },
+    value: { type: "string", description: "setAttr: valoarea nouă." },
+    html: { type: "string", description: "insertHtml: HTML simplu (div, p, a, button, ul…), fără script, style sau on*." },
+    at: { ...DOM_PLACE, description: "insertHtml, inject: unde se pune elementul nou." },
+    from: { type: "string", description: "bind: `id`-ul elementului adăugat de tine; apăsarea lui apasă elementul `to`." },
+    component: {
+      type: "object",
+      description:
+        "inject: componentă din catalog, { id, type, props?, action?, children? }. `action` e { kind: \"click\", selector }, " +
+        "{ kind: \"navigate\", path } sau { kind: \"askAgent\", goal }.",
+    },
+  },
+  required: ["op"],
+} as const;
 
 /** Etapa 2: structură, mascotă, verificare, control. */
 export const SITE_TOOL_DEFINITIONS_STAGE2 = [
@@ -13,21 +61,15 @@ export const SITE_TOOL_DEFINITIONS_STAGE2 = [
       description:
         "Schimbă structura paginii: remove, move, wrap, setText, setAttr, insertHtml, bind, inject. Elementele se aleg cu `selector` " +
         "din snapshot. Operațiile care nu s-au putut aplica apar în `skipped`, cu motiv. Ce ai adăugat primește `data-shape=\"<id>\"`, " +
-        "ca să-l stilizezi cu apply_css. Fără JavaScript și fără `<script>`, `<iframe>`, `on*`: ce nu e voie se scoate.",
+        "ca să-l stilizezi cu apply_css. Fără JavaScript și fără `<script>`, `<iframe>`, `on*`: ce nu e voie se scoate. " +
+        "Forma fiecărei operații: { op: \"remove\", selector } · { op: \"move\", selector, to: { selector, position } } · " +
+        "{ op: \"wrap\", selectors, id, tag? } · { op: \"setText\", selector, text } · { op: \"setAttr\", selector, name, value } · " +
+        "{ op: \"insertHtml\", id, html, at: { selector, position } } · { op: \"bind\", from, to } · " +
+        "{ op: \"inject\", id, component, at: { selector, position } }.",
       parameters: {
         type: "object",
         properties: {
-          ops: {
-            type: "array",
-            maxItems: 20,
-            items: {
-              type: "object",
-              properties: {
-                op: { type: "string", enum: ["remove", "move", "wrap", "setText", "setAttr", "insertHtml", "bind", "inject"] },
-              },
-              required: ["op"],
-            },
-          },
+          ops: { type: "array", maxItems: DOM_OP_LIMITS.maxOpsPerCall, items: DOM_OP_ITEM },
           reason: { type: "string" },
         },
         required: ["ops", "reason"],
