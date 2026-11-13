@@ -1,3 +1,3 @@
-2026-11-13 16:48
+2026-11-13 17:25
 
-gata: D4 unit (PR #11, cu fix-ul pentru pas fără run_started); urmează: D2 după B2, montarea panoului, D3, D5, D6; blocat: D2 de B2
+gata: PR #18 (schimbare de direcție: extensie pe site-uri existente, plan nou); urmează: anunț echipei cu acordul lui Cezar, apoi D7 (contractele noi) după unirea #18; blocat: nimic
