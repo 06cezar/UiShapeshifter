@@ -148,7 +148,9 @@ function labelOf(element: Element, doc: Document): string {
     const forLabel = id ? doc.querySelector(`label[for="${CSS.escape(id)}"]`)?.textContent : null;
     return cleanText(forLabel ?? element.getAttribute("placeholder") ?? element.getAttribute("name") ?? "");
   }
-  const own = (element as HTMLElement).innerText ?? element.textContent ?? "";
+  // innerText e gol pentru ce nu se vede (ex. într-un <details> închis); atunci textul din DOM, ca butonul ascuns de
+  // site să aibă totuși nume (A, probat în Chromium pe „Plătește factura”).
+  const own = (element as HTMLElement).innerText?.trim() || element.textContent || "";
   if (own.trim()) return cleanText(own);
   const img = element.querySelector("img[alt]");
   return cleanText(element.getAttribute("title") ?? img?.getAttribute("alt") ?? "");
@@ -212,6 +214,8 @@ function blockSelector(block: Element, doc: Document): string {
 }
 
 function isShown(element: Element): boolean {
+  // checkVisibility prinde și ce are mărime dar nu se desenează (conținutul unui <details> închis, content-visibility)
+  if (typeof element.checkVisibility === "function" && !element.checkVisibility()) return false;
   const rect = element.getBoundingClientRect();
   if (rect.width === 0 && rect.height === 0) return false;
   const style = getComputedStyle(element);
