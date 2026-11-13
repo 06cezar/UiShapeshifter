@@ -222,9 +222,14 @@ describe("nevoile pentru preferințele de bază", () => {
 
 describe("nevoile: profilul local întâi (E8)", () => {
   test("profilul local bate testul inițial; fără profil, testul inițial; fără nimic, implicite", () => {
-    const profile = { userId: "u-1", needs: { minFontPx: 24 } };
+    const profile = { userId: "u-1", needs: { minFontPx: 24 }, onboarding: { completed: true, skipped: false } };
     expect(needsFromStored({ userId: "u-1", "u-1": profile, onboarding: { needs: { minFontPx: 18 } } })).toEqual({
       minFontPx: 24,
+    });
+    // fără server, profilul local poate fi cel gol: rezultatul testului inițial câștigă (C și D pe #49)
+    const blank = { userId: "u-1", needs: { minFontPx: 16 }, onboarding: { completed: false, skipped: false } };
+    expect(needsFromStored({ userId: "u-1", "u-1": blank, onboarding: { needs: { minFontPx: 20 } } })).toEqual({
+      minFontPx: 20,
     });
     expect(needsFromStored({ userId: "u-1", onboarding: { needs: { minFontPx: 18 } } })).toEqual({ minFontPx: 18 });
     expect(needsFromStored({})).toEqual({});
