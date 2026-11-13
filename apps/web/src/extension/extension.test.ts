@@ -4,6 +4,7 @@
 import { describe, expect, test } from "vitest";
 import type { ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
 import { needsFromStorage } from "./base-needs";
+import { savedChangesText } from "./popup-text";
 import { parseServerMessage, parseToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { createRunRouter } from "./run-router";
@@ -216,6 +217,15 @@ describe("nevoile pentru preferințele de bază", () => {
     });
     expect(needsFromStorage(undefined)).toEqual({});
     expect(needsFromStorage({ needs: "stricat" })).toEqual({});
+  });
+});
+
+describe("textele popup-ului", () => {
+  test("acordul în română: 1, 2–19, de la 20 în sus cu „de”", () => {
+    expect(savedChangesText(1)).toBe("o schimbare salvată");
+    expect(savedChangesText(3)).toBe("3 schimbări salvate");
+    expect(savedChangesText(20)).toBe("20 de schimbări salvate");
+    expect(savedChangesText(101)).toBe("101 schimbări salvate");
   });
 });
 

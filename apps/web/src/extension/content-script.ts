@@ -1,11 +1,14 @@
 // Content script-ul: rulează în fiecare pagină, de la document_start.
 // 1. Rețeta site-ului (B5): citită din stocare și pusă în pagină înainte să se vadă, fără server și fără model.
-// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), chatul (D3), registrul paginii (B2) și executorul
-//    uneltelor. Mascota și panoul (D) vin în etapa 2, la fel și semnalele (E2).
+// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), chatul (D3), mascota (D2), panoul de control (D9),
+//    registrul paginii (B2) și executorul uneltelor. Semnalele (E2) vin tot în etapa 2.
 
 import { mountChat } from "../chat";
+import { mountMascot, type MascotController } from "../mascot";
+import { mountJournal } from "../journal/mount-journal";
+import { proposeChanges } from "../journal/proposal";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
-import type { UserNeeds } from "@uishapeshifter/contracts";
+import type { ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
 import { runAuditUi } from "../a11y";
 import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
 import { thresholdsFor } from "../a11y/thresholds";
@@ -13,6 +16,7 @@ import { createPageRegistry } from "../ui/page-registry/registry";
 import { buildSelector } from "../ui/page-registry/selector";
 import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
+import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStorage, ONBOARDING_KEY } from "./base-needs";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
@@ -66,17 +70,70 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+/** Ce face mascota la mesajele serverului: se gândește cât rulează agentul, se bucură sau se încurcă la final. */
+function moveMascot(mascot: MascotController, server: ServerMessage) {
+  if (server.type === "run_started") mascot.setState("thinking");
+  else if (server.type === "agent_message") mascot.setState(server.mascot);
+  else if (server.type === "run_finished") mascot.setState(server.success ? "happy" : "confused");
+  else if (server.type === "error") mascot.setState("confused");
+}
+
+let signals: SignalCollector | null = null;
+
 function start() {
   let port: chrome.runtime.Port | null = null;
 
   function send(message: ToWorker) {
-    port?.postMessage(message);
+    try {
+      port?.postMessage(message);
+    } catch {
+      retire(); // extensia a fost reîncărcată: tab-ul ăsta mai are doar codul vechi
+    }
   }
 
-  const chat = mountChat(mountOurRoot(), {
-    send: (message) => send({ type: "to_server", message }),
+  /**
+   * După ↻ pe extensie, paginile deja deschise rămân cu codul vechi, care nu mai poate vorbi cu extensia
+   * („Extension context invalidated”). Ne oprim în liniște; pagina primește codul nou la reîncărcare.
+   */
+  function retire() {
+    port = null;
+    signals?.stop();
+    signals = null;
+  }
+  const extensionAlive = () => Boolean(chrome.runtime?.id);
+
+  const ourRoot = mountOurRoot();
+  const chat = mountChat(ourRoot, {
+    send: (message) => {
+      // „ajutor” în chat e și un semnal pentru adaptare (E2), pe lângă cererea către agent
+      if (message.type === "user_message" && isHelpRequest(message.text)) signals?.helpRequest(message.text);
+      send({ type: "to_server", message });
+    },
     page: () => pageInfo(location, document.title),
   });
+  const mascot = mountMascot(ourRoot);
+  const panel = mountJournal(ourRoot, {
+    send: (message) => {
+      if (message.type !== "hello") send({ type: "to_server", message });
+    },
+    revertToOriginal: async () => {
+      await recipes.reset();
+      base?.refresh();
+    },
+  });
+  /** Revizia rețetei de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
+  const runStart = new Map<string, number>();
+
+  /**
+   * Readuce rețeta exact la revizia de la începutul rulării (B6: CSS și operațiile de structură, reviziile de după se
+   * șterg). O rulare pornită înainte de reîncărcare n-are revizie de start: atunci nu ghicim și nu ștergem nimic.
+   */
+  async function undoRun(runId: string | undefined): Promise<number> {
+    const start = runId ? runStart.get(runId) : undefined;
+    if (start !== undefined) await recipes.revertTo(start);
+    base?.refresh();
+    return recipes.view().revision;
+  }
 
   // Preferințele de bază pornesc cu nevoile salvate de testul inițial (sau implicite) și se reaplică peste rețetă.
   void chrome.storage.local.get(ONBOARDING_KEY).then((saved) => {
@@ -84,14 +141,33 @@ function start() {
     base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
 
-  // Registrul paginii (B2), motorul de rețete (B5) și bula chatului pentru `say`.
+  // Registrul paginii (B2), motorul de rețete (B5), bula chatului pentru `say` și mascota pentru `point_at` (D2).
   const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
+
+  // Semnalele de utilizare (E2): loturi la cel mult 5 s, cu pagina pe care s-au întâmplat; serverul le dă adaptării (E3).
+  signals = startSignalCollector({
+    ourHostId: HOST_ID,
+    idOf: registry.idOf,
+    regionIdOf: registry.regionIdOf,
+    send: (batch) =>
+      send({
+        type: "to_server",
+        message: { type: "signals", signals: batch, page: pageInfo(location, document.title) },
+      }),
+  });
+  addEventListener("pagehide", () => signals?.flush());
   const tools: PageToolDeps = {
     registry,
     recipes: {
       // După fiecare CSS al agentului, fontul minim se verifică din nou (C4: „ultimele, peste tot ce a scris agentul”).
       async applyCss(args) {
         const result = await recipes.applyCss(args);
+        if (result.ok) base?.refresh();
+        return result;
+      },
+      // La fel după operațiile de structură (B6): elementele mutate sau adăugate primesc și ele limitele.
+      async applyOps(args) {
+        const result = await recipes.applyOps(args);
         if (result.ok) base?.refresh();
         return result;
       },
@@ -106,11 +182,27 @@ function start() {
         regionElement: (regionId) => registry.elementOf(regionId),
         pauseRecipe: recipes.pause,
       }),
-    say: (text) => chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" }),
+    say: (text) => {
+      chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" });
+      mascot.setState("speaking");
+    },
+    pointAt: (element, message) => mascot.pointAt(element, message),
+    proposeChanges: (args, runId) =>
+      proposeChanges(args, runId, {
+        ask: panel.askProposal,
+        revisionBefore: (id) => (id ? runStart.get(id) : undefined) ?? recipes.view().revision,
+        currentRevision: () => recipes.view().revision,
+        undoRun,
+      }),
   };
 
   function connect() {
-    port = chrome.runtime.connect({ name: PAGE_PORT });
+    if (!extensionAlive()) return retire();
+    try {
+      port = chrome.runtime.connect({ name: PAGE_PORT });
+    } catch {
+      return retire();
+    }
     port.onMessage.addListener((raw) => {
       const message = parseFromWorker(raw);
       if (!message) return;
@@ -125,10 +217,14 @@ function start() {
         );
         return;
       }
+      if (server.type === "run_started") runStart.set(server.runId, recipes.view().revision);
       chat.handleServerMessage(server);
+      moveMascot(mascot, server);
+      panel.journal.getState().handleServerMessage(server);
     });
     port.onDisconnect.addListener(() => {
       port = null;
+      if (!extensionAlive()) return retire();
       chat.setLinkStatus("connecting");
       setTimeout(connect, RECONNECT_PORT_MS);
     });
