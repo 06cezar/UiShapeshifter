@@ -13,8 +13,8 @@
       }
     }
   },
-  "last_comms_sha": "7e8a2a50c0f74da55fe58db4669b8b65776aae0d",
-  "last_run": "2026-11-13T20:33:20Z",
+  "last_comms_sha": "7412d9aa92aff409ee064ecf5428d5dcaea52072",
+  "last_run": "2026-11-13T20:55:41Z",
   "last_sha": "f6dca25f9a0e5bbd53552e8815997fb07f19d6f3",
   "prs": {
     "1": {
@@ -253,7 +253,7 @@
     "C5": "done",
     "D1": "done",
     "D10": "wait",
-    "D2": "ready",
+    "D2": "progress",
     "D3": "done",
     "D4": "done",
     "D5": "wait",
