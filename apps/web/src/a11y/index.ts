@@ -2,4 +2,5 @@
 export * from "./contrast";
 export * from "./thresholds";
 export * from "./audit";
+export { mergeFixes, proposeFix, withFixes } from "./fixes";
 export { auditDom, collectDomFacts, effectiveBackground, factsOf } from "./dom";
