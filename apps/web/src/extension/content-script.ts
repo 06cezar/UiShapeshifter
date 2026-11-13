@@ -40,7 +40,14 @@ function isOurUiVisible(): boolean {
   });
 }
 
-const recipes = createRecipeEngine({ host, storage: chrome.storage.local, isOurUiVisible });
+/** Butonul „Ajută-mă” al unei componente adăugate de agent (B3, askAgent): pornește o cerere nouă, ca din chat. */
+let askAgentFromPage: ((goal: string) => void) | null = null;
+const recipes = createRecipeEngine({
+  host,
+  storage: chrome.storage.local,
+  isOurUiVisible,
+  askAgent: (goal) => askAgentFromPage?.(goal),
+});
 // Doar în build-ul de dezvoltare: motorul în consolă, pentru probe manuale (cererea lui B). În DevTools alege contextul
 // „UI Shapeshifter” din lista de sus a consolei, apoi: uiRecipes.view(), uiRecipes.applyCss({ css, reason }).
 if (__UIS_DEV__) (globalThis as { uiRecipes?: typeof recipes }).uiRecipes = recipes;
@@ -90,6 +97,12 @@ function start() {
     signals = null;
   }
   const extensionAlive = () => Boolean(chrome.runtime?.id);
+
+  askAgentFromPage = (goal) =>
+    send({
+      type: "to_server",
+      message: { type: "user_message", text: goal, source: "text", page: pageInfo(location, document.title) },
+    });
 
   const chat = mountChat(mountOurRoot(), {
     send: (message) => {
