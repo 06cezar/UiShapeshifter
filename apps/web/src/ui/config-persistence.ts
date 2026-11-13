@@ -2,7 +2,7 @@
 // schimbare PUT cu debounce. Aplicația merge și fără server sau fără rute: orice eșec cade pe valorile implicite,
 // iar o salvare eșuată se notează o dată în consolă, fără să oprească interfața.
 
-import { DEFAULT_CONFIG, DEFAULT_PROFILE_NEEDS } from "@uishapeshifter/contracts";
+import { CONTRACT_VERSION, DEFAULT_CONFIG, DEFAULT_PROFILE_NEEDS } from "@uishapeshifter/contracts";
 import type { UIConfig, UserNeeds } from "@uishapeshifter/contracts";
 import { validateConfigShape } from "./config-shape";
 import type { ConfigStore } from "./config-store";
@@ -46,7 +46,7 @@ export async function loadInitialConfig(userId: string, deps: LoadDeps): Promise
   ]);
   const savedNeeds = isRecord(profile) ? profile.needs : undefined;
   const needs = isUserNeeds(savedNeeds) ? savedNeeds : DEFAULT_PROFILE_NEEDS;
-  const config = saved !== undefined && validateConfigShape(saved).length === 0 ? (saved as UIConfig) : undefined;
+  const config = isCurrentConfig(saved) ? saved : undefined;
   return {
     config: deps.adjust(config ?? DEFAULT_CONFIG, needs),
     needs,
@@ -111,6 +111,16 @@ async function getJson(fetchFn: FetchFn, url: string): Promise<unknown> {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Un config salvat îl folosim doar dacă are forma corectă și e scris pentru contractul de acum: unul de altă
+ * versiune poate avea câmpuri cu alt sens, deci pornim de la DEFAULT_CONFIG (ajustat după profil).
+ */
+function isCurrentConfig(saved: unknown): saved is UIConfig {
+  return (
+    saved !== undefined && validateConfigShape(saved).length === 0 && (saved as UIConfig).version === CONTRACT_VERSION
+  );
 }
 
 /** Profilul vine de pe server: îl folosim doar dacă `needs` are exact forma din contracte. */
