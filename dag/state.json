@@ -1,8 +1,8 @@
 {
   "comms": {},
-  "last_comms_sha": "ba63d42d706d374338444332ee0eb84e60a1d9b2",
-  "last_run": "2026-11-13T12:42:10Z",
-  "last_sha": "ace6820fcb59bda09dfd7a69492130df00389dab",
+  "last_comms_sha": "43bf06587da7b71d67a99df3be4502c8dd0408f4",
+  "last_run": "2026-11-13T12:54:39Z",
+  "last_sha": "4037fcb568a4efefbc35c0f6627dcdb4793166c5",
   "prs": {},
   "statuses": {
     "A1": "wait",
@@ -13,7 +13,7 @@
     "B2": "wait",
     "B3": "wait",
     "B4": "wait",
-    "C1": "wait",
+    "C1": "progress",
     "C2": "wait",
     "C3": "wait",
     "D1": "ready",
