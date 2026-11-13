@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "57061c6c673f9e812f419c23e63ebf5db6742e1c",
-  "last_run": "2026-11-13T13:27:38Z",
+  "last_comms_sha": "f9004e900325f7547f951efde96497ee5fa45a4d",
+  "last_run": "2026-11-13T13:37:49Z",
   "last_sha": "e8e93a94e99cd9309a916959b9c7a1c42ece1cba",
   "prs": {
     "1": {
@@ -31,6 +31,16 @@
     },
     "6": {
       "head": "a1-server",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "7": {
+      "head": "b1-store-layout",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "8": {
+      "head": "e1-profil",
       "merged_at": null,
       "state": "OPEN"
     }
