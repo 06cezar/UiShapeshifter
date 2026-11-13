@@ -24,6 +24,10 @@ export interface DomFacts {
   decorative?: boolean;
   /** Marginea vizibilă a unui element interactiv și fundalul din jurul lui (WCAG 1.4.11). */
   nonText?: { color: string; background: string };
+  /** `display: inline`: `min-height` nu se aplică, reparația țintei cere și `display: inline-block` (fix-css.ts). */
+  inline?: boolean;
+  /** Link în mijlocul unei fraze: WCAG 2.5.5 îl scutește de mărimea țintei, iar mărit ar rupe rândul de text. */
+  inSentence?: boolean;
 }
 export type DomFactsMap = Record<string, DomFacts>;
 
@@ -107,7 +111,7 @@ export function runRules(
       ...checkMinFont(el, t),
       ...checkTextContrast(el, t, f),
       ...checkNonTextContrast(el, f),
-      ...checkTargetSize(el, t),
+      ...checkTargetSize(el, t, f),
       ...checkClipped(el, f),
       ...checkOffscreen(el, viewport),
       ...checkLineHeight(el, t, f),
@@ -170,8 +174,8 @@ export function checkNonTextContrast(el: ElementInfo, f: DomFacts = {}): AuditIs
   ];
 }
 
-export function checkTargetSize(el: ElementInfo, t: AuditThresholds): AuditIssue[] {
-  if (!el.interactive) return [];
+export function checkTargetSize(el: ElementInfo, t: AuditThresholds, f: DomFacts = {}): AuditIssue[] {
+  if (!el.interactive || f.inSentence) return [];
   const { width, height } = el.rect;
   if (width >= t.minTargetPx - RECT_EPS && height >= t.minTargetPx - RECT_EPS) return [];
   const measured = `${round(width)}×${round(height)}px`;

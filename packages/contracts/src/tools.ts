@@ -96,7 +96,7 @@ export interface ToolArgs {
     component?: ToolArgs["generate_component"];
     risk: "low" | "high";
   };
-  audit_ui: { moduleId?: string };
+  audit_ui: { moduleId?: string; regionId?: string }; // moduleId: aplicația veche; regionId: o zonă din PageSnapshot
   say: { message: string; mascot?: MascotState };
   get_profile: Record<string, never>;
   update_profile: { facts?: Omit<ProfileFact, "id" | "createdAt">[]; patch?: JsonPatchOp[] };
@@ -391,8 +391,11 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "audit_ui",
-      description: "Verifică accesibilitatea interfeței randate: font minim, contrast, mărimea țintelor, suprapuneri, text tăiat.",
-      parameters: { type: "object", properties: { moduleId: { type: "string" } } },
+      description:
+        "Verifică accesibilitatea paginii de acum: font minim, contrast, mărimea țintelor, suprapuneri, text tăiat. " +
+        "Repară doar problemele cu `introduced: true` (le-ai adus tu): cu `fixCss` prin apply_css, altfel decizi tu. " +
+        "`regionId` verifică doar o zonă din snapshot.",
+      parameters: { type: "object", properties: { regionId: { type: "string" }, moduleId: { type: "string" } } },
     },
   },
   {

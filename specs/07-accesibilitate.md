@@ -30,8 +30,14 @@ Toate sunt `error`, cu excepția `line-height` și `contrast` pe text decorativ,
 Interfața noastră (mascota, chatul, panoul) se verifică separat și nu blochează.
 
 **Pe site-uri reale** un site poate avea de la început texte sub limită. Auditul distinge ce a stricat agentul de ce
-era deja așa: `AuditIssue` poartă elementul, iar raportul e comparat cu cel dinainte de rulare. Doar ce **a înrăutățit**
-agentul îl obligă la reparație sau anulare; ce era deja sub limită îl repară preferințele de bază (nivelul 2).
+era deja așa: `audit_ui` verifică pagina de două ori, o dată cum e acum și o dată cu rețeta oprită pentru o clipă (în
+același pas sincron, deci nu se vede), și pune `introduced: true` pe problemele care nu erau pe pagina fără rețetă
+(aceeași regulă, același element). Doar acestea îl obligă pe agent la reparație sau anulare; ce era deja sub limită
+îl repară preferințele de bază (nivelul 2). Oprirea rețetei o dă motorul de rețete (B5), ca funcție `pauseRecipe`.
+
+Pe o pagină reală auditul măsoară cel mult 300 de elemente cu text propriu sau interactive, cele din ecran întâi
+(`MAX_AUDITED_ELEMENTS` în `a11y/page-audit.ts`), ca unealta să răspundă repede după fiecare schimbare.
+`{ regionId }` verifică doar o zonă din `PageSnapshot`.
 
 ## Scorul (pentru panou și pitch)
 
@@ -40,13 +46,15 @@ după fiecare rulare; cifrele din pitch sunt cele măsurate.
 
 ## Reparațiile (`fixCss`)
 
-Auditul propune CSS când reparația e evidentă; agentul îl trimite lui `apply_css` (append):
+Auditul propune CSS când reparația e evidentă; agentul îl trimite lui `apply_css` (append). Declarațiile au
+`!important`: altfel o regulă mai specifică a site-ului câștigă, auditul următor pică din nou și agentul repară în cerc.
+Selectorul e cel din registru (`PageElement.selector`), iar `fixCss` trece mereu de validarea CSS (C5).
 
 | Problemă | `fixCss` propus |
 |---|---|
 | font sub minim | `selector { font-size: <minim>px }` |
 | contrast text/fundal | `selector { color: <varianta mai închisă/deschisă a aceleiași nuanțe care atinge pragul> }` |
-| țintă mică | `selector { min-height: <prag>px; min-width: <prag>px }` |
+| țintă mică | `selector { min-height: <prag>px; min-width: <prag>px }` (plus `display: inline-block` pentru un element inline) |
 | text tăiat | fără `fixCss`; decide agentul (mai puțin text, mai multă înălțime) |
 
 Funcțiile de contrast (luminanță relativă, raport, ajustarea unei culori până la prag) stau în `apps/web/src/a11y/` și
