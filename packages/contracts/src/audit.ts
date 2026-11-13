@@ -24,6 +24,11 @@ export interface AuditIssue {
    * `elementId` e id-ul din registru (`PageElement.id`).
    */
   fixCss?: string;
+  /**
+   * Pe site-uri: `true` dacă problema nu era pe pagina fără rețeta noastră, deci a adus-o agentul. Doar acestea îl
+   * obligă să repare sau să anuleze; celelalte erau ale site-ului și le ridică preferințele de bază (specs/07).
+   */
+  introduced?: boolean;
 }
 
 export interface AuditThresholds {
