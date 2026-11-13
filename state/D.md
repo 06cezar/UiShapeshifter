@@ -1,3 +1,3 @@
-2026-11-14 00:48
+2026-11-14 00:51
 
-gata: review #51 postat ca comentariu (check+teste verzi pe branch adus la zi cu main, probat în browser pe pagină de probă); urmează: approve de la un coleg pe #51, apoi unire; firul 0041-C-mke (review #9, perechea pt B4); blocat: nimic
+gata: review #9 (changes requested: deschiderea la instalare + profilul local după test), notă pe #49, răspuns lui C; urmează: re-review #9 după reparații, #51 bula, M3 (~03:30), perechea B4 (Bing → ca Google, de probat) în specs/12 după probă; blocat: nimic
