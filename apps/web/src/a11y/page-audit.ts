@@ -42,6 +42,11 @@ export const MAX_AUDITED_ELEMENTS = 300;
 /** Câte elemente din DOM parcurgem cel mult ca să găsim candidații. */
 export const MAX_SCANNED_ELEMENTS = 5000;
 const LABEL_MAX_CHARS = 80;
+/**
+ * Textul „doar pentru cititorul de ecran” (clasa sr-only a multor site-uri) are 1×1px și `clip`: e acolo intenționat,
+ * nu se vede, deci nu e nici „tăiat”, nici „mic”.
+ */
+const SCREEN_READER_ONLY_MAX_PX = 1;
 
 /** Ce se poate apăsa: ținta de atingere și suprapunerile se judecă doar pe acestea. */
 export const INTERACTIVE_SELECTOR = [
@@ -170,8 +175,18 @@ function describe(element: HTMLElement, id: string, rect: DOMRect, inViewport: b
 /** Faptele din dom.ts, plus ce îi trebuie reparației: un element inline nu ia `min-height`. */
 function pageFactsOf(element: HTMLElement): DomFacts {
   const facts = factsOf(element);
-  if (getComputedStyle(element).display === "inline") facts.inline = true;
+  const style = getComputedStyle(element);
+  if (style.display === "inline") facts.inline = true;
+  if (isLinkInSentence(element, style)) facts.inSentence = true;
   return facts;
+}
+
+/**
+ * Un link în mijlocul unei propoziții (WCAG 2.5.5 îl scutește): nu se cere țintă mare, fiindcă mărit ar rupe rândul
+ * de text în care stă. Doar butoanele și linkurile de sine stătătoare au nevoie de ținte mari.
+ */
+export function isLinkInSentence(element: Element, style: CSSStyleDeclaration = getComputedStyle(element)): boolean {
+  return style.display === "inline" && element.parentElement !== null && hasOwnText(element.parentElement);
 }
 
 export function isInteractive(element: Element): boolean {
@@ -186,7 +201,7 @@ export function hasOwnText(element: Element): boolean {
 }
 
 export function isVisible(element: Element, rect: DOMRect): boolean {
-  if (rect.width <= 0 || rect.height <= 0) return false;
+  if (rect.width <= SCREEN_READER_ONLY_MAX_PX || rect.height <= SCREEN_READER_ONLY_MAX_PX) return false;
   const style = getComputedStyle(element);
   // `opacity` gol înseamnă valoarea implicită, 1.
   return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || 1) > 0;

@@ -39,6 +39,8 @@ beforeEach(() => {
     <a data-t="link" href="/cos" style="display: inline; color: #999999; font-size: 18px" data-rect="0,40,60,20">Coș</a>
     <button data-t="buton" style="font-size: 16px" data-rect="0,80,30,30">OK</button>
     <p data-t="ascuns" style="display: none; font-size: 10px">nu se vede</p>
+    <p data-t="fraza" style="font-size: 18px; line-height: 1.6">Vezi <a data-t="in-fraza" href="/x" style="display: inline; font-size: 18px" data-rect="0,0,40,20">aici</a> detalii.</p>
+    <span data-t="sr-only" style="font-size: 12px" data-rect="0,0,1,1">Meniul principal</span>
     <div id="${HOST_ID}"><p data-t="mascota" style="font-size: 10px">a noastră</p></div>`);
 });
 
@@ -54,16 +56,22 @@ describe("auditPage pe un site", () => {
     expect(issuesOf("contrast")).toEqual(["link"]);
   });
 
-  it("sare interfața noastră și elementele ascunse", () => {
+  it("sare interfața noastră, elementele ascunse și textul doar pentru cititorul de ecran (1×1px)", () => {
     const { elements } = auditPage(THRESHOLDS, OPTIONS);
     expect(Object.keys(elements)).not.toContain("mascota");
     expect(Object.keys(elements)).not.toContain("ascuns");
+    expect(Object.keys(elements)).not.toContain("sr-only");
+  });
+
+  it("un link din mijlocul unei fraze nu e țintă mică (WCAG 2.5.5); unul de sine stătător, da", () => {
+    expect(issuesOf("target-size")).not.toContain("in-fraza");
+    expect(issuesOf("target-size")).toContain("link");
   });
 
   it("raportul are revizia rețetei, scorul și numărul de elemente verificate", () => {
     const { report } = auditPage(THRESHOLDS, OPTIONS);
     expect(report).toMatchObject({ ok: false, configRevision: 3, checkedAt: "1970-01-01T00:00:00.000Z" });
-    expect(report.checkedElements).toBe(4);
+    expect(report.checkedElements).toBe(6);
     expect(report.score).toBeLessThan(100);
   });
 
