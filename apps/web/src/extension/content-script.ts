@@ -3,6 +3,7 @@
 // Etapele următoare adaugă aici rețeta (B5), registrul și uneltele (B2), semnalele (E2), chatul și mascota (D).
 
 import type { ServerMessage } from "@uishapeshifter/contracts";
+import { mountChat } from "../chat";
 import { PAGE_PORT, parseFromWorker, type LinkStatus, type ToWorker } from "./messages";
 import { pageInfo } from "./page-info";
 import { mountOurRoot } from "./shadow-root";
@@ -59,6 +60,10 @@ function describeReply(message: ServerMessage): string | null {
 function startBadge() {
   const root = mountOurRoot();
   root.addStyle(BADGE_CSS);
+  const chat = mountChat(root, {
+    send: (message) => send({ type: "to_server", message }),
+    page: () => pageInfo(location, document.title),
+  });
 
   const badge = document.createElement("div");
   badge.className = "badge";
@@ -89,9 +94,11 @@ function startBadge() {
       if (message.type === "status") {
         dot.dataset.status = message.status;
         statusText.textContent = STATUS_TEXT[message.status];
+        chat.setLinkStatus(message.status);
         return;
       }
       const server = message.message;
+      chat.handleServerMessage(server);
       // Uneltele în pagină vin în B2 (registrul și executorul); până atunci răspundem clar, ca rularea să nu aștepte.
       if (server.type === "tool_call") {
         send({
