@@ -59,14 +59,19 @@ function launch(session: Session, goal: string, origin: RunOrigin, page?: PageIn
   const active: ActiveRun = { runId: run.runId, cancelled: false, replaced: false, done: Promise.resolve(run) };
   sendToSession(session, { type: "run_started", runId: run.runId, goal, origin });
 
-  active.done = runAgent(run, decider, {
-    callWebTool: (name, args) => callWebTool(session, run.runId, name, args),
-    callServerTool: async (name, args) => callServerTool(run.runId, name, args),
-    send: (message) => sendToSession(session, message),
-    saveRun,
-    isCancelled: () => active.cancelled,
-    isReplaced: () => active.replaced,
-  })
+  active.done = runAgent(
+    run,
+    decider,
+    {
+      callWebTool: (name, args) => callWebTool(session, run.runId, name, args),
+      callServerTool: async (name, args) => callServerTool(run.runId, name, args),
+      send: (message) => sendToSession(session, message),
+      saveRun,
+      isCancelled: () => active.cancelled,
+      isReplaced: () => active.replaced,
+    },
+    { host: page?.host },
+  )
     // o eroare scăpată din buclă nu trebuie să oprească tot serverul
     .catch((error: unknown) => {
       console.error(`agent: rularea ${run.runId} s-a oprit cu o eroare neprinsă:`, error);
