@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 6/40 · **În lucru:** 6 · **Poate începe:** 2 · **Așteaptă:** 26 · **Blocat:** 0
+**Gata:** 6/40 · **În lucru:** 7 · **Poate începe:** 1 · **Așteaptă:** 26 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
   subgraph t_owner_D["D"]
     t_D1["D1 · Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev)<br/>✅ gata"]
     t_D4["D4 · Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas<br/>✅ gata"]
-    t_D7["D7 · Contractele etapei 1 - SiteRecipe cu CSS, snapshot-ul paginii, uneltele get_page_snapshot/apply_css/say/finish, mesajele + specs 02, 04, 05, 06 rescrise<br/>🟢 poate începe"]
+    t_D7["D7 · Contractele etapei 1 - SiteRecipe cu CSS, snapshot-ul paginii, uneltele get_page_snapshot/apply_css/say/finish, mesajele + specs 02, 04, 05, 06 rescrise<br/>🔨 în lucru"]
     t_M0["M0 · PUNCT DE CONTROL 0 - extensia se vede pe două site-uri reale și mesajul de probă face drumul dus-întors<br/>⏳ așteaptă"]
     t_D3["D3 · Chatul în extensie - câmp de text și bula de răspuns peste orice site, legate de server prin service worker<br/>⏳ așteaptă"]
     t_D8["D8 · Contractele etapelor 2-4, ca adăugări - DomOp (remove, move, wrap, setText, insertHtml, bind, inject), point_at, propose_changes, audit, profilul extins, conturi + specs 03, 07-12<br/>⏳ așteaptă"]
@@ -146,14 +146,13 @@ flowchart LR
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
   class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1 done
-  class t_B2,t_C5,t_A2,t_A3,t_C2,t_C3 progress
-  class t_D7,t_E5 ready
+  class t_D7,t_B2,t_C5,t_A2,t_A3,t_C2,t_C3 progress
+  class t_E5 ready
   class t_M0,t_B5,t_D3,t_E7,t_D8,t_M1,t_B6,t_D2,t_D9,t_E2,t_M2,t_E8,t_A6,t_C4,t_B3,t_D10,t_M3,t_B4,t_A4,t_A5,t_E3,t_E6,t_M4,t_D5,t_E4,t_D6 wait
 ```
 
 ## Poate începe acum
 
-- **D7** (D) Contractele etapei 1 - SiteRecipe cu CSS, snapshot-ul paginii, uneltele get\_page\_snapshot/apply\_css/say/finish, mesajele + specs 02, 04, 05, 06 rescrise _(Etapa 0 · vin 18:45. Gata = tipurile din packages/contracts trec check; specs/02, 04, 05, 06 descriu doar ce trebuie etapei 1. Restul contractelor vin în D8, ca adăugări.)_
 - **E5** (E) Scheletul extensiei Chrome (MV3) - manifest, content script cu rădăcină shadow DOM, service worker cu WebSocket la server, popup, stocare locală _(Etapa 0 · vin 19:30. Gata = extensia încărcată „unpacked” arată un element al nostru pe orice site, iar un mesaj de probă face drumul pagină → service worker → server și înapoi; pașii de încărcare sunt în README.)_
 
 ## Blocat
@@ -162,6 +161,7 @@ _nimic_
 
 ## În lucru
 
+- **D7** (D) Contractele etapei 1 - SiteRecipe cu CSS, snapshot-ul paginii, uneltele get\_page\_snapshot/apply\_css/say/finish, mesajele + specs 02, 04, 05, 06 rescrise: PR #20 deschis _(Etapa 0 · vin 18:45. Gata = tipurile din packages/contracts trec check; specs/02, 04, 05, 06 descriu doar ce trebuie etapei 1. Restul contractelor vin în D8, ca adăugări.)_
 - **B2** (B) Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină: PR #16 deschis; încă așteaptă M0 _(Etapa 1 · vin 21:00. Gata = pe o pagină reală mare, snapshot-ul rămâne sub limita de mărime din D7; același element primește același id după reîncărcare; get\_page\_snapshot și apply\_css venite de la server se execută în pagină.)_
 - **C5** (C) Validarea a ce scrie agentul - CSS (fără url, @import, selectori spre interfața noastră) și HTML (fără script, iframe, atribute on\*), funcții pure cu teste: branch `c5-validare` are commit-uri; încă așteaptă M0 _(Etapa 1 · vin 20:30 pentru CSS (îl folosește B5), HTML până la sfârșitul etapei (îl folosește B3 în etapa 3). Gata = validateCss/validateHtml întorc ce e respins și de ce, cu teste pe cazurile periculoase.)_
 - **A2** (A) Bucla agentului cu OpenRouter cap-coadă pe o pagină reală - get\_page\_snapshot, apply\_css, verificare, say, finish (+ agentul fals adaptat): branch `a2-bucla` are commit-uri; încă așteaptă M0 _(Etapa 1 · vin 21:30. Gata = „ascunde X” pe o pagină: snapshot → apply\_css → snapshot de verificare → finish, cu pașii în jurnal; AGENT\_FAKE=1 face același drum fără cheie.)_
