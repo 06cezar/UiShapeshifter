@@ -1,8 +1,16 @@
 // Executorul uneltelor „web” în pagina unui site (etapa 1, specs/05 și 06): primește tool_call de la server, întoarce
 // tool_result. get_page_snapshot îl face registrul (B2), apply_css și apply_ops motorul de rețete (B5, B6),
-// say bula mascotei (D).
+// say bula mascotei (D), point_at mascota (D2), care merge la elementul găsit în registru, propose_changes panoul
+// (D9, Păstrez / Anulez).
 
-import type { ApplyCssData, ApplyOpsData, PageSnapshot, ToolName, ToolResult } from "@uishapeshifter/contracts";
+import type {
+  ApplyCssData,
+  ApplyOpsData,
+  PageSnapshot,
+  ToolData,
+  ToolName,
+  ToolResult,
+} from "@uishapeshifter/contracts";
 import type { PageRegistry } from "../ui/page-registry/registry";
 
 /** Motorul de rețete, așa cum îl vede executorul (recipe-engine.ts, B5 și B6). */
@@ -23,6 +31,10 @@ export interface PageToolDeps {
   audit?(args: unknown): ToolResult;
   /** Arată mesajul agentului (bula mascotei, D3); fără ea, îl ignorăm, dar răspundem „shown”. */
   say?(message: string): void;
+  /** Mascota merge la element și îl arată (D2); întoarce NOT_VISIBLE dacă elementul e ascuns. */
+  pointAt?(element: Element, message: string): Promise<ToolResult<ToolData["point_at"]>>;
+  /** Panoul arată „Păstrez / Anulez” (D9); argumentele le verifică el. */
+  proposeChanges?(args: unknown, runId?: string): Promise<ToolResult<ToolData["propose_changes"]>>;
 }
 
 function fail(code: "INVALID_ARGS" | "INTERNAL" | "ELEMENT_NOT_FOUND", message: string): ToolResult<never> {
@@ -79,6 +91,21 @@ export async function runPageTool(
         if (typeof a.message !== "string") return fail("INVALID_ARGS", "say cere message.");
         deps.say?.(a.message);
         return { ok: true, data: { shown: true } };
+      }
+      case "point_at": {
+        if (typeof a.elementId !== "string" || typeof a.message !== "string") {
+          return fail("INVALID_ARGS", "point_at cere elementId (din snapshot) și message.");
+        }
+        const element = deps.registry.elementOf(a.elementId);
+        if (!element) {
+          return fail("ELEMENT_NOT_FOUND", `Elementul ${a.elementId} nu mai e în pagină. Cere un snapshot nou.`);
+        }
+        if (!deps.pointAt) return fail("INTERNAL", "Mascota nu e încă pornită în pagină.");
+        return await deps.pointAt(element, a.message);
+      }
+      case "propose_changes": {
+        if (!deps.proposeChanges) return fail("INTERNAL", "Panoul de control nu e încă pornit în pagină.");
+        return await deps.proposeChanges(args, runId);
       }
       default:
         return fail("INVALID_ARGS", `Unealta ${name} nu rulează în pagina unui site în etapa asta.`);
