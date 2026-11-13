@@ -109,6 +109,120 @@ describe("reaplicarea și „Revino la original”", () => {
   });
 });
 
+describe("„Anulez”: revertTo", () => {
+  async function threeRevisions() {
+    const storage = memoryStorage();
+    const engine = createRecipeEngine({ host: "a.ro", storage });
+    await engine.load();
+    await engine.applyCss({ css: "aside { display: none }", reason: "unu", runId: "r1" });
+    await engine.applyCss({ css: "nav { display: none }", reason: "doi", runId: "r2" });
+    await engine.applyCss({ css: "footer { display: none }", reason: "trei", runId: "r2" });
+    return { storage, engine };
+  }
+
+  test("rețeta devine exact cea de la revizia cerută, reviziile de după se șterg, iar rezultatul se salvează", async () => {
+    const { storage, engine } = await threeRevisions();
+    expect(await engine.revertTo(1)).toEqual({ ok: true, data: { revision: 1 } });
+    expect(style()).toBe("aside { display: none }");
+    expect(engine.view().revision).toBe(1);
+    const saved = await loadRecipe(storage, "a.ro", "now");
+    expect(saved.recipe).toMatchObject({ revision: 1, css: "aside { display: none }" });
+    expect(saved.revisions.map((r) => r.reason)).toEqual(["unu"]);
+
+    // după anulare, revizia următoare pornește de la 2 din nou
+    const next = await engine.applyCss({ css: "header { display: none }", reason: "patru" });
+    expect(next.ok && next.data.revision).toBe(2);
+  });
+
+  test("Anulez = revertTo(revizia dinainte de rulare): scoate toate schimbările rulării", async () => {
+    const { engine } = await threeRevisions();
+    await engine.revertTo(1); // rularea r2 a pornit de la revizia 1
+    expect(style()).not.toContain("nav");
+    expect(style()).not.toContain("footer");
+  });
+
+  test("revertTo(0) dă rețeta goală, salvată", async () => {
+    const { storage, engine } = await threeRevisions();
+    expect(await engine.revertTo(0)).toEqual({ ok: true, data: { revision: 0 } });
+    expect(style()).toBe("");
+    const saved = await loadRecipe(storage, "a.ro", "now");
+    expect(saved.recipe).toMatchObject({ revision: 0, css: "" });
+    expect(saved.revisions).toEqual([]);
+  });
+
+  test("o revizie care nu mai e în istoric (sau nu e validă) întoarce INVALID_ARGS și nu schimbă nimic", async () => {
+    const { storage, engine } = await threeRevisions();
+    const before = structuredClone(storage.data);
+    for (const bad of [7, -1, 1.5]) {
+      const result = await engine.revertTo(bad);
+      expect(result.ok ? null : result.error.code).toBe("INVALID_ARGS");
+    }
+    const missing = await engine.revertTo(7);
+    expect(missing.ok ? "" : missing.error.message).toContain("păstrate: 1, 2, 3");
+    expect(engine.view().revision).toBe(3);
+    expect(storage.data).toEqual(before);
+  });
+
+  test("o revizie aruncată din istoric (peste maxRevisions) nu se mai poate cere", async () => {
+    const storage = memoryStorage();
+    const engine = createRecipeEngine({ host: "a.ro", storage });
+    await engine.load();
+    for (let i = 0; i < RECIPE_LIMITS.maxRevisions + 2; i++) {
+      await engine.applyCss({ css: `.r${i} { display: none }`, reason: `r${i}` });
+    }
+    const result = await engine.revertTo(1);
+    expect(result.ok ? null : result.error.code).toBe("INVALID_ARGS");
+    expect(engine.view().revision).toBe(RECIPE_LIMITS.maxRevisions + 2);
+  });
+});
+
+describe("ops în stocare", () => {
+  const ops = [{ op: "remove", target: { selector: "#banner" } }];
+
+  test("parseStoredRecipe păstrează ops (listă) pe rețetă și pe revizii", async () => {
+    const storage = memoryStorage();
+    storage.data[recipeKey("a.ro")] = {
+      recipe: { host: "a.ro", revision: 1, css: "", ops, updatedAt: "t" },
+      revisions: [{ revision: 1, css: "", ops, reason: "x", at: "t" }],
+    };
+    const saved = await loadRecipe(storage, "a.ro", "now");
+    expect(saved.recipe.ops).toEqual(ops);
+    expect(saved.revisions[0]!.ops).toEqual(ops);
+  });
+
+  test("rețetele din etapa 1 (fără ops) rămân neschimbate; ops care nu e listă se ignoră", async () => {
+    const storage = memoryStorage();
+    storage.data[recipeKey("a.ro")] = {
+      recipe: { host: "a.ro", revision: 1, css: "a { color: red }", ops: "stricat", updatedAt: "t" },
+      revisions: [
+        { revision: 1, css: "a { color: red }", reason: "x", at: "t" },
+        { revision: 2, css: "", ops: { nu: "listă" }, reason: "y", at: "t" },
+      ],
+    };
+    const saved = await loadRecipe(storage, "a.ro", "now");
+    expect(saved.recipe).toEqual({ host: "a.ro", revision: 1, css: "a { color: red }", updatedAt: "t" });
+    expect(saved.revisions).toEqual([
+      { revision: 1, css: "a { color: red }", reason: "x", at: "t" },
+      { revision: 2, css: "", reason: "y", at: "t" },
+    ]);
+  });
+
+  test("revertTo duce și ops-urile reviziei cerute", async () => {
+    const storage = memoryStorage();
+    storage.data[recipeKey("a.ro")] = {
+      recipe: { host: "a.ro", revision: 2, css: "", updatedAt: "t" },
+      revisions: [
+        { revision: 1, css: "", ops, reason: "x", at: "t" },
+        { revision: 2, css: "", reason: "y", at: "t" },
+      ],
+    };
+    const engine = createRecipeEngine({ host: "a.ro", storage });
+    await engine.load();
+    await engine.revertTo(1);
+    expect((await loadRecipe(storage, "a.ro", "now")).recipe.ops).toEqual(ops);
+  });
+});
+
 describe("selectorii din CSS", () => {
   test("liste, @media, fără pseudo-elemente și fără @keyframes", () => {
     const css = `a, b:not(.x, .y) { color: red }

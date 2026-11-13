@@ -38,6 +38,11 @@ export interface RecipeEngine {
     reason: string;
     runId?: string;
   }): Promise<ToolResult<ApplyCssData>>;
+  /**
+   * „Anulez”: rețeta devine exact cea de la `revision`, iar reviziile de după ea se șterg (revizia coboară, specs/02).
+   * `revertTo(0)` = rețeta goală. O revizie care nu mai e în istoric întoarce INVALID_ARGS și nu schimbă nimic.
+   */
+  revertTo(revision: number): Promise<ToolResult<{ revision: number }>>;
   /** „Revino la original”: golește rețeta gazdei. */
   reset(): Promise<void>;
   /** Ce a scris alt tab sau popup-ul în stocare: aplicăm aici fără să salvăm din nou. */
@@ -196,6 +201,46 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
         ok: true,
         data: { revision, cssBytes: bytes, dropped, unmatchedSelectors: unmatched(kept) },
       };
+    },
+
+    async revertTo(revision) {
+      if (!Number.isInteger(revision) || revision < 0) {
+        return {
+          ok: false,
+          error: { code: "INVALID_ARGS", message: `Revizia trebuie să fie un număr întreg ≥ 0, nu ${revision}.` },
+        };
+      }
+      const at = now().toISOString();
+      let next: StoredRecipe;
+      if (revision === 0) {
+        next = { recipe: { host: options.host, revision: 0, css: "", updatedAt: at }, revisions: [] };
+      } else {
+        const target = stored.revisions.find((r) => r.revision === revision);
+        if (!target) {
+          const kept = stored.revisions.map((r) => r.revision);
+          return {
+            ok: false,
+            error: {
+              code: "INVALID_ARGS",
+              message: `Revizia ${revision} nu mai e în istoric (păstrate: ${kept.length ? kept.join(", ") : "niciuna"}, plus 0 = rețeta goală).`,
+            },
+          };
+        }
+        next = {
+          recipe: {
+            host: options.host,
+            revision,
+            css: target.css,
+            ...(target.ops ? { ops: target.ops } : {}),
+            updatedAt: at,
+          },
+          revisions: stored.revisions.filter((r) => r.revision <= revision),
+        };
+      }
+      stored = next;
+      render();
+      await saveRecipe(options.storage, stored);
+      return { ok: true, data: { revision } };
     },
 
     async reset() {

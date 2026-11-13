@@ -1,7 +1,7 @@
 // Unde stă rețeta unui site: chrome.storage.local, cheia „recipe:<host>”, valoarea { recipe, revisions } (specs/02).
 // Stocarea e sursa adevărului: orice tab sau popup care o schimbă e auzit de toate tab-urile gazdei (onChanged).
 
-import { emptyRecipe, type RecipeRevision, type SiteRecipe } from "@uishapeshifter/contracts";
+import { emptyRecipe, type DomOp, type RecipeRevision, type SiteRecipe } from "@uishapeshifter/contracts";
 
 export const RECIPE_KEY_PREFIX = "recipe:";
 
@@ -35,17 +35,29 @@ export function parseStoredRecipe(value: unknown, host: string, now: string): St
       typeof r.css === "string" &&
       typeof r.updatedAt === "string"
     ) {
-      const revisions = value.revisions.filter(
-        (rev): rev is RecipeRevision =>
-          isRecord(rev) &&
-          typeof rev.revision === "number" &&
-          typeof rev.css === "string" &&
-          typeof rev.reason === "string",
-      );
-      return { recipe: { host, revision: r.revision, css: r.css, updatedAt: r.updatedAt }, revisions };
+      const revisions = value.revisions
+        .filter(
+          (rev): rev is RecipeRevision =>
+            isRecord(rev) &&
+            typeof rev.revision === "number" &&
+            typeof rev.css === "string" &&
+            typeof rev.reason === "string",
+        )
+        .map((rev) => withOps<RecipeRevision>(rev, rev.ops));
+      const recipe = withOps<SiteRecipe>({ host, revision: r.revision, css: r.css, updatedAt: r.updatedAt }, r.ops);
+      return { recipe, revisions };
     }
   }
   return { recipe: emptyRecipe(host, now), revisions: [] };
+}
+
+/**
+ * `ops` (etapa 2) se păstrează doar dacă e o listă; rețetele din etapa 1 n-au `ops` și rămân neschimbate.
+ * Fiecare operație o verifică motorul înainte s-o aplice, nu aici.
+ */
+function withOps<T extends { ops?: DomOp[] }>(target: T, ops: unknown): T {
+  const { ops: _ignored, ...rest } = target;
+  return (Array.isArray(ops) ? { ...rest, ops: ops as DomOp[] } : rest) as T;
 }
 
 export async function loadRecipe(storage: RecipeStorage, host: string, now: string): Promise<StoredRecipe> {
