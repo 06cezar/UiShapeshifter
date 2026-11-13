@@ -25,6 +25,18 @@ Tipul: `packages/contracts/src/ui-config.ts`. Valoarea de pornire: `DEFAULT_CONF
    La pornire îl citește cu `GET`. Fără config salvat: `DEFAULT_CONFIG` ajustat după profil.
 6. **Tema → CSS.** `theme` devine variabile CSS pe `:root` (`--font-base`, `--line-height`, `--color-text`…), iar
    treptele de font se calculează `base * scale^n`. Schimbarea temei nu re-montează componentele.
+   Lista completă (`apps/web/src/ui/theme-css.ts`); mărimile în px, rotunjite la 2 zecimale:
+
+   | Variabila | Din |
+   |---|---|
+   | `--font-base` | `theme.baseFontPx` |
+   | `--line-height` | `theme.lineHeight` (fără unitate) |
+   | `--font-family` | `theme.fontFamily` |
+   | `--radius` | `theme.radiusPx` |
+   | `--spacing` | `theme.spacingPx` |
+   | `--min-target` | `minTargetPx` (din `UIConfig`, nu din `theme`) |
+   | `--color-background`, `--color-surface`, `--color-text`, `--color-text-muted`, `--color-primary`, `--color-on-primary`, `--color-danger`, `--color-focus` | `theme.palette` |
+   | `--font-step-0` … `--font-step-4` | `baseFontPx * scale^n`, n = 0…4 (0 = textul de bază) |
 7. **Tranziții:** schimbările de layout se animă cu Framer Motion (`layout`), cel mult 300 ms;
    cu `theme.reducedMotion` fără animații.
 
