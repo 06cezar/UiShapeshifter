@@ -1,0 +1,297 @@
+// Panoul de control (specs/11): ce face agentul acum, pas cu pas, cu Oprește, Păstrez / Anulez, scorul de
+// accesibilitate, istoricul config-ului cu „Revino aici” și reluarea pas cu pas a unei rulări terminate.
+// Mesajele vin în `journal` de la cine ține WebSocket-ul; `send` trimite `cancel_run` înapoi.
+
+import { useState } from "react";
+import { useStore } from "zustand";
+import type { AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
+import { useConfigState, useConfigStoreApi } from "../ui/config-store-context";
+import type { HistoryEntry } from "../ui/config-store";
+import { activeRun, auditScores, revisionAtStep } from "./journal-store";
+import type { JournalStore, RunStatus, RunView } from "./journal-store";
+import { fetchRun } from "./run-api";
+import "./journal.css";
+
+export interface JournalPanelProps {
+  journal: JournalStore;
+  send: (message: ClientMessage) => void;
+  apiUrl: string;
+}
+
+/** Câte revizii arată istoricul; restul rămân în store. */
+const HISTORY_SHOWN = 10;
+
+const TOOL_ICONS: Record<ToolName, string> = {
+  get_ui_snapshot: "👀",
+  patch_config: "🛠️",
+  apply_template: "🧩",
+  generate_component: "✨",
+  remove_component: "🗑️",
+  navigate: "🧭",
+  point_at: "👉",
+  wait_for_user_click: "⏳",
+  ask_user: "❓",
+  propose_changes: "💡",
+  audit_ui: "🔍",
+  say: "💬",
+  get_profile: "📇",
+  update_profile: "📝",
+  finish: "🏁",
+};
+
+const STATUS_TEXT: Record<RunStatus, string> = {
+  running: "În lucru",
+  succeeded: "Reușit",
+  failed: "Nereușit",
+  cancelled: "Oprit",
+};
+
+const AUTHOR_TEXT: Record<HistoryEntry["meta"]["by"], string> = {
+  agent: "Vulpița",
+  user: "Tu",
+  adaptation: "Adaptare automată",
+  system: "Pornire",
+};
+
+export function JournalPanel({ journal, send, apiUrl }: JournalPanelProps) {
+  const [open, setOpen] = useState(true);
+  const runs = useStore(journal, (s) => s.runs);
+  const replay = useStore(journal, (s) => s.replay);
+  const current = activeRun(runs) ?? runs[runs.length - 1];
+
+  return (
+    <aside className="journal" data-agent-id="journal-panel" aria-label="Panoul de control">
+      <div className="journal-header">
+        <h2>Ce face vulpița</h2>
+        <button type="button" data-agent-id="journal-panel.toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? "Ascunde" : "Arată"}
+        </button>
+      </div>
+      {open && (
+        <div className="journal-body">
+          <ProposalBar journal={journal} />
+          {replay ? (
+            <ReplayView journal={journal} />
+          ) : current ? (
+            <RunSection run={current} journal={journal} send={send} apiUrl={apiUrl} />
+          ) : (
+            <p>Vulpița nu a lucrat încă.</p>
+          )}
+          <ConfigHistory />
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function ProposalBar({ journal }: { journal: JournalStore }) {
+  const proposal = useStore(journal, (s) => s.proposal);
+  if (!proposal) return null;
+  const decide = journal.getState().decideProposal;
+  return (
+    <section className="journal-proposal" aria-label="Propunere">
+      <p>
+        <strong>{proposal.title}</strong>: {proposal.summary}
+      </p>
+      <div className="journal-actions">
+        <button type="button" data-agent-id="journal-panel.keep" onClick={() => decide("keep")}>
+          Păstrez
+        </button>
+        <button type="button" data-agent-id="journal-panel.undo" onClick={() => decide("undo")}>
+          Anulez
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function RunSection({ run, journal, send, apiUrl }: { run: RunView } & JournalPanelProps) {
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const cancelRequested = useStore(journal, (s) => s.cancelRequested.includes(run.runId));
+
+  function stop() {
+    journal.getState().markCancelRequested(run.runId);
+    send({ type: "cancel_run", runId: run.runId });
+  }
+
+  async function startReplay() {
+    setLoadError(null);
+    try {
+      journal.getState().startReplay(await fetchRun(apiUrl, run.runId));
+    } catch {
+      setLoadError("Nu am putut încărca rularea. Încearcă din nou.");
+    }
+  }
+
+  return (
+    <section className="journal-run" aria-label="Rularea curentă">
+      <p className="journal-goal">
+        <span className={`journal-status journal-status-${run.status}`}>{STATUS_TEXT[run.status]}</span> {run.goal}
+      </p>
+      <AuditScore steps={run.steps} />
+      {run.status === "running" ? (
+        <button type="button" data-agent-id="journal-panel.stop" disabled={cancelRequested} onClick={stop}>
+          {cancelRequested ? "Se oprește…" : "Oprește"}
+        </button>
+      ) : (
+        <>
+          {run.summary && <p>{run.summary}</p>}
+          <button type="button" data-agent-id="journal-panel.replay" onClick={() => void startReplay()}>
+            Reia pas cu pas
+          </button>
+          {loadError && <p role="alert">{loadError}</p>}
+        </>
+      )}
+      <ol className="journal-steps" aria-live="polite">
+        {run.steps.map((step) => (
+          <li key={step.index}>
+            <StepRow step={step} />
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function AuditScore({ steps }: { steps: readonly AgentStep[] }) {
+  const { before, after } = auditScores(steps);
+  if (before === undefined) return null;
+  return (
+    <p className="journal-score">
+      Accesibilitate: {before}
+      {after !== undefined && ` → ${after}`} din 100
+    </p>
+  );
+}
+
+function StepRow({ step }: { step: AgentStep }) {
+  const failed = step.result?.ok === false;
+  const outcome = step.result ? (failed ? "fail" : "ok") : "none";
+  return (
+    <details className={`journal-step journal-step-${outcome}`}>
+      <summary>
+        <span aria-hidden="true">{step.tool ? TOOL_ICONS[step.tool] : "•"}</span> {step.decision}
+        {failed && <span className="journal-step-failed"> (nu a mers)</span>}
+      </summary>
+      <dl>
+        <dt>Observ</dt>
+        <dd>{step.observation}</dd>
+        <dt>Fac</dt>
+        <dd>{step.decision}</dd>
+        <dt>Pentru că</dt>
+        <dd>{step.reason}</dd>
+      </dl>
+      {step.tool && (
+        <pre className="journal-json">
+          {JSON.stringify({ tool: step.tool, args: step.args, result: step.result }, null, 2)}
+        </pre>
+      )}
+    </details>
+  );
+}
+
+function ReplayView({ journal }: { journal: JournalStore }) {
+  const replay = useStore(journal, (s) => s.replay);
+  if (!replay) return null;
+  const { run, index } = replay;
+  const { replayTo, stopReplay } = journal.getState();
+  const step = run.steps[index];
+  const last = run.steps.length - 1;
+  const revision = step ? revisionAtStep(step) : undefined;
+
+  return (
+    <section className="journal-replay" aria-label="Reluare pas cu pas">
+      <p className="journal-goal">Reluare: {run.goal}</p>
+      <div className="journal-actions">
+        <button
+          type="button"
+          data-agent-id="journal-panel.replay-first"
+          aria-label="Primul pas"
+          disabled={index === 0}
+          onClick={() => replayTo(0)}
+        >
+          ⏮
+        </button>
+        <button
+          type="button"
+          data-agent-id="journal-panel.replay-prev"
+          aria-label="Pasul anterior"
+          disabled={index === 0}
+          onClick={() => replayTo(index - 1)}
+        >
+          ◀
+        </button>
+        <button
+          type="button"
+          data-agent-id="journal-panel.replay-next"
+          aria-label="Pasul următor"
+          disabled={index >= last}
+          onClick={() => replayTo(index + 1)}
+        >
+          ▶
+        </button>
+        <button
+          type="button"
+          data-agent-id="journal-panel.replay-last"
+          aria-label="Ultimul pas"
+          disabled={index >= last}
+          onClick={() => replayTo(last)}
+        >
+          ⏭
+        </button>
+      </div>
+      {step ? (
+        <>
+          <p role="status">
+            Pasul {index + 1} din {run.steps.length}
+            {revision !== undefined && `, revizia ${revision}`}
+          </p>
+          <StepRow step={step} />
+        </>
+      ) : (
+        <p>Rularea nu are pași.</p>
+      )}
+      <button type="button" data-agent-id="journal-panel.replay-close" onClick={stopReplay}>
+        Închide reluarea
+      </button>
+    </section>
+  );
+}
+
+function ConfigHistory() {
+  const store = useConfigStoreApi();
+  const history = useConfigState((s) => s.history);
+  const current = useConfigState((s) => s.config.revision);
+  const [error, setError] = useState<string | null>(null);
+  const shown = [...history].reverse().slice(0, HISTORY_SHOWN);
+
+  function goBack(revision: number) {
+    const result = store.getState().undo(revision, { by: "user", reason: `Revenire la revizia ${revision}` });
+    setError(result.ok ? null : "Revizia aceea nu mai respectă limitele tale, așa că am lăsat-o deoparte.");
+  }
+
+  return (
+    <section className="journal-history" aria-label="Istoricul schimbărilor">
+      <h3>Istoric</h3>
+      {error && <p role="alert">{error}</p>}
+      <ol>
+        {shown.map((entry) => (
+          <li key={entry.revision}>
+            <span>
+              {AUTHOR_TEXT[entry.meta.by]}: {entry.meta.reason}
+            </span>
+            {entry.revision !== current && (
+              <button
+                type="button"
+                data-agent-id={`journal-panel.revert.${entry.revision}`}
+                onClick={() => goBack(entry.revision)}
+              >
+                Revino aici
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}

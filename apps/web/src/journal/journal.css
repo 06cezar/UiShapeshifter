@@ -1,0 +1,133 @@
+/* Panoul de control. Doar variabilele temei (specs/02, regula 6); țintele ≥ --min-target (specs/07). */
+
+.journal {
+  font-family: var(--font-family);
+  font-size: var(--font-base);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-surface);
+  padding: calc(var(--spacing) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.journal button {
+  font: inherit;
+  color: inherit;
+  min-width: var(--min-target);
+  min-height: var(--min-target);
+  padding: 0 var(--spacing);
+  border: calc(var(--spacing) / 8) solid var(--color-text);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  cursor: pointer;
+}
+
+.journal button:disabled {
+  cursor: default;
+  color: var(--color-text-muted);
+}
+
+.journal button:focus-visible,
+.journal summary:focus-visible {
+  outline: calc(var(--spacing) / 2) solid var(--color-focus);
+  outline-offset: calc(var(--spacing) / 4);
+}
+
+.journal h2,
+.journal h3 {
+  font-size: inherit;
+  margin: 0;
+}
+
+.journal-header,
+.journal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing);
+}
+
+.journal-header {
+  justify-content: space-between;
+}
+
+.journal-body,
+.journal-run,
+.journal-replay,
+.journal-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.journal p {
+  margin: 0;
+}
+
+.journal-proposal {
+  padding: var(--spacing);
+  border: calc(var(--spacing) / 4) solid var(--color-primary);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.journal-status {
+  font-weight: bold;
+}
+
+.journal-steps,
+.journal-history ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) / 2);
+}
+
+.journal-history li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing);
+}
+
+.journal-step {
+  border-left: calc(var(--spacing) / 2) solid var(--color-text);
+  padding-left: var(--spacing);
+}
+
+.journal-step-ok {
+  border-left-color: var(--color-primary);
+}
+
+.journal-step-fail {
+  border-left-color: var(--color-danger);
+}
+
+.journal-step summary {
+  min-height: var(--min-target);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) / 2);
+  cursor: pointer;
+}
+
+.journal-step dt {
+  font-weight: bold;
+}
+
+.journal-step dd {
+  margin: 0 0 calc(var(--spacing) / 2);
+}
+
+.journal-json {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: inherit;
+}
