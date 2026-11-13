@@ -24,6 +24,8 @@ export interface DomFacts {
   decorative?: boolean;
   /** Marginea vizibilă a unui element interactiv și fundalul din jurul lui (WCAG 1.4.11). */
   nonText?: { color: string; background: string };
+  /** `display: inline`: `min-height` nu se aplică, reparația țintei cere și `display: inline-block` (fix-css.ts). */
+  inline?: boolean;
 }
 export type DomFactsMap = Record<string, DomFacts>;
 
