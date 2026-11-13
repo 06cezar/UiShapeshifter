@@ -1,65 +1,69 @@
-# Configurația interfeței (`UIConfig`)
+# Rețeta site-ului: CSS, validare, revizii, undo (etapa 1)
 
-Tipul: `packages/contracts/src/ui-config.ts`. Valoarea de pornire: `DEFAULT_CONFIG`.
+Tipurile: `packages/contracts/src/site-recipe.ts` (`SiteRecipe`, `RecipeRevision`, `RECIPE_LIMITS`, `CssDropped`).
+Numele fișierului rămâne `02-ui-config.md` ca linkurile să nu se strice; `UIConfig` e al aplicației vechi, iar
+pentru site-uri reale rețeta o înlocuiește. `DomOp` (mută, împachetează, adaugă) vine în D8, ca adăugare.
 
-## Reguli
+## Ce e o rețetă
 
-1. **Totul se randează din config.** Layout, navigație, module, ordine, mărimi, temă și elemente generate.
-   Nicio componentă nu are stare vizuală proprie care să nu se vadă în config.
-2. **Store-ul (Zustand) e singurul loc care schimbă config-ul.** Expune:
-   - `applyPatch(ops, meta) → { ok, revision } | { ok: false, violations }`
-   - `applyTemplate(template, meta)`
-   - `addComponent(spec, placement, meta)` / `removeComponent(id, meta)`
-   - `undo(toRevision)` și `history` (lista reviziilor cu `meta`: cine, de ce, `runId`, `proposalId`)
-3. **Poarta de limite.** Înainte de aplicare, store-ul calculează config-ul rezultat și îl refuză dacă:
-   - `theme.baseFontPx < max(HARD_LIMITS.minFontPx, profile.needs.minFontPx)` sau `> HARD_LIMITS.maxFontPx`
-   - `theme.lineHeight < HARD_LIMITS.minLineHeight`
-   - `minTargetPx < max(HARD_LIMITS.minTargetPx, profile.needs.minTargetPx)`
-   - contrastul `palette.text` / `palette.background`, `onPrimary` / `primary` e sub prag (`07-accesibilitate.md`)
-   - un modul `pinned` devine `visible: false`
-   - calea nu există sau tipul valorii e greșit
+`SiteRecipe { host, revision, css, updatedAt }`: foaia de stil pe care a scris-o agentul pentru un site. Se aplică pe
+toate paginile gazdei (`youtube.com`, fără `www.`). `revision` începe de la 0 (rețetă goală) și crește cu 1 la fiecare
+schimbare aplicată.
 
-   Refuzul întoarce `LIMIT_VIOLATION` cu lista încălcărilor, ca agentul să încerce altceva.
-4. **Fiecare schimbare aplicată crește `revision`** și intră în `history`. Undo = revenire la o revizie anterioară.
-5. **Persistență:** după fiecare schimbare, frontend-ul trimite config-ul la `PUT /api/config/:userId` (debounce 1 s).
-   La pornire îl citește cu `GET`. Fără config salvat: `DEFAULT_CONFIG` ajustat după profil.
-6. **Tema → CSS.** `theme` devine variabile CSS pe `:root` (`--font-base`, `--line-height`, `--color-text`…), iar
-   treptele de font se calculează `base * scale^n`. Schimbarea temei nu re-montează componentele.
-   Lista completă (`apps/web/src/ui/theme-css.ts`); mărimile în px, rotunjite la 2 zecimale:
+## Cine face ce
 
-   | Variabila | Din |
-   |---|---|
-   | `--font-base` | `theme.baseFontPx` |
-   | `--line-height` | `theme.lineHeight` (fără unitate) |
-   | `--font-family` | `theme.fontFamily` |
-   | `--radius` | `theme.radiusPx` |
-   | `--spacing` | `theme.spacingPx` |
-   | `--min-target` | `minTargetPx` (din `UIConfig`, nu din `theme`) |
-   | `--color-background`, `--color-surface`, `--color-text`, `--color-text-muted`, `--color-primary`, `--color-on-primary`, `--color-danger`, `--color-focus` | `theme.palette` |
-   | `--font-step-0` … `--font-step-4` | `baseFontPx * scale^n`, n = 0…4 (0 = textul de bază) |
-7. **Tranziții:** schimbările de layout se animă cu Framer Motion (`layout`), cel mult 300 ms;
-   cu `theme.reducedMotion` fără animații.
-
-## Exemple de patch
-
-```json
-[{ "op": "replace", "path": "/theme/baseFontPx", "value": 20 },
- { "op": "replace", "path": "/nav/showLabels", "value": true }]
-```
-
-```json
-[{ "op": "replace", "path": "/modules/5/visible", "value": false }]
-```
-
-Căile cu index (`/modules/5`) sunt fragile: agentul ia indexul din snapshot-ul curent.
-Store-ul acceptă și forma `/modules/@feed/visible` (după `id`), recomandată.
-
-## Șabloanele
-
-| `template` | Navigație | Conținut |
+| Parte | Unde | Ce face |
 |---|---|---|
-| `sidebar-feed` | stânga, cu etichete | coloană centrală, modulele în ordine |
-| `bottom-nav-stories` | jos, iconițe + etichete | banda `stories` sus, apoi modulele |
-| `simple-tiles` | fără meniu; plăci mari pe ecranul principal | grilă de 2 coloane cu modulele vizibile, plăcile generate primele |
+| **Motorul de rețete** (B) | content script | ține rețeta gazdei, pune `css` într-un `<style>` al extensiei, ține istoricul reviziilor |
+| **Validarea CSS** (C) | funcție pură, `apps/web/src/validation/` | `validateCss(css) → { css, dropped }`: scoate ce nu e voie, nu aruncă |
+| **Stocarea** (E) | service worker / `chrome.storage.local` | cheia = host; valoarea = `{ recipe, revisions }` |
+| **Unealta `apply_css`** (B, cu A) | `agent-bridge` | validează, aplică, răspunde cu `ApplyCssData` |
 
-Schimbarea șablonului păstrează `theme`, `modules` (vizibilitate, ordine) și elementele generate.
+## Validarea CSS
+
+Se face înainte de aplicare și scoate **regula** care încalcă, nu toată foaia:
+
+| Motiv (`CssDropReason`) | Ce scoate |
+|---|---|
+| `url-function` | orice `url(...)` (ar putea trimite date în afară) |
+| `import` | `@import` |
+| `expression` | `expression(...)`, `behavior:`, `-moz-binding` |
+| `targets-our-ui` | selectori spre interfața noastră: rădăcina shadow a extensiei, `[data-agent-id]` |
+| `unsupported-at-rule` | orice `@` în afară de `@media`, `@supports`, `@keyframes` |
+| `syntax` | ce nu se poate citi |
+
+Dacă **nu rămâne nimic** de aplicat, `apply_css` întoarce `INVALID_ARGS` cu lista `dropped` în `details`. Dacă foaia
+rezultată depășește `RECIPE_LIMITS.maxCssBytes`, la fel (`INVALID_ARGS`), ca modelul să scurteze. Altfel răspunsul e `ok`
+și `dropped` poate fi nenul: ce a rămas s-a aplicat.
+
+## Aplicarea
+
+1. `mode: "append"` (implicit): regulile se adaugă la sfârșitul foii; `"replace"`: foaia se înlocuiește cu totul
+   (agentul îl folosește la reparații, ca să scoată o regulă greșită).
+2. Se creează revizia `revision + 1` cu `reason` și `runId` și se pune foaia în pagină. Fără reîncărcare.
+3. `unmatchedSelectors`: cel mult 10 selectori din regulile noi care nu se potrivesc cu niciun element (agentul își
+   verifică singur ghicitul fără alt snapshot). Nu e eroare.
+4. O regulă care nu se potrivește cu nimic nu strică pagina; rămâne în rețetă, fiindcă site-ul poate încărca elementul
+   mai târziu.
+
+## Reaplicarea fără AI
+
+- La încărcarea paginii, content script-ul citește rețeta gazdei din stocare și pune `<style>` la `document_start`,
+  înainte să se vadă pagina. Fără apel la server, fără model.
+- Site-urile care își schimbă singure conținutul (aplicații de o pagină) nu au nevoie de reaplicare: o foaie de stil
+  se aplică și elementelor apărute după.
+- Dacă gazda are o rețetă dar `<style>` a fost scos de site, motorul îl pune la loc (observer pe `<head>`).
+
+## Istoric și undo
+
+- Se păstrează cel mult `RECIPE_LIMITS.maxRevisions` revizii (`RecipeRevision`) pe gazdă, cele vechi se aruncă.
+- **Anulez** (etapa 2, panoul): scoate ultima revizie; rețeta devine cea de la `revision - 1`.
+- **Revino la original** (etapa 1): golește rețeta gazdei (`revision` 0, `css` gol) și șterge istoricul. Merge oricând,
+  inclusiv din popup.
+- Fiecare pas din jurnal poartă `recipeRevisionBefore` și `recipeRevisionAfter`, deci panoul știe la ce revizie se
+  întoarce.
+
+## Preferințele de bază
+
+Fontul minim, țintele și contrastul din profil se aplică **ultimele**, ca o foaie separată a extensiei, peste ce a scris
+agentul, fără AI (`07-accesibilitate.md`, se rescrie în D8). Nu fac parte din rețeta agentului.

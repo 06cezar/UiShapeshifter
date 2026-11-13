@@ -111,7 +111,7 @@
 # ---------- Etapa 1 (vin 22:00) — Ascunde și ține minte ----------
 
 - id: B2
-  owner: B
+  owner: E
   title: Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină
   depends_on: [B1, M0]
   branch: b2-registru
@@ -127,7 +127,7 @@
   note: "Etapa 1 · vin 20:30 pentru CSS (îl folosește B5), HTML până la sfârșitul etapei (îl folosește B3 în etapa 3). Gata = validateCss/validateHtml întorc ce e respins și de ce, cu teste pe cazurile periculoase."
 
 - id: B5
-  owner: B
+  owner: E
   title: Motorul de rețete v1 - aplică CSS-ul validat, îl salvează pe site în stocarea locală, îl reaplică fără AI la încărcare, „Revino la original”
   depends_on: [M0, C5]
   branch: b5-retete
