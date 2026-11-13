@@ -1,3 +1,3 @@
-2026-11-13 18:10
+2026-11-13 19:03
 
-gata: C1; C5 PR #22 (validateCss/validateHtml, verde, se unește după M0, review E); urmează: C2 în etapa 2 (după M1, D8), din #17 refolosesc auditul, reparațiile devin CSS; #9 și #17 pe planul vechi; blocat: nimic
+gata: C1, C5 (unit); C2 PR #25 (auditPage, fixCss, introduced, runAuditUi; verde; review D; se unește după M1; E pune cazul audit_ui în executor); urmează: C3 în etapa 3 (după M2), C4; #9 e planul vechi; blocat: nimic
