@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "b2db777c669676848d7bf0a3e48a93f5cffe447c",
-  "last_run": "2026-11-13T15:29:02Z",
+  "last_comms_sha": "7c06f52c2655ff6ff1e328ba393f6602b453798b",
+  "last_run": "2026-11-13T15:59:24Z",
   "last_sha": "944c09bd544ba68957b28a98979d4e1450b62526",
   "prs": {
     "1": {
@@ -53,6 +53,11 @@
       "head": "d-pivot-extensie",
       "merged_at": "2026-11-13T15:28:52Z",
       "state": "MERGED"
+    },
+    "19": {
+      "head": "d-pivot-extensie",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "2": {
       "head": "d-stil-decizii",
