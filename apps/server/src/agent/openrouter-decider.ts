@@ -39,8 +39,6 @@ export interface OpenRouterDeciderOptions {
   /** Site-ul de pe care a scris omul; lipsește pe pagina de probă. */
   page?: PageInfo;
   retryDelaysMs?: readonly number[]; // testele le pun pe 0
-  /** Profilul și config-ul pentru prompt; se încarcă la primul pas, ca rularea să pornească imediat. */
-  loadContext?: () => Promise<PromptContext>;
 }
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
@@ -56,13 +54,6 @@ export function createOpenRouterDecider(goal: string, options: OpenRouterDecider
   return {
     model,
     async decide(previous): Promise<Decision> {
-      if (messages.length === 0) {
-        const context = await loadContext().catch((error: unknown) => {
-          console.warn("agent: contextul pentru prompt n-a putut fi încărcat:", error);
-          return {};
-        });
-        messages.push({ role: "system", content: buildSystemPrompt(context) }, { role: "user", content: goal });
-      }
       if (previous && pendingCallId) {
         messages.push({
           role: "tool",

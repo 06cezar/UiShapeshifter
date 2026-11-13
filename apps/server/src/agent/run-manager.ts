@@ -8,7 +8,7 @@ import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Se
 import { createFakeDecider } from "./fake-decider";
 import { createOpenRouterDecider } from "./openrouter-decider";
 import { runAgent, type Decider } from "./run-agent";
-import { callServerTool, profiles } from "./server-tools";
+import { callServerTool } from "./server-tools";
 
 // pauza dintre pașii agentului fals, ca pașii să apară în panou unul câte unul
 const FAKE_STEP_DELAY_MS = Number(process.env.AGENT_FAKE_DELAY_MS ?? 600);
@@ -50,7 +50,7 @@ function launch(session: Session, goal: string, origin: RunOrigin, page?: PageIn
 
   active.done = runAgent(run, decider, {
     callWebTool: (name, args) => callWebTool(session, run.runId, name, args),
-    callServerTool: (name, args) => callServerTool(run.runId, session.userId, name, args),
+    callServerTool: async (name, args) => callServerTool(run.runId, name, args),
     send: (message) => sendToSession(session, message),
     saveRun,
     isCancelled: () => active.cancelled,
