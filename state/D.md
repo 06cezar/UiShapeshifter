@@ -1,3 +1,3 @@
-2026-11-14 00:57
+2026-11-14 01:16
 
-gata: review #9 (al meu: changes requested; o altă sesiune D a aprobat la 28 s după, aprobarea e cea în vigoare), notă pe #49, răspuns lui C; E a legat pagina pe e-onboarding-legat, A a scos rularea în #53; urmează: profilul local după test (#9 pct. 2, nereparat) înainte de M3, #51, M3; blocat: nimic
+gata: #9 aprobat (decizia lui Cezar), cerut lui C PR mic pentru profilul local după test; E: e-onboarding-legat (fără PR), A: #53; urmează: review PR-ul mic al lui C, #51, M3; blocat: nimic
