@@ -338,6 +338,8 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
 
     const regionList: PageRegion[] = regions.map(({ element, id, role }) => ({
       id,
+      // aceleași reguli ca la elemente: „fă bara de sus albastră” → apply_css pe selectorul zonei
+      selector: buildSelector(element, doc),
       role,
       label: labelOf(element.querySelector("h1, h2, h3, [aria-label]") ?? element, doc),
       rect: rectOf(element),

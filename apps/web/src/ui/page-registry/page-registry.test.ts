@@ -70,6 +70,9 @@ describe("registrul și snapshot-ul", () => {
     const reg = registry();
     const snap = reg.snapshot();
     expect(snap.regions.map((r) => r.id)).toEqual(["r.header", "r.nav", "r.main", "r.aside", "r.aside-2"]);
+    // fiecare zonă are un selector care o găsește exact
+    for (const region of snap.regions) expect(document.querySelectorAll(region.selector)).toHaveLength(1);
+    expect(snap.regions.find((r) => r.id === "r.nav")!.selector).toBe('[aria-label="Principal"]');
     const pay = snap.elements.find((e) => e.label === "Plătește")!;
     expect(pay).toMatchObject({ role: "button", regionId: "r.main", visible: true, interactive: true });
     expect(reg.snapshot().elements.find((e) => e.label === "Plătește")!.id).toBe(pay.id);
