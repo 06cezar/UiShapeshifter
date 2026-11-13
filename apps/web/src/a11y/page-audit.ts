@@ -47,6 +47,10 @@ const LABEL_MAX_CHARS = 80;
  * nu se vede, deci nu e nici „tăiat”, nici „mic”.
  */
 const SCREEN_READER_ONLY_MAX_PX = 1;
+/** Toleranța pentru marginile ecranului, ca la regula offscreen (rotunjiri de subpixel). */
+const OFFSCREEN_EPS_PX = 1;
+/** Valorile `overflow-x` cu care un container își taie sau își derulează conținutul. */
+const CLIPPING_OVERFLOW = new Set(["auto", "scroll", "hidden", "clip"]);
 
 /** Ce se poate apăsa: ținta de atingere și suprapunerile se judecă doar pe acestea. */
 export const INTERACTIVE_SELECTOR = [
@@ -143,7 +147,7 @@ function measurePage(
   for (const { element, rect, inViewport } of candidates.slice(0, MAX_AUDITED_ELEMENTS)) {
     const id = options.identity.idOf(element);
     result.elements[id] = describe(element, id, rect, inViewport);
-    result.facts[id] = pageFactsOf(element);
+    result.facts[id] = pageFactsOf(element, viewport.width);
     result.selectors[id] = options.identity.selectorOf(element);
   }
   return result;
@@ -174,12 +178,13 @@ function describe(element: HTMLElement, id: string, rect: DOMRect, inViewport: b
 }
 
 /** Faptele din dom.ts, plus ce îi trebuie reparației: un element inline nu ia `min-height`. */
-function pageFactsOf(element: HTMLElement): DomFacts {
+function pageFactsOf(element: HTMLElement, viewportWidth: number): DomFacts {
   const facts = factsOf(element);
   const style = getComputedStyle(element);
   if (style.display === "inline") facts.inline = true;
   if (isLinkInSentence(element, style)) facts.inSentence = true;
   if (isInOverlay(element)) facts.overlay = true;
+  if (isInHorizontalScroller(element, viewportWidth)) facts.inScroller = true;
   return facts;
 }
 
@@ -192,6 +197,21 @@ function isInOverlay(element: Element): boolean {
   for (let node: Element | null = element; node && node !== element.ownerDocument.body; node = node.parentElement) {
     const position = getComputedStyle(node).position;
     if (position === "fixed" || position === "sticky") return true;
+  }
+  return false;
+}
+
+/**
+ * Un strămoș (sub `<body>`) derulează sau taie (`overflow` altul decât `visible`) și încape în ecran pe orizontală:
+ * un carusel. Găsit de B pe rezultatele Bing: cardurile derulate în afara caruselului ieșeau „offscreen”, scorul
+ * cădea la 0 după o regulă `max-width` a agentului, iar agentul își scotea regula bună.
+ */
+function isInHorizontalScroller(element: Element, viewportWidth: number): boolean {
+  const body = element.ownerDocument.body;
+  for (let node = element.parentElement; node && node !== body; node = node.parentElement) {
+    if (!CLIPPING_OVERFLOW.has(getComputedStyle(node).overflowX)) continue;
+    const rect = node.getBoundingClientRect();
+    return rect.left >= -OFFSCREEN_EPS_PX && rect.right <= viewportWidth + OFFSCREEN_EPS_PX;
   }
   return false;
 }
