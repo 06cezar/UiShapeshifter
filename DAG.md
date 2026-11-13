@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 21/40 · **În lucru:** 7 · **Poate începe:** 0 · **Așteaptă:** 12 · **Blocat:** 0
+**Gata:** 22/40 · **În lucru:** 6 · **Poate începe:** 0 · **Așteaptă:** 12 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
   end
   subgraph t_owner_B["B"]
     t_B1["B1 · Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane<br/>✅ gata"]
-    t_B6["B6 · Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul<br/>🔨 în lucru"]
+    t_B6["B6 · Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul<br/>✅ gata"]
     t_B3["B3 · Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03)<br/>⏳ așteaptă"]
     t_B4["B4 · Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo<br/>⏳ așteaptă"]
   end
@@ -145,8 +145,8 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_A3,t_C2,t_E2,t_C4 done
-  class t_B6,t_D2,t_D9,t_C3,t_A6,t_A4,t_A5 progress
+  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_C2,t_E2,t_C4 done
+  class t_D2,t_D9,t_C3,t_A6,t_A4,t_A5 progress
   class t_M2,t_E8,t_B3,t_D10,t_M3,t_B4,t_E3,t_E6,t_M4,t_D5,t_E4,t_D6 wait
 ```
 
@@ -160,7 +160,6 @@ _nimic_
 
 ## În lucru
 
-- **B6** (B) Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul: PR #36 deschis _(Etapa 2 · sâm 00:00. Gata = „mută căutarea sus” rezistă la reîncărcare și la navigarea în interiorul site-ului; Anulez scoate doar ultima schimbare.)_
 - **D2** (D) Mascota - animal animat din asset-uri cu licență liberă, se plimbă prin pagină și arată elementul (specs/11): PR #44 deschis _(Etapa 2 · sâm 00:00. Gata = pe un site real, mascota merge până la elementul cerut de point\_at și rămâne pe el la scroll și resize; licența asset-urilor e notată în repo.)_
 - **D9** (D) Panoul de control în extensie - pași live, Oprește, previzualizare cu Păstrez/Anulez, „Revino la original” (refolosește D4): PR #45 deschis _(Etapa 2 · sâm 00:30. Gata = o rulare se vede pas cu pas peste site; Anulez readuce pagina cum era înainte de rulare.)_
 - **C3** (C) Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10): PR #9 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.)_
@@ -170,9 +169,9 @@ _nimic_
 
 ## Așteaptă
 
-- **M2** (D) PUNCT DE CONTROL 2 - „mută X sus” merge și rămâne, mascota merge la element, pașii se văd în panou, Anulez readuce pagina: așteaptă B6, D2, D9 _(sâm 01:00. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
+- **M2** (D) PUNCT DE CONTROL 2 - „mută X sus” merge și rămâne, mascota merge la element, pașii se văd în panou, Anulez readuce pagina: așteaptă D2, D9 _(sâm 01:00. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
 - **E8** (E) Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08): așteaptă M2 _(Etapa 3 · sâm 02:00. Gata = profilul rezistă la repornirea browserului fără cont; rezumatul pentru prompt include preferințele generale.)_
-- **B3** (B) Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03): așteaptă B6, M2 _(Etapa 3 · sâm 03:00. Gata = „vreau o scurtătură spre X” pune un element nou în pagină, apăsarea lui îl declanșează pe cel real, rămâne după reîncărcare; HTML cu script sau on\* e respins.)_
+- **B3** (B) Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03): așteaptă M2 _(Etapa 3 · sâm 03:00. Gata = „vreau o scurtătură spre X” pune un element nou în pagină, apăsarea lui îl declanșează pe cel real, rămâne după reîncărcare; HTML cu script sau on\* e respins.)_
 - **D10** (D) Vocea - cererea vorbită (Web Speech ro-RO) din bula mascotei: așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = o cerere vorbită ajunge la agent ca una scrisă; dacă browserul nu are recunoaștere vocală, butonul nu apare.)_
 - **M3** (D) PUNCT DE CONTROL 3 - instalare proaspătă → test → profil; un site nou are fontul minim fără AI; o scurtătură generată merge; cererea vorbită merge: așteaptă C3, E8, A6, B3, D10 _(sâm 03:30. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
 - **B4** (B) Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo: așteaptă B3, M3 _(Etapa 4 · sâm 06:00. Gata = pe perechea aleasă pentru demo, „fă-l să arate ca X” schimbă așezarea și stilul, pagina rămâne folosibilă și rețeta rezistă la reîncărcare; pe site-ul de test, „vreau doar să plătesc factura” lasă o pagină simplă.)_
@@ -185,7 +184,7 @@ _nimic_
 
 ## Cel mai lung lanț rămas
 
-B6 → M2 → E8 → A6 → M3 → A5 → E6 → M4 → D5 → E4 (10 taskuri)
+D2 → M2 → E8 → A6 → M3 → A5 → E6 → M4 → D5 → E4 (10 taskuri)
 
 ## Legendă
 
