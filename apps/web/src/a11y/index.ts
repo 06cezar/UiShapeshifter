@@ -1,0 +1,5 @@
+// Accesibilitatea (specs/07): funcțiile de contrast, pragurile și auditul.
+export * from "./contrast";
+export * from "./thresholds";
+export * from "./audit";
+export { auditDom, collectDomFacts, effectiveBackground, factsOf } from "./dom";
