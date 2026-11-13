@@ -1,7 +1,8 @@
 // Operațiile de structură ale rețetei (B6, specs/03): remove, move, wrap, setText, setAttr pe pagina unui site real.
 // Fiecare operație aplicată ține tot ce trebuie ca s-o anuleze exact; nu scoatem niciodată noduri ale site-ului din
 // DOM (site-urile cu React se strică la noduri detașate): `remove` doar ASCUNDE, iar `move`/`wrap` lasă un marcaj
-// (comentariu HTML) pe locul vechi. insertHtml, bind și inject vin în B3.
+// (comentariu HTML) pe locul vechi. Elementele adăugate (B3): insertHtml (HTML trecut prin validateHtml, C5), inject
+// (o componentă din catalog, generated/page-components.ts) și bind (apăsarea unui element adăugat apasă unul real).
 
 import {
   DOM_OP_LIMITS,
@@ -9,11 +10,19 @@ import {
   type DomOp,
   type DomPlace,
   type DomPosition,
+  type HtmlDropped,
   type OpSkipReason,
+  type PageComponentSpec,
   type SkippedOp,
   type WrapTag,
 } from "@uishapeshifter/contracts";
-import { OUR_INTERFACE_MARKERS } from "../../validation";
+import { OUR_INTERFACE_MARKERS, validateHtml } from "../../validation";
+import {
+  isSitePath,
+  pageComponentProblem,
+  renderPageComponent,
+  type ComponentActions,
+} from "../../generated/page-components";
 
 /** Atributul pus de `remove`; conține „uishapeshifter”, deci CSS-ul agentului nu-l poate anula (validateCss). */
 export const HIDDEN_ATTR = "data-uishapeshifter-hidden";
@@ -26,13 +35,14 @@ export const SHAPE_ATTR = "data-shape";
 const SHAPE_ID = /^[a-z0-9-]+$/;
 const POSITIONS: Record<DomPosition, true> = { before: true, after: true, prepend: true, append: true };
 const WRAP_TAGS: Record<WrapTag, true> = { div: true, section: true, nav: true, aside: true, header: true, ul: true };
-const B3_OPS: ReadonlySet<string> = new Set(["insertHtml", "bind", "inject"]);
 
 export type OpOutcome = { ok: true } | { ok: false; reason: OpSkipReason; message: string };
 
 // ---------- validarea (înainte de aplicare) ----------
 
-type Check = { ok: true; op: DomOp } | { ok: false; reason: OpSkipReason; message: string };
+type Check =
+  | { ok: true; op: DomOp; htmlDropped?: HtmlDropped[] }
+  | { ok: false; reason: OpSkipReason; message: string; htmlDropped?: HtmlDropped[] };
 
 /**
  * Forma unei operații venite de la model: câmpurile, limitele, `SETTABLE_ATTRS`, id-urile, selectorii (sintaxă și
@@ -40,9 +50,6 @@ type Check = { ok: true; op: DomOp } | { ok: false; reason: OpSkipReason; messag
  */
 export function checkOp(raw: unknown, doc: Document): Check {
   if (!isRecord(raw) || typeof raw.op !== "string") return invalid("Operația trebuie să fie un obiect cu câmpul op.");
-  if (B3_OPS.has(raw.op))
-    return invalid(`${raw.op} vine în B3; deocamdată folosește remove, move, wrap, setText, setAttr.`);
-
   switch (raw.op) {
     case "remove":
       return withSelectors(doc, [raw.selector], () => ({ op: "remove", selector: raw.selector as string }));
@@ -91,6 +98,40 @@ export function checkOp(raw: unknown, doc: Document): Check {
         name: raw.name as (typeof SETTABLE_ATTRS)[number],
         value: raw.value as string,
       }));
+    case "insertHtml": {
+      const idProblem = shapeIdProblem(raw.id);
+      if (idProblem) return invalid(idProblem);
+      const at = place(raw.at);
+      if (!at) return invalid("insertHtml cere at: { selector, position: before | after | prepend | append }.");
+      if (typeof raw.html !== "string") return invalid("insertHtml cere html (text).");
+      // Ce rămâne după validare intră în rețetă: forma verificată, nu textul primit (C5, specs/03).
+      const { html, dropped, rejected } = validateHtml(raw.html);
+      if (rejected) {
+        return { ok: false, reason: "INVALID", message: dropped[0]?.message ?? "HTML respins.", htmlDropped: dropped };
+      }
+      if (!html.trim()) return { ...invalid("Nu a rămas nimic din HTML după validare."), htmlDropped: dropped };
+      const check = withSelectors(doc, [at.selector], () => ({ op: "insertHtml", id: raw.id as string, html, at }));
+      return { ...check, htmlDropped: dropped };
+    }
+    case "inject": {
+      const idProblem = shapeIdProblem(raw.id);
+      if (idProblem) return invalid(idProblem);
+      const at = place(raw.at);
+      if (!at) return invalid("inject cere at: { selector, position: before | after | prepend | append }.");
+      const problem = pageComponentProblem(raw.component, doc);
+      if (problem) return invalid(problem);
+      return withSelectors(doc, [at.selector], () => ({
+        op: "inject",
+        id: raw.id as string,
+        component: raw.component as PageComponentSpec,
+        at,
+      }));
+    }
+    case "bind": {
+      const idProblem = shapeIdProblem(raw.from);
+      if (idProblem) return invalid(`from: ${idProblem}`);
+      return withSelectors(doc, [raw.to], () => ({ op: "bind", from: raw.from as string, to: raw.to as string }));
+    }
     default:
       return invalid(`Operația „${raw.op}” nu există.`);
   }
@@ -105,32 +146,40 @@ export function checkOps(
   ops: readonly unknown[],
   existing: readonly DomOp[],
   doc: Document,
-): { accepted: { index: number; op: DomOp }[]; skipped: SkippedOp[] } {
+): { accepted: { index: number; op: DomOp }[]; skipped: SkippedOp[]; htmlDropped: HtmlDropped[] } {
   const accepted: { index: number; op: DomOp }[] = [];
   const skipped: SkippedOp[] = [];
+  const htmlDropped: HtmlDropped[] = [];
   const seen = new Set(existing.map(key));
-  const shapeIds = new Set(existing.flatMap((op) => (op.op === "wrap" ? [op.id] : [])));
+  const shapeIds = new Set(existing.flatMap(shapeIdOf));
   ops.forEach((raw, index) => {
     const check = checkOp(raw, doc);
+    htmlDropped.push(...(check.htmlDropped ?? []));
     if (!check.ok) return void skipped.push({ index, reason: check.reason, message: check.message });
     if (seen.has(key(check.op))) {
       return void skipped.push({ index, reason: "ALREADY_APPLIED", message: "Operația e deja în rețetă." });
     }
-    if (
-      check.op.op === "wrap" &&
-      (shapeIds.has(check.op.id) || doc.querySelector(`[${SHAPE_ATTR}="${check.op.id}"]`))
-    ) {
+    const newId = shapeIdOf(check.op)[0];
+    if (newId !== undefined && (shapeIds.has(newId) || doc.querySelector(`[${SHAPE_ATTR}="${newId}"]`))) {
+      return void skipped.push({ index, reason: "INVALID", message: `Id-ul „${newId}” e deja folosit; alege altul.` });
+    }
+    if (check.op.op === "bind" && !shapeIds.has(check.op.from)) {
       return void skipped.push({
         index,
         reason: "INVALID",
-        message: `Id-ul „${check.op.id}” e deja folosit; alege altul.`,
+        message: `bind.from „${check.op.from}” trebuie să fie id-ul unui element adăugat (insertHtml, inject sau wrap).`,
       });
     }
     seen.add(key(check.op));
-    if (check.op.op === "wrap") shapeIds.add(check.op.id);
+    if (newId !== undefined) shapeIds.add(newId);
     accepted.push({ index, op: check.op });
   });
-  return { accepted, skipped };
+  return { accepted, skipped, htmlDropped };
+}
+
+/** Id-ul elementului pe care îl adaugă operația (wrap, insertHtml, inject), dacă adaugă unul. */
+function shapeIdOf(op: DomOp): string[] {
+  return op.op === "wrap" || op.op === "insertHtml" || op.op === "inject" ? [op.id] : [];
 }
 
 /** Cheia unei operații pentru „e deja în rețetă”: JSON cu cheile sortate, ca ordinea câmpurilor să nu conteze. */
@@ -201,6 +250,8 @@ export interface ReconcileResult {
 
 export interface DomOpsOptions {
   doc?: Document;
+  /** Ce pornește acțiunea `askAgent` a unei componente adăugate (content script-ul trimite scopul ca cerere). */
+  askAgent?: (goal: string) => void;
   /** Elementele interfeței noastre (gazda shadow etc.): nu le atingem. Implicit: id-ul conține „uishapeshifter”. */
   isOurElement?: (element: Element) => boolean;
 }
@@ -212,6 +263,15 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
   const doc = options.doc ?? document;
   const isOurs = options.isOurElement ?? ((el: Element) => el.closest("[id*='uishapeshifter']") !== null);
   const applied = new Map<number, AppliedOp>();
+
+  /** Acțiunile componentelor adăugate; elementul real se caută la apăsare, ca să meargă și după o randare nouă. */
+  const actions: ComponentActions = {
+    click: (selector) => clickReal(selector),
+    navigate: (path) => {
+      if (isSitePath(path)) doc.defaultView?.location.assign(path);
+    },
+    askAgent: (goal) => options.askAgent?.(goal),
+  };
 
   function undoAll() {
     for (const index of [...applied.keys()].sort((a, b) => b - a)) {
@@ -265,9 +325,60 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
         return setText(op.selector, op.text);
       case "setAttr":
         return setAttr(op.selector, op.name, op.value);
-      default:
-        return skip("INVALID", `${op.op} vine în B3.`);
+      case "insertHtml":
+        return insertHtml(op.id, op.html, op.at);
+      case "inject":
+        return inject(op.id, op.component, op.at);
+      case "bind":
+        return bind(op.from, op.to);
     }
+  }
+
+  function clickReal(selector: string) {
+    const real = matches(selector)[0];
+    if (real instanceof HTMLElement) real.click();
+  }
+
+  /** Pune elementul adăugat la locul cerut; „Anulez” îl scoate. */
+  function placeAdded(id: string, element: Element, at: DomPlace) {
+    const target = single(at.selector, "TARGET_NOT_FOUND");
+    if (!target.ok) return target;
+    element.setAttribute(SHAPE_ATTR, id);
+    put(element, target.element, at.position);
+    return done({ undo: () => element.remove(), intact: () => element.isConnected });
+  }
+
+  function insertHtml(id: string, html: string, at: DomPlace) {
+    // Și la reaplicare (rețeta din stocare): aceeași validare, ca ce intră în pagină să fie mereu verificat.
+    const result = validateHtml(html);
+    if (result.rejected || !result.html.trim()) return skip("INVALID", "HTML-ul salvat nu mai trece de validare.");
+    const container = doc.createElement("div");
+    const template = doc.createElement("template");
+    template.innerHTML = result.html;
+    container.append(template.content);
+    return placeAdded(id, container, at);
+  }
+
+  function inject(id: string, component: PageComponentSpec, at: DomPlace) {
+    if (pageComponentProblem(component, doc)) return skip("INVALID", "Componenta salvată nu mai trece de verificare.");
+    return placeAdded(id, renderPageComponent(component, actions, doc), at);
+  }
+
+  function bind(from: string, to: string) {
+    const added = doc.querySelector(`[${SHAPE_ATTR}="${CSS.escape(from)}"]`);
+    if (!added) return skip("TARGET_NOT_FOUND", `Nu găsesc elementul adăugat „${from}”; adaugă-l întâi.`);
+    const real = single(to);
+    if (!real.ok) return real;
+    // Un <a> adăugat nu mai navighează: apăsarea lui apasă elementul real, care face ce face pe site.
+    const onClick = (event: Event) => {
+      event.preventDefault();
+      clickReal(to);
+    };
+    added.addEventListener("click", onClick);
+    return done({
+      undo: () => added.removeEventListener("click", onClick),
+      intact: () => added.isConnected && doc.querySelector(`[${SHAPE_ATTR}="${CSS.escape(from)}"]`) === added,
+    });
   }
 
   /** Toate elementele site-ului care se potrivesc (fără ale noastre). */
