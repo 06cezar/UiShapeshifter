@@ -1,3 +1,3 @@
 2026-11-14 00:26
 
-gata: review D2, blocările point_at (pe main, cu #44); în lucru: bula mascotei ținută în ecran, pe d2-bula, necomisă, check și teste verzi; urmează: commit + PR pentru d2-bula; blocat: nimic
+gata: M1, D2 (#44); predat lui C (decizia lui Cezar): #50/D9, proba M2, D10 #48, D5, handlerele ask_user/wait_for_user_click; urmează: review la cerere; blocat: nimic
