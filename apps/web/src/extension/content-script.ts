@@ -1,10 +1,12 @@
 // Content script-ul: rulează în fiecare pagină, de la document_start.
 // 1. Rețeta site-ului (B5): citită din stocare și pusă în pagină înainte să se vadă, fără server și fără model.
-// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), chatul (D3), mascota (D2), registrul paginii (B2) și
-//    executorul uneltelor. Panoul (D9) și semnalele (E2) vin tot în etapa 2.
+// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), chatul (D3), mascota (D2), panoul de control (D9),
+//    registrul paginii (B2) și executorul uneltelor. Semnalele (E2) vin tot în etapa 2.
 
 import { mountChat } from "../chat";
 import { mountMascot, type MascotController } from "../mascot";
+import { mountJournal } from "../journal/mount-journal";
+import { proposeChanges } from "../journal/proposal";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
 import type { ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
 import { runAuditUi } from "../a11y";
@@ -110,6 +112,28 @@ function start() {
     page: () => pageInfo(location, document.title),
   });
   const mascot = mountMascot(ourRoot);
+  const panel = mountJournal(ourRoot, {
+    send: (message) => {
+      if (message.type !== "hello") send({ type: "to_server", message });
+    },
+    revertToOriginal: async () => {
+      await recipes.reset();
+      base?.refresh();
+    },
+  });
+  /** Revizia rețetei de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
+  const runStart = new Map<string, number>();
+
+  /**
+   * Readuce rețeta exact la revizia de la începutul rulării (B6: CSS și operațiile de structură, reviziile de după se
+   * șterg). O rulare pornită înainte de reîncărcare n-are revizie de start: atunci nu ghicim și nu ștergem nimic.
+   */
+  async function undoRun(runId: string | undefined): Promise<number> {
+    const start = runId ? runStart.get(runId) : undefined;
+    if (start !== undefined) await recipes.revertTo(start);
+    base?.refresh();
+    return recipes.view().revision;
+  }
 
   // Preferințele de bază pornesc cu nevoile salvate de testul inițial (sau implicite) și se reaplică peste rețetă.
   void chrome.storage.local.get(ONBOARDING_KEY).then((saved) => {
@@ -163,6 +187,13 @@ function start() {
       mascot.setState("speaking");
     },
     pointAt: (element, message) => mascot.pointAt(element, message),
+    proposeChanges: (args, runId) =>
+      proposeChanges(args, runId, {
+        ask: panel.askProposal,
+        revisionBefore: (id) => (id ? runStart.get(id) : undefined) ?? recipes.view().revision,
+        currentRevision: () => recipes.view().revision,
+        undoRun,
+      }),
   };
 
   function connect() {
@@ -186,8 +217,10 @@ function start() {
         );
         return;
       }
+      if (server.type === "run_started") runStart.set(server.runId, recipes.view().revision);
       chat.handleServerMessage(server);
       moveMascot(mascot, server);
+      panel.journal.getState().handleServerMessage(server);
     });
     port.onDisconnect.addListener(() => {
       port = null;
