@@ -2,7 +2,7 @@
 // adaptare (E3) nu întrerupe omul: așteaptă la coadă până se termină rularea curentă (specs/05).
 
 import { randomUUID } from "node:crypto";
-import type { AgentRun, PageInfo, RunOrigin } from "@uishapeshifter/contracts";
+import type { AgentRun, PageInfo, RunOrigin, SiteToolStage } from "@uishapeshifter/contracts";
 import { saveRun } from "../runs/run-store";
 import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Session } from "../ws/sessions";
 import { createFakeDecider } from "./fake-decider";
@@ -23,10 +23,19 @@ interface ActiveRun {
 const activeByUser = new Map<string, ActiveRun>();
 const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 
+// etapa la care e extensia (specs/00); se mărește la fiecare punct de control. Citită la fiecare rulare.
+const DEFAULT_STAGE: SiteToolStage = 2;
+
+export function agentStage(): SiteToolStage {
+  const stage = Number(process.env.AGENT_STAGE);
+  return stage === 1 || stage === 2 || stage === 3 ? stage : DEFAULT_STAGE;
+}
+
 function createDecider(goal: string, page: PageInfo | undefined): Decider {
+  const stage = agentStage();
   return process.env.AGENT_FAKE === "1"
-    ? createFakeDecider(goal, FAKE_STEP_DELAY_MS)
-    : createOpenRouterDecider(goal, { page });
+    ? createFakeDecider(goal, FAKE_STEP_DELAY_MS, stage)
+    : createOpenRouterDecider(goal, { page, stage });
 }
 
 function newRunId(): string {
