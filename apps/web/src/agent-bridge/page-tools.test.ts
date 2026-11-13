@@ -1,11 +1,60 @@
-// Cazul apply_ops din executorul uneltelor în pagină (B6): argumentele verificate, motorul real chemat cu runId.
+// Executorul uneltelor în pagină: point_at cu mascota (D2) și apply_ops cu motorul de rețete (B6).
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import type { ApplyOpsData } from "@uishapeshifter/contracts";
 import type { PageRegistry } from "../ui/page-registry/registry";
 import { createRecipeEngine, type RecipeEngine } from "../ui/recipes/recipe-engine";
 import type { RecipeStorage } from "../ui/recipes/recipe-store";
 import { runPageTool, type PageToolDeps } from "./page-tools";
+
+function pointDeps(elements: Record<string, Element>, pointAt?: PageToolDeps["pointAt"]): PageToolDeps {
+  const registry = {
+    idOf: () => "e.0",
+    elementOf: (id: string) => elements[id],
+    snapshot: () => {
+      throw new Error("nefolosit aici");
+    },
+  } as unknown as PageRegistry;
+  return { registry, pointAt };
+}
+
+describe("point_at", () => {
+  test("fără elementId sau message: INVALID_ARGS", async () => {
+    const result = await runPageTool("point_at", { elementId: "e.1" }, pointDeps({}));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("INVALID_ARGS");
+  });
+
+  test("un id care nu mai e în pagină: ELEMENT_NOT_FOUND, mascota nu pleacă", async () => {
+    const pointAt = vi.fn();
+    const result = await runPageTool("point_at", { elementId: "e.9", message: "Aici." }, pointDeps({}, pointAt));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("ELEMENT_NOT_FOUND");
+    expect(pointAt).not.toHaveBeenCalled();
+  });
+
+  test("fără mascotă montată: INTERNAL", async () => {
+    const button = document.createElement("button");
+    const result = await runPageTool("point_at", { elementId: "e.1", message: "Aici." }, pointDeps({ "e.1": button }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("INTERNAL");
+  });
+
+  test("elementul găsit ajunge la mascotă, iar rezultatul ei se întoarce agentului", async () => {
+    const button = document.createElement("button");
+    const rect = { x: 1, y: 2, width: 3, height: 4 };
+    const pointAt = vi.fn(async () => ({ ok: true as const, data: { scrolledIntoView: false, rect } }));
+
+    const result = await runPageTool(
+      "point_at",
+      { elementId: "e.1", message: "Apasă aici." },
+      pointDeps({ "e.1": button }, pointAt),
+    );
+
+    expect(pointAt).toHaveBeenCalledWith(button, "Apasă aici.");
+    expect(result).toEqual({ ok: true, data: { scrolledIntoView: false, rect } });
+  });
+});
 
 function memoryStorage(): RecipeStorage {
   const data: Record<string, unknown> = {};
@@ -23,7 +72,7 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function deps(): Promise<PageToolDeps> {
+async function opsDeps(): Promise<PageToolDeps> {
   document.body.innerHTML = `<main><form role="search">căutare</form><p>text</p></main>`;
   engine = createRecipeEngine({ host: "test.ro", storage: memoryStorage() });
   await engine.load();
@@ -32,7 +81,7 @@ async function deps(): Promise<PageToolDeps> {
 
 describe("apply_ops în pagină", () => {
   test("aplică prin motorul de rețete și întoarce ApplyOpsData; runId ajunge în istoric", async () => {
-    const d = await deps();
+    const d = await opsDeps();
     const result = await runPageTool(
       "apply_ops",
       {
@@ -56,7 +105,7 @@ describe("apply_ops în pagină", () => {
         ],
         reason: "x",
       },
-      await deps(),
+      await opsDeps(),
     );
     const data = result.ok ? (result.data as ApplyOpsData) : null;
     expect(data?.skipped.map((s) => s.reason)).toEqual(["INVALID", "SELECTOR_NOT_FOUND"]);
@@ -69,7 +118,7 @@ describe("apply_ops în pagină", () => {
     [{ ops: [{ op: "remove", selector: ".ad" }], reason: "   " }],
     [null],
   ])("argumente greșite → INVALID_ARGS: %j", async (args) => {
-    const result = await runPageTool("apply_ops", args, await deps());
+    const result = await runPageTool("apply_ops", args, await opsDeps());
     expect(result.ok ? null : result.error.code).toBe("INVALID_ARGS");
   });
 

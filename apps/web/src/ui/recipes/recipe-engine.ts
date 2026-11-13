@@ -41,6 +41,8 @@ export interface RecipeEngineOptions {
    * revizia se anulează și agentul primește `targets-our-ui`.
    */
   isOurUiVisible?: () => boolean;
+  /** Acțiunea `askAgent` a unei componente adăugate (B3): content script-ul trimite scopul ca o cerere nouă. */
+  askAgent?: (goal: string) => void;
 }
 
 export interface RecipeEngine {
@@ -161,7 +163,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     if (style.textContent !== stored.recipe.css) style.textContent = stored.recipe.css;
   }
 
-  const domOps = createDomOpsApplier({ doc });
+  const domOps = createDomOpsApplier({ doc, askAgent: (goal) => options.askAgent?.(goal) });
   let reapplyTimer: ReturnType<typeof setTimeout> | undefined;
   let repairTimes: number[] = [];
   let warnedLoop = false;
@@ -289,7 +291,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
         return opsInvalid(`apply_ops primește între 1 și ${DOM_OP_LIMITS.maxOpsPerCall} operații pe apel.`, []);
       }
       const current = stored.recipe.ops ?? [];
-      const { accepted, skipped } = checkOps(ops, current, doc);
+      const { accepted, skipped, htmlDropped } = checkOps(ops, current, doc);
       if (current.length + accepted.length > DOM_OP_LIMITS.maxOpsPerRecipe) {
         return opsInvalid(
           `Rețeta ar avea ${current.length + accepted.length} operații, peste limita de ${DOM_OP_LIMITS.maxOpsPerRecipe}. ` +
@@ -312,7 +314,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
       if (added.length !== accepted.length) mutate(() => domOps.sync(nextOps)); // fără cele sărite, ca pozițiile să corespundă
 
       if (added.length === 0) {
-        return { ok: true, data: { revision: stored.recipe.revision, applied: 0, skipped, htmlDropped: [] } };
+        return { ok: true, data: { revision: stored.recipe.revision, applied: 0, skipped, htmlDropped } };
       }
       if (options.isOurUiVisible && !options.isOurUiVisible()) {
         mutate(() => domOps.sync(current));
@@ -332,7 +334,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
         ].slice(-RECIPE_LIMITS.maxRevisions),
       };
       await saveRecipe(options.storage, stored);
-      return { ok: true, data: { revision, applied: added.length, skipped, htmlDropped: [] } };
+      return { ok: true, data: { revision, applied: added.length, skipped, htmlDropped } };
     },
 
     async revertTo(revision) {
