@@ -5,7 +5,10 @@
 
 import { mountChat } from "../chat";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
+import { runAuditUi } from "../a11y";
+import { thresholdsFor } from "../a11y/thresholds";
 import { createPageRegistry } from "../ui/page-registry/registry";
+import { buildSelector } from "../ui/page-registry/selector";
 import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
@@ -51,9 +54,20 @@ function start() {
   });
 
   // Registrul paginii (B2), motorul de rețete (B5) și bula chatului pentru `say`.
+  const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
   const tools: PageToolDeps = {
-    registry: createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() }),
+    registry,
     recipes,
+    // Auditul (C2): aceleași id-uri și selectori ca snapshot-ul; pragurile implicite până vine profilul în extensie (E8).
+    audit: (args) =>
+      runAuditUi(args, {
+        thresholds: () => thresholdsFor(),
+        identity: { idOf: registry.idOf, selectorOf: (element) => buildSelector(element) },
+        ourHostId: HOST_ID,
+        revision: () => recipes.view().revision,
+        regionElement: (regionId) => registry.elementOf(regionId),
+        pauseRecipe: recipes.pause,
+      }),
     say: (text) => chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" }),
   };
 
