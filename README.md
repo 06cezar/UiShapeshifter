@@ -48,8 +48,21 @@ npm run dev
 Serverul agentului pornește pe http://localhost:8787 (`/api/health`), iar pagina de probă pe http://localhost:5173.
 Cheia OpenRouter stă în `apps/server/.env` (`OPENROUTER_API_KEY`, `OPENROUTER_MODEL`), niciodată în git.
 
-Extensia se va încărca în Chrome din `chrome://extensions` → „Load unpacked”, după taskul E5 (scheletul extensiei);
-pașii exacți apar aici când e gata.
+### Extensia în Chrome
+
+1. Construiește extensia (din rădăcina repo-ului):
+   ```bash
+   node apps/web/src/extension/build.mjs
+   ```
+   Iese în `apps/web/dist/extension`. Cât lucrezi, `node apps/web/src/extension/build.mjs --watch` o reface la fiecare salvare.
+2. Pornește serverul: `npm run dev` (sau doar serverul, cu agentul fals: `AGENT_FAKE=1 npm run dev -w @uishapeshifter/server`).
+3. În Chrome deschide `chrome://extensions`, pornește **Developer mode** (dreapta sus), apasă **Load unpacked** și alege
+   folderul `apps/web/dist/extension`.
+4. Deschide orice site. Jos, în dreapta, apare semnul extensiei; punctul verde înseamnă „conectat la server”.
+   Apasă **Trimite proba**: mesajul face drumul pagină → service worker → server și înapoi („Serverul a primit proba ✓”).
+5. După o reconstruire, apasă ↻ pe cardul extensiei din `chrome://extensions` și reîncarcă pagina.
+
+Butonul extensiei din bara Chrome (popup-ul) arată starea legăturii și utilizatorul anonim.
 
 ## Echipa
 
