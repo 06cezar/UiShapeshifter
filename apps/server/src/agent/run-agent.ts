@@ -11,7 +11,8 @@ import {
   type ToolName,
   type ToolResult,
 } from "@uishapeshifter/contracts";
-import { parseReasoning } from "./reasoning";
+import { OpenRouterError } from "./openrouter";
+import { parseReasoning, withToolFallback } from "./reasoning";
 
 /** Ce vrea agentul să facă la pasul curent. */
 export type Decision =
@@ -36,16 +37,21 @@ export interface RunIO {
   send(message: ServerMessage): void;
   saveRun(run: AgentRun): Promise<void>;
   isCancelled(): boolean;
+  /** Oprită pentru că omul a pornit altă rulare: fără agent_message, ca bula să arate doar rularea nouă. */
+  isReplaced(): boolean;
 }
 
 const MAX_STEPS_SUMMARY = "M-am oprit după prea mulți pași. Am păstrat ce am reușit până acum.";
 const CANCELLED_SUMMARY = "Am oprit, cum ai cerut.";
 const CRASH_SUMMARY = "Am o problemă și m-am oprit. Încearcă din nou, te rog.";
+// după reîncercările din openrouter.ts (specs/05, „Eșecuri”)
+const CONNECTION_SUMMARY = "Am o problemă de conexiune, încerc din nou imediat.";
 
-function revisionOf(result: ToolResult): number | undefined {
+/** Revizia rețetei site-ului după pas: din apply_css / apply_ops (`revision`) sau din snapshot (`recipe.revision`). */
+function recipeRevisionOf(result: ToolResult): number | undefined {
   if (!result.ok) return undefined;
-  const data = result.data as { revision?: unknown; configRevision?: unknown } | null;
-  const revision = data?.revision ?? data?.configRevision;
+  const data = result.data as { revision?: unknown; recipe?: { revision?: unknown } } | null;
+  const revision = data?.revision ?? data?.recipe?.revision;
   return typeof revision === "number" ? revision : undefined;
 }
 
@@ -65,8 +71,11 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
     run.status = status;
     run.summary = summary;
     run.finishedAt = new Date().toISOString();
-    await io.saveRun(run);
-    io.send({ type: "agent_message", runId: run.runId, text: summary, mascot });
+    // jurnalul nesalvat nu trebuie să lase interfața fără run_finished
+    await io.saveRun(run).catch((error: unknown) => console.error(`agent: n-am salvat ${run.runId}:`, error));
+    if (!(status === "cancelled" && io.isReplaced())) {
+      io.send({ type: "agent_message", runId: run.runId, text: summary, mascot });
+    }
     io.send({ type: "run_finished", runId: run.runId, success: status === "succeeded", summary });
     return run;
   };
@@ -76,6 +85,8 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
       if (io.isCancelled()) return await end("cancelled", CANCELLED_SUMMARY, "idle");
 
       const decision = await decider.decide(previous);
+      // „Oprește” apăsat cât gândea modelul: unealta decisă nu mai pleacă spre interfață
+      if (io.isCancelled()) return await end("cancelled", CANCELLED_SUMMARY, "idle");
       if (decision.kind === "text") return await end("succeeded", decision.content.trim() || "Am terminat.", "happy");
 
       const startedAt = Date.now();
@@ -84,18 +95,18 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
           ? await io.callWebTool(decision.name, decision.args)
           : await io.callServerTool(decision.name, decision.args);
 
-      const revisionAfter = revisionOf(result) ?? lastRevision;
+      const revisionAfter = recipeRevisionOf(result) ?? lastRevision;
       const step: AgentStep = {
         runId: run.runId,
         index,
         ts: new Date(startedAt).toISOString(),
-        ...parseReasoning(decision.content),
+        ...withToolFallback(parseReasoning(decision.content), decision.name, decision.args),
         tool: decision.name,
         args: decision.args,
         result,
         durationMs: Date.now() - startedAt,
-        configRevisionBefore: lastRevision,
-        configRevisionAfter: revisionAfter,
+        recipeRevisionBefore: lastRevision,
+        recipeRevisionAfter: revisionAfter,
       };
       lastRevision = revisionAfter;
       run.steps.push(step);
@@ -110,6 +121,10 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
     }
     return await end("failed", MAX_STEPS_SUMMARY, "confused");
   } catch (error) {
+    if (error instanceof OpenRouterError) {
+      console.error(`agent: rularea ${run.runId} oprită, OpenRouter nu răspunde: ${error.message}`);
+      return await end("failed", CONNECTION_SUMMARY, "confused");
+    }
     console.error(`agent: rularea ${run.runId} a căzut:`, error);
     return await end("failed", CRASH_SUMMARY, "confused");
   }
