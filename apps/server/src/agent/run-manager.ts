@@ -6,6 +6,7 @@ import type { AgentRun, RunOrigin } from "@uishapeshifter/contracts";
 import { saveRun } from "../runs/run-store";
 import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Session } from "../ws/sessions";
 import { createFakeDecider } from "./fake-decider";
+import { createOpenRouterDecider } from "./openrouter-decider";
 import { runAgent, type Decider } from "./run-agent";
 import { callServerTool } from "./server-tools";
 
@@ -22,11 +23,7 @@ const activeByUser = new Map<string, ActiveRun>();
 const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 
 function createDecider(goal: string): Decider {
-  if (process.env.AGENT_FAKE !== "1") {
-    // bucla cu OpenRouter vine în A2; până atunci, fără AGENT_FAKE=1 folosim tot agentul fals
-    console.warn("agent: AGENT_FAKE nu e 1, dar agentul real nu e încă legat; folosesc agentul fals");
-  }
-  return createFakeDecider(goal, FAKE_STEP_DELAY_MS);
+  return process.env.AGENT_FAKE === "1" ? createFakeDecider(goal, FAKE_STEP_DELAY_MS) : createOpenRouterDecider(goal);
 }
 
 function newRunId(): string {
