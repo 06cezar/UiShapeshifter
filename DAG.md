@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 24/40 · **În lucru:** 7 · **Poate începe:** 1 · **Așteaptă:** 8 · **Blocat:** 0
+**Gata:** 25/40 · **În lucru:** 7 · **Poate începe:** 0 · **Așteaptă:** 8 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -18,14 +18,14 @@ flowchart LR
   subgraph t_owner_B["B"]
     t_B1["B1 · Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane<br/>✅ gata"]
     t_B6["B6 · Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul<br/>✅ gata"]
-    t_B3["B3 · Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03)<br/>🔨 în lucru · încă așteaptă M2"]
+    t_B3["B3 · Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03)<br/>🔨 în lucru"]
     t_B4["B4 · Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo<br/>⏳ așteaptă"]
   end
   subgraph t_owner_C["C"]
     t_C1["C1 · Motorul de audit - min-font, contrast, target-size, overlap, clipped, offscreen, line-height + scor (specs/07)<br/>✅ gata"]
     t_C5["C5 · Validarea a ce scrie agentul - CSS (fără url, @import, selectori spre interfața noastră) și HTML (fără script, iframe, atribute on*), funcții pure cu teste<br/>✅ gata"]
     t_C2["C2 · Auditul pe pagina unui site, rulat după fiecare schimbare a agentului + reparațiile ca CSS; unealta audit_ui<br/>✅ gata"]
-    t_C3["C3 · Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10)<br/>🔨 în lucru · încă așteaptă M2"]
+    t_C3["C3 · Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10)<br/>🔨 în lucru"]
     t_C4["C4 · Preferințele de bază fără AI - din profil, pe orice site - font minim, contrast, ținte mari, aplicate peste CSS-ul agentului<br/>✅ gata"]
   end
   subgraph t_owner_D["D"]
@@ -38,8 +38,8 @@ flowchart LR
     t_M1["M1 · PUNCT DE CONTROL 1 - „ascunde X” pe site-ul de test și pe un site real, dispare și rămâne dispărut după reîncărcare, „Revino la original” îl aduce înapoi<br/>✅ gata"]
     t_D2["D2 · Mascota - animal animat din asset-uri cu licență liberă, se plimbă prin pagină și arată elementul (specs/11)<br/>✅ gata"]
     t_D9["D9 · Panoul de control în extensie - pași live, Oprește, previzualizare cu Păstrez/Anulez, „Revino la original” (refolosește D4)<br/>✅ gata"]
-    t_M2["M2 · PUNCT DE CONTROL 2 - „mută X sus” merge și rămâne, mascota merge la element, pașii se văd în panou, Anulez readuce pagina<br/>🟢 poate începe"]
-    t_D10["D10 · Vocea - cererea vorbită (Web Speech ro-RO) din bula mascotei<br/>🔨 în lucru · încă așteaptă M2"]
+    t_M2["M2 · PUNCT DE CONTROL 2 - „mută X sus” merge și rămâne, mascota merge la element, pașii se văd în panou, Anulez readuce pagina<br/>✅ gata"]
+    t_D10["D10 · Vocea - cererea vorbită (Web Speech ro-RO) din bula mascotei<br/>🔨 în lucru"]
     t_M3["M3 · PUNCT DE CONTROL 3 - instalare proaspătă → test → profil; un site nou are fontul minim fără AI; o scurtătură generată merge; cererea vorbită merge<br/>⏳ așteaptă"]
     t_M4["M4 · PUNCT DE CONTROL 4 - „fă-l să arate ca X” pe perechea din demo, propunerea automată după ratări, preferințele pe alt profil de browser după login<br/>⏳ așteaptă"]
     t_D5["D5 · Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție<br/>⏳ așteaptă"]
@@ -52,7 +52,7 @@ flowchart LR
     t_B5["B5 · Motorul de rețete v1 - aplică CSS-ul validat, îl salvează pe site în stocarea locală, îl reaplică fără AI la încărcare, „Revino la original”<br/>✅ gata"]
     t_E7["E7 · Site-ul de test - o pagină aglomerată intenționat (meniuri, bannere, un „plătește factura” greu de găsit), servită local, cu date de test<br/>✅ gata"]
     t_E2["E2 · Colectarea semnalelor în content script - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)<br/>✅ gata"]
-    t_E8["E8 · Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08)<br/>🔨 în lucru · încă așteaptă M2"]
+    t_E8["E8 · Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08)<br/>🔨 în lucru"]
     t_E3["E3 · Adaptarea automată - reguli pe semnale, încrederea (autoApplyLowRisk) și preferințele generale propuse singure pe site-uri noi<br/>⏳ așteaptă"]
     t_E6["E6 · Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv<br/>⏳ așteaptă"]
     t_E4["E4 · Butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă<br/>⏳ așteaptă"]
@@ -145,15 +145,14 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_C4 done
+  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_M2,t_C4 done
   class t_C3,t_E8,t_A6,t_B3,t_D10,t_A4,t_A5 progress
-  class t_M2 ready
   class t_M3,t_B4,t_E3,t_E6,t_M4,t_D5,t_E4,t_D6 wait
 ```
 
 ## Poate începe acum
 
-- **M2** (D) PUNCT DE CONTROL 2 - „mută X sus” merge și rămâne, mascota merge la element, pașii se văd în panou, Anulez readuce pagina _(sâm 01:00. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
+_nimic_
 
 ## Blocat
 
@@ -161,11 +160,11 @@ _nimic_
 
 ## În lucru
 
-- **C3** (C) Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10): PR #9 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.)_
-- **E8** (E) Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08): PR #49 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:00. Gata = profilul rezistă la repornirea browserului fără cont; rezumatul pentru prompt include preferințele generale.)_
+- **C3** (C) Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10): PR #9 deschis _(Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.)_
+- **E8** (E) Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08): PR #49 deschis _(Etapa 3 · sâm 02:00. Gata = profilul rezistă la repornirea browserului fără cont; rezumatul pentru prompt include preferințele generale.)_
 - **A6** (A) Profilul și rețeta site-ului în contextul agentului + update\_profile; o cerere repetată devine preferință generală: branch `a6-context-profil` are commit-uri; încă așteaptă E8 _(Etapa 3 · sâm 03:00. Gata = cine a spus „nu vreau AI” pe un site nu mai trebuie să explice pe următorul; agentul nu reface ce e deja în rețetă.)_
-- **B3** (B) Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03): PR #47 deschis; încă așteaptă M2 _(Etapa 3 · sâm 03:00. Gata = „vreau o scurtătură spre X” pune un element nou în pagină, apăsarea lui îl declanșează pe cel real, rămâne după reîncărcare; HTML cu script sau on\* e respins.)_
-- **D10** (D) Vocea - cererea vorbită (Web Speech ro-RO) din bula mascotei: PR #48 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = o cerere vorbită ajunge la agent ca una scrisă; dacă browserul nu are recunoaștere vocală, butonul nu apare.)_
+- **B3** (B) Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03): PR #47 deschis _(Etapa 3 · sâm 03:00. Gata = „vreau o scurtătură spre X” pune un element nou în pagină, apăsarea lui îl declanșează pe cel real, rămâne după reîncărcare; HTML cu script sau on\* e respins.)_
+- **D10** (D) Vocea - cererea vorbită (Web Speech ro-RO) din bula mascotei: PR #48 deschis _(Etapa 3 · sâm 02:30. Gata = o cerere vorbită ajunge la agent ca una scrisă; dacă browserul nu are recunoaștere vocală, butonul nu apare.)_
 - **A4** (A) Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter: branch `a4-esecuri` are commit-uri; încă așteaptă A6, M3 _(Etapa 4 · sâm 05:30. Gata = fiecare eroare din specs/05 are un test sau un scenariu manual care arată reacția agentului.)_
 - **A5** (A) Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes): branch `a5-retete` are commit-uri; încă așteaptă M3 _(Etapa 4 · sâm 04:30. Gata = o rețetă salvată pentru un site se citește înapoi; lista site-urilor unui utilizator. O folosește E6.)_
 
@@ -182,7 +181,7 @@ _nimic_
 
 ## Cel mai lung lanț rămas
 
-M2 → E8 → A6 → M3 → A5 → E6 → M4 → D5 → E4 (9 taskuri)
+E8 → A6 → M3 → A5 → E6 → M4 → D5 → E4 (8 taskuri)
 
 ## Legendă
 

@@ -11,10 +11,16 @@
         "since": "2026-11-13T21:38:53+02:00",
         "source": "comms:2138-D-dvh@0d91278"
       }
+    },
+    "M2": {
+      "done": {
+        "since": "2026-11-14T00:39:52+02:00",
+        "source": "comms:0039-D-x9a@eda3b14"
+      }
     }
   },
-  "last_comms_sha": "21fe15b668d1fc1f7a7958f572f0f7f373e0a9e9",
-  "last_run": "2026-11-13T22:35:04Z",
+  "last_comms_sha": "6e441c8dc7b60fe9c09d3d57471cc5933dc79e1d",
+  "last_run": "2026-11-13T22:40:18Z",
   "last_sha": "7857a2b4c1c51238241215fea336ae18dcea7193",
   "prs": {
     "1": {
@@ -311,7 +317,7 @@
     "E8": "progress",
     "M0": "done",
     "M1": "done",
-    "M2": "ready",
+    "M2": "done",
     "M3": "wait",
     "M4": "wait"
   }
