@@ -340,6 +340,9 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
   const ids = new WeakMap<Element, string>();
   const byId = new Map<string, WeakRef<Element>>();
   let nextElement = 1;
+  // Coloanele găsite o dată rămân zone cât timp sunt în pagină: după ce rețeta ascunde coloana din dreapta, #b_results
+  // nu mai are vecină și n-ar mai fi găsită, deși agentul tocmai lucrează pe ea.
+  const columnsSeen = new Set<Element>();
 
   function remember(element: Element, id: string): string {
     ids.set(element, id);
@@ -363,13 +366,18 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       }
       found.push({ element, role: element.getAttribute("role") ?? TAG_REGION_ROLE[tag] ?? "region" });
     }
-    const known = new Set(found.map(({ element }) => element));
     for (const { element } of found.filter(({ role }) => role === "main")) {
-      for (const column of columnsOf(element)) {
-        if (known.has(column) || isOurs(column, options.ourHostId)) continue;
-        known.add(column);
-        found.push({ element: column, role: "region" });
+      for (const column of columnsOf(element)) columnsSeen.add(column);
+    }
+    const known = new Set(found.map(({ element }) => element));
+    for (const column of columnsSeen) {
+      if (!doc.contains(column)) {
+        columnsSeen.delete(column);
+        continue;
       }
+      if (known.has(column) || isOurs(column, options.ourHostId)) continue;
+      known.add(column);
+      found.push({ element: column, role: "region" });
     }
     // În ordinea DOM: regionOf ia ultima zonă care conține elementul, adică pe cea mai adâncă.
     found.sort((a, b) => byDocumentOrder(a.element, b.element));

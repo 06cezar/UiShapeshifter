@@ -284,3 +284,20 @@ describe("listele care se repetă nu umplu singure rezumatul", () => {
     expect(snap.elements.slice(0, 3).map((e) => e.label)).toEqual(["Rețeta 0", "Rețeta 1", "Rețeta 2"]);
   });
 });
+
+describe("coloanele rămân zone după ce rețeta ascunde vecina", () => {
+  test("#b_results rămâne zonă după ce coloana din dreapta dispare", () => {
+    layoutFromData();
+    document.body.innerHTML = `
+      <main aria-label="Rezultate" data-x="0" data-y="100" data-w="1000" data-h="2000">
+        <div id="mcw" data-x="0" data-y="100" data-w="1000" data-h="2000">
+          <ol id="b_results" data-x="0" data-y="100" data-w="600" data-h="2000"><li><a href="/a">A</a></li></ol>
+          <aside aria-label="Mai multe" data-x="650" data-y="100" data-w="300" data-h="400"><a href="/b">B</a></aside>
+        </div>
+      </main>`;
+    const reg = registry();
+    expect(reg.snapshot().regions.some((r) => r.selector === "#b_results")).toBe(true);
+    document.querySelector("aside")!.setAttribute("style", "display:none");
+    expect(reg.snapshot().regions.some((r) => r.selector === "#b_results")).toBe(true);
+  });
+});
