@@ -60,12 +60,28 @@ describe("selectorul", () => {
       "headlessui-menu-button-1",
       "__next",
       "__nuxt",
+      "C_1AACF49",
+      "slideexp0_AAAE3E",
+      "slideexp0_AAAE3Echevrons_nextbtn",
     ];
     for (const id of generated) expect(looksHumanId(id), id).toBe(false);
   });
 
   test("păstrează id-urile obișnuite", () => {
-    const human = ["search", "main-content", "p-lang-btn", "searchform", "b_header", "rhs", "nav_Right", "member"];
+    const human = [
+      "search",
+      "main-content",
+      "p-lang-btn",
+      "searchform",
+      "b_header",
+      "rhs",
+      "nav_Right",
+      "member",
+      "b_context",
+      "sb_form_q",
+      "ACCEPT",
+      "BADGE",
+    ];
     for (const id of human) expect(looksHumanId(id), id).toBe(true);
   });
 

@@ -13,6 +13,8 @@ const FRAMEWORK_PREFIX = /^(ember\d|react-|radix-|headlessui-)/i;
 const NUMERIC_SEGMENTS = /(^|_)\d+_\d+(_|$)/;
 /** Sufixul lui useId din React pus după „_”: „x_1_R3k”. Cere o cifră, ca „nav_Right” să rămână. */
 const REACT_USE_ID = /_R[a-z]*\d[0-9a-z]*_?$/;
+/** Un șir hex cu majuscule și cifre, ca la Bing („C_1AACF49”, „slideexp0_AAAE3E”): hash, nu nume. */
+const HEX_HASH = /(?=[0-9A-F]*\d)[0-9A-F]{5,}/;
 // „:r1:”, „«r1»”, „__next” cad deja la HUMAN_ID (nu încep cu o literă).
 
 const STABLE_ATTRIBUTES = ["aria-label", "data-testid", "data-test-id", "name", "title"] as const;
@@ -30,7 +32,8 @@ export function looksHumanId(id: string): boolean {
     !RANDOMISH.test(id) &&
     !FRAMEWORK_PREFIX.test(id) &&
     !NUMERIC_SEGMENTS.test(id) &&
-    !REACT_USE_ID.test(id)
+    !REACT_USE_ID.test(id) &&
+    !HEX_HASH.test(id)
   );
 }
 
