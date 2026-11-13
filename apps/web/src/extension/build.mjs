@@ -1,6 +1,7 @@
 // Construiește extensia în apps/web/dist/extension (ignorat de git), gata de încărcat „unpacked” în Chrome.
-// Rulare din rădăcina repo-ului:  node apps/web/src/extension/build.mjs        (o dată)
+// Rulare din rădăcina repo-ului:  node apps/web/src/extension/build.mjs        (o dată, build de dezvoltare)
 //                                  node apps/web/src/extension/build.mjs --watch (la fiecare salvare)
+//                                  node apps/web/src/extension/build.mjs --prod  (fără ajutoarele de depanare)
 // Folosim esbuild (vine deja cu Vite): content script-ul nu poate fi modul ES, deci fiecare intrare e un IIFE.
 
 import { copyFile, mkdir } from "node:fs/promises";
@@ -11,6 +12,7 @@ import { build, context } from "esbuild";
 const here = dirname(fileURLToPath(import.meta.url));
 const outdir = join(here, "../../dist/extension");
 const watch = process.argv.includes("--watch");
+const prod = process.argv.includes("--prod");
 
 const options = {
   entryPoints: {
@@ -22,7 +24,10 @@ const options = {
   bundle: true,
   format: "iife",
   target: "chrome116",
-  sourcemap: "inline",
+  sourcemap: prod ? false : "inline",
+  // __UIS_DEV__: ajutoare de depanare (ex. motorul de rețete în consolă); în build-ul --prod codul lor dispare
+  define: { __UIS_DEV__: prod ? "false" : "true" },
+  minifySyntax: prod, // scoate ramurile `if (false)`
   logLevel: "info",
 };
 

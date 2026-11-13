@@ -173,6 +173,17 @@ describe("executorul uneltelor în pagină", () => {
     expect(missing.ok ? null : missing.error.code).toBe("ELEMENT_NOT_FOUND");
     const css = await runPageTool("apply_css", { css: "a{}", reason: "x" }, deps);
     expect(css.ok ? null : css.error.code).toBe("INTERNAL");
+    const noAudit = await runPageTool("audit_ui", {}, deps);
+    expect(noAudit.ok ? null : noAudit.error.code).toBe("INTERNAL");
+    const withAudit = await runPageTool(
+      "audit_ui",
+      { regionId: "r.main" },
+      {
+        ...deps,
+        audit: (args) => ({ ok: true, data: { echo: args } }),
+      },
+    );
+    expect(withAudit).toEqual({ ok: true, data: { echo: { regionId: "r.main" } } });
     const bad = await runPageTool("apply_css", { css: 1 }, deps);
     expect(bad.ok ? null : bad.error.code).toBe("INVALID_ARGS");
   });

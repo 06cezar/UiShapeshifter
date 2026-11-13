@@ -29,7 +29,12 @@ export interface RunRouter<P> {
   forget(port: P): void;
 }
 
-export function createRunRouter<P>(): RunRouter<P> {
+export interface RunRouterOptions<P> {
+  /** Portul tab-ului activ acum (service worker-ul îl știe din chrome.tabs); pentru rulările fără tab. */
+  activePort?(): P | undefined;
+}
+
+export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter<P> {
   const portOfRun = new Map<string, P>();
   /** Cererile trimise, în ordine: serverul răspunde cu run_started în aceeași ordine. */
   const waitingForRun: P[] = [];
@@ -44,16 +49,36 @@ export function createRunRouter<P>(): RunRouter<P> {
 
     targetsFor(message, openPorts) {
       const runId = runIdOf(message);
-      // Doar rulările cerute de om răspund unei cereri; adaptarea și testul inițial le pornește serverul singur.
-      if (message.type === "run_started" && message.origin === "user") {
-        const port = waitingForRun.shift();
-        if (port !== undefined) portOfRun.set(message.runId, port);
+      /**
+       * Unde lucrează o rulare fără tab al ei: tab-ul activ (adaptarea vine din click-urile ratate de acolo), altfel
+       * ultimul tab care a cerut ceva (nota lui A pe #39).
+       */
+      const fallback = () => {
+        const active = options.activePort?.();
+        if (active !== undefined && openPorts.has(active)) return active;
+        return lastRequester !== null && openPorts.has(lastRequester) ? lastRequester : undefined;
+      };
+      if (message.type === "run_started") {
+        if (message.origin === "user") {
+          // Rularea cerută de om e a tab-ului care a cerut (neschimbat).
+          const port = waitingForRun.shift();
+          if (port !== undefined) portOfRun.set(message.runId, port);
+        } else {
+          // Adaptarea (E3) și testul inițial (C3) le pornește serverul: n-au tab, dar uneltele lor trebuie să ajungă undeva.
+          const port = fallback();
+          if (port !== undefined) portOfRun.set(message.runId, port);
+        }
       }
       const owner = runId ? portOfRun.get(runId) : (lastRequester ?? undefined);
       if (message.type === "run_finished" && runId) portOfRun.delete(runId);
       if (owner !== undefined && openPorts.has(owner)) return [owner];
-      // Rularea nu mai are tab (închis) sau nu știm a cui e (ex. adaptare pornită de server): o vede oricine e deschis.
-      return message.type === "tool_call" ? [] : [...openPorts];
+      if (message.type === "tool_call") {
+        // O rulare necunoscută (ex. service worker repornit) sau al cărei tab s-a închis: mai bine aici decât TIMEOUT.
+        const port = runId && portOfRun.has(runId) ? undefined : fallback();
+        return port !== undefined ? [port] : [];
+      }
+      // Mesajele de afișat (pași, răspunsuri) le vede oricine e deschis.
+      return [...openPorts];
     },
 
     forget(port) {
