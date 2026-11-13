@@ -11,7 +11,18 @@ function badRequest(res: Response, error: string): void {
   res.status(400).json({ error });
 }
 
-export function createProfileRouter(store: ProfileStore): Router {
+/** Scopul rulării care pornește după testul inițial (specs/10, „După test”). */
+export const ONBOARDING_GOAL = "Adaptează interfața la profilul nou";
+
+export interface ProfileRouterHooks {
+  /**
+   * Chemat după ce testul inițial a fost făcut (nu sărit) și profilul s-a salvat. Serverul îl leagă la
+   * startRun(userId, ONBOARDING_GOAL, "onboarding") din agent/run-manager.ts. O eroare aici nu strică răspunsul.
+   */
+  onOnboardingCompleted?: (userId: string) => void;
+}
+
+export function createProfileRouter(store: ProfileStore, hooks: ProfileRouterHooks = {}): Router {
   const router = Router();
 
   // Toate rutele au :userId; îl verificăm o dată, fiindcă ajunge în numele fișierului.
@@ -49,7 +60,16 @@ export function createProfileRouter(store: ProfileStore): Router {
       const current = await store.get(req.params.userId);
       const updated = applyOnboarding(current, result.value, new Date().toISOString());
       if (!updated.ok) return badRequest(res, updated.error);
-      res.json(await store.save(updated.value));
+      const saved = await store.save(updated.value);
+      // Profilul se întoarce oricum; dacă agentul nu pornește (ex. niciun tab conectat), interfața merge mai departe.
+      if (!result.value.skipped) {
+        try {
+          hooks.onOnboardingCompleted?.(saved.userId);
+        } catch (error) {
+          console.error(`profile: rularea de după testul inițial n-a pornit pentru ${saved.userId}`, error);
+        }
+      }
+      res.json(saved);
     } catch (error) {
       next(error);
     }

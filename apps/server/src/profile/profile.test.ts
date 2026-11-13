@@ -201,11 +201,13 @@ describe("rezumatul pentru prompt", () => {
 describe("rutele HTTP", () => {
   let base: string;
   let close: () => void;
+  const onboardedUsers: string[] = [];
 
   before(async () => {
     const app = express();
     app.use(express.json());
-    app.use("/api/profile", createProfileRouter(createProfileStore(dir)));
+    const hooks = { onOnboardingCompleted: (userId: string) => void onboardedUsers.push(userId) };
+    app.use("/api/profile", createProfileRouter(createProfileStore(dir), hooks));
     const server = app.listen(0);
     await new Promise((resolve) => server.once("listening", resolve));
     base = `http://localhost:${(server.address() as AddressInfo).port}/api/profile`;
@@ -234,6 +236,13 @@ describe("rutele HTTP", () => {
 
     const reset = (await (await send("DELETE", "/http-user")).json()) as UserProfile;
     assert.equal(reset.displayName, "http-user");
+  });
+
+  test("testul făcut pornește agentul; testul sărit nu", async () => {
+    onboardedUsers.length = 0;
+    await send("PUT", "/hook-done/onboarding", { skipped: false, answers: [] });
+    await send("PUT", "/hook-skip/onboarding", { skipped: true, answers: [] });
+    assert.deepEqual(onboardedUsers, ["hook-done"]);
   });
 
   test("erorile sunt 400 cu { error }", async () => {
