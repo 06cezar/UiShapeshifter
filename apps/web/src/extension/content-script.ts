@@ -73,8 +73,23 @@ function start() {
   let port: chrome.runtime.Port | null = null;
 
   function send(message: ToWorker) {
-    port?.postMessage(message);
+    try {
+      port?.postMessage(message);
+    } catch {
+      retire(); // extensia a fost reîncărcată: tab-ul ăsta mai are doar codul vechi
+    }
   }
+
+  /**
+   * După ↻ pe extensie, paginile deja deschise rămân cu codul vechi, care nu mai poate vorbi cu extensia
+   * („Extension context invalidated”). Ne oprim în liniște; pagina primește codul nou la reîncărcare.
+   */
+  function retire() {
+    port = null;
+    signals?.stop();
+    signals = null;
+  }
+  const extensionAlive = () => Boolean(chrome.runtime?.id);
 
   const chat = mountChat(mountOurRoot(), {
     send: (message) => {
@@ -130,7 +145,12 @@ function start() {
   };
 
   function connect() {
-    port = chrome.runtime.connect({ name: PAGE_PORT });
+    if (!extensionAlive()) return retire();
+    try {
+      port = chrome.runtime.connect({ name: PAGE_PORT });
+    } catch {
+      return retire();
+    }
     port.onMessage.addListener((raw) => {
       const message = parseFromWorker(raw);
       if (!message) return;
@@ -149,6 +169,7 @@ function start() {
     });
     port.onDisconnect.addListener(() => {
       port = null;
+      if (!extensionAlive()) return retire();
       chat.setLinkStatus("connecting");
       setTimeout(connect, RECONNECT_PORT_MS);
     });
