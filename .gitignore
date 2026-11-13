@@ -13,6 +13,3 @@ CLAUDE.local.md
 /DAG.md
 /dag/state.json
 .comms/
-
-# cache-ul Vite
-apps/web/.vite/
