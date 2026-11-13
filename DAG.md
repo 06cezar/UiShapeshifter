@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 2/21 · **În lucru:** 5 · **Poate începe:** 0 · **Așteaptă:** 14 · **Blocat:** 0
+**Gata:** 2/21 · **În lucru:** 6 · **Poate începe:** 0 · **Așteaptă:** 13 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -22,7 +22,7 @@ flowchart LR
   subgraph t_owner_C["C"]
     t_C1["C1 · Motorul de audit - min-font, contrast, target-size, overlap, clipped, offscreen, line-height + scor (specs/07)<br/>✅ gata"]
     t_C2["C2 · Reparațiile (fix) din audit + funcțiile de contrast folosite și de poarta din store; unealta audit_ui<br/>⏳ așteaptă"]
-    t_C3["C3 · Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10)<br/>⏳ așteaptă"]
+    t_C3["C3 · Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10)<br/>🔨 în lucru"]
   end
   subgraph t_owner_D["D"]
     t_D1["D1 · Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev)<br/>✅ gata"]
@@ -79,8 +79,8 @@ flowchart LR
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
   class t_D1,t_C1 done
-  class t_A1,t_A2,t_A3,t_B1,t_E1 progress
-  class t_D2,t_D3,t_D4,t_D5,t_D6,t_A4,t_B2,t_B3,t_B4,t_C2,t_C3,t_E2,t_E3,t_E4 wait
+  class t_A1,t_A2,t_A3,t_B1,t_C3,t_E1 progress
+  class t_D2,t_D3,t_D4,t_D5,t_D6,t_A4,t_B2,t_B3,t_B4,t_C2,t_E2,t_E3,t_E4 wait
 ```
 
 ## Poate începe acum
@@ -97,6 +97,7 @@ _nimic_
 - **A2** (A) Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get\_ui\_snapshot, patch\_config, point\_at: branch `a2-bucla` are commit-uri _(vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point\_at, cu pașii în jurnal.)_
 - **A3** (A) Toate uneltele + promptul de sistem + profilul în context (specs/05): branch `a3-unelte` are commit-uri _(sâm 02:00. Gata = ask\_user, propose\_changes, audit\_ui, generate\_component, navigate, wait\_for\_user\_click, say, update\_profile, finish.)_
 - **B1** (B) Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane: PR #7 deschis _(vin 19:00. Gata = applyPatch refuză baseFontPx 14 cu LIMIT\_VIOLATION; cele 3 șabloane se randează din config.)_
+- **C3** (C) Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10): branch `c3-onboarding` are commit-uri _(sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding.)_
 - **E1** (E) Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08): PR #8 deschis _(vin 20:00. Gata = GET/PUT profil, PUT onboarding, profileSummary(profile) sub 150 de cuvinte.)_
 
 ## Așteaptă
@@ -111,7 +112,6 @@ _nimic_
 - **B3** (B) Elemente generate la cerere - ComponentRenderer pe catalog, validare, generate\_component/remove\_component (specs/03): așteaptă B2 _(sâm 01:00. Gata = cele 2 exemple din specs/03 se randează, primesc data-agent-id și trec auditul.)_
 - **B4** (B) Aplicația demo - mesaje, conversație, poze, contacte, apeluri, setări, cu datele de test și id-urile din specs/04: așteaptă B1 _(sâm 01:00. Gata = trimiterea unei poze Anei merge manual, cu meniul „Mai mult” care ascunde butonul de atașat.)_
 - **C2** (C) Reparațiile (fix) din audit + funcțiile de contrast folosite și de poarta din store; unealta audit\_ui: așteaptă B2 _(sâm 01:00. Gata = audit\_ui prin WebSocket întoarce AuditReport cu fix-uri aplicabile cu patch\_config.)_
-- **C3** (C) Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10): așteaptă B1, E1 _(sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding.)_
 - **E2** (E) Colectarea semnalelor în frontend - misclick, zoom, back\_loop, dwell, feature\_use, help\_request (specs/09): așteaptă B2 _(vin 23:00. Gata = loturile de semnale ajung pe server și se văd în log.)_
 - **E3** (E) Regulile de adaptare automată + încrederea (autoApplyLowRisk) + pornirea agentului cu origin adaptation: așteaptă E1, E2, A3 _(sâm 04:00. Gata = 3 ratări lângă Trimite pornesc singure propunerea „butoane mai mari”.)_
 - **E4** (E) Datele de test, butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă: așteaptă D5 _(sâm 11:00. Datele de test se pot face din prima seară (fără dependențe); videoul după D5.)_
