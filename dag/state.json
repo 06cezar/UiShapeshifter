@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "3b2e9246433a0d5a856c630951b4d901dc753ce6",
-  "last_run": "2026-11-13T16:09:20Z",
+  "last_comms_sha": "97a48aa3fc93a757bc11fe7561f613ccc90e690c",
+  "last_run": "2026-11-13T16:10:29Z",
   "last_sha": "e4c58aebd0e6d4d680c01de47c6da2b1640c5ac5",
   "prs": {
     "1": {
@@ -73,6 +73,11 @@
       "head": "d-plan-b2-b5-la-e",
       "merged_at": "2026-11-13T16:08:56Z",
       "state": "MERGED"
+    },
+    "22": {
+      "head": "c5-validare",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "3": {
       "head": "c1-audit",
