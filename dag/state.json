@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "d70e02f507ec069c6140ac3f0bde7d8d882148f1",
-  "last_run": "2026-11-13T23:58:35Z",
-  "last_sha": "5a0056a62c5643e8c960544b2e2961ca9fb4947b",
+  "last_comms_sha": "9ce9d409daa8910c01efc8e7b5bd9363aca66724",
+  "last_run": "2026-11-13T23:59:40Z",
+  "last_sha": "fa6d5ab4ac2a34587c0aa0e33d218db72922ea66",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -290,13 +290,13 @@
     },
     "58": {
       "head": "c2-carusel-offscreen",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T23:59:34Z",
+      "state": "MERGED"
     },
     "59": {
       "head": "e-registru-ascunse",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T23:59:31Z",
+      "state": "MERGED"
     },
     "6": {
       "head": "a1-server",
