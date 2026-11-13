@@ -1,3 +1,3 @@
-2026-11-13 22:25
+2026-11-13 22:57
 
-gata: A3 unit (#41, cu #40 inclus); urmează: A6 după M2 + E8; blocat: nimic
+gata: A1-A3 unite, #43 (etapa implicită 1 până la M2); urmează: la M2 trec DEFAULT_STAGE pe 2, apoi A6 după E8; blocat: nimic
