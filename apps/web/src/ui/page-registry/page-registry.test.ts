@@ -105,8 +105,10 @@ describe("blocurile cu titlu (raftul de Shorts, nu doar titlul)", () => {
     document.body.innerHTML = `
       <main>
         <ytd-rich-shelf-renderer is-shorts="" data-h="600">
-          <div data-h="40"><h2 data-h="28"><span id="title" data-h="28">Shorts</span></h2></div>
-          <a href="/shorts/1">Clip 1</a><a href="/shorts/2">Clip 2</a>
+          <div id="dismissible" data-h="600"><div id="contents" data-h="600">
+            <div data-h="40"><h2 data-h="28"><span id="title" data-h="28">Shorts</span></h2></div>
+            <a href="/shorts/1">Clip 1</a><a href="/shorts/2">Clip 2</a>
+          </div></div>
         </ytd-rich-shelf-renderer>
         <ytd-rich-shelf-renderer data-h="600">
           <div data-h="40"><h2 data-h="28"><span id="title" data-h="28">Recomandate</span></h2></div>

@@ -161,13 +161,17 @@ function roleOf(element: Element): string {
  */
 function blockOfTitle(title: Element, stopAt: Set<Element>, doc: Document): Element | undefined {
   const titleHeight = title.getBoundingClientRect().height || 1;
+  let firstBlock: Element | undefined;
   let current = title.parentElement;
   for (let depth = 0; current && depth < BLOCK_MAX_DEPTH; depth++, current = current.parentElement) {
-    if (current === doc.body || current === doc.documentElement || stopAt.has(current)) return undefined;
+    if (current === doc.body || current === doc.documentElement || stopAt.has(current)) break;
     const tall = current.getBoundingClientRect().height >= titleHeight * BLOCK_HEIGHT_RATIO;
-    if (tall && current.querySelectorAll("a[href], button").length >= BLOCK_MIN_LINKS) return current;
+    if (!tall || current.querySelectorAll("a[href], button").length < BLOCK_MIN_LINKS) continue;
+    // Un element propriu al site-ului (<ytd-rich-shelf-renderer>) e chiar blocul; un <div> din el e doar o bucată.
+    if (current.tagName.includes("-")) return current;
+    firstBlock ??= current;
   }
-  return undefined;
+  return firstBlock;
 }
 
 /**
