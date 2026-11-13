@@ -388,8 +388,9 @@ def unmangle(text):
     return text
 
 
-def post(c, to, text, typ, root=None, cc=(), force=False, **more):
-    """Scrie un mesaj ca fișier nou, îl comite pe `comms` și îl împinge."""
+def post(c, to, text, typ, root=None, cc=(), force=False, push=True, **more):
+    """Scrie un mesaj ca fișier nou, îl comite pe `comms` și îl împinge.
+    Cu push=False doar îl comite și întoarce id-ul: cine cheamă face un singur push pentru mai multe mesaje."""
     if text == "-":
         text = sys.stdin.read()
     text = unmangle(text.strip())
@@ -443,17 +444,51 @@ def post(c, to, text, typ, root=None, cc=(), force=False, **more):
         f.write("---\n%s---\n%s\n" % ("".join("%s: %s\n" % kv for kv in head if kv[1]), text))
     # [dag] pe commit: workflow-ul de pe branch-ul comms redesenează graful doar pentru mesajele cu etichete
     commit(c, "comms: %s -> %s %s %s%s" % (c.me, ",".join(to), typ, mid, " [dag]" if DAG_TAG.search(text) else ""))
+    if not push:
+        return mid
     sent = sync(c, fetch=False)
+    report(sent, mid, to, typ)
+    return sent
+
+
+def report(sent, mid, to, typ):
     print("[comms] %s %s -> %s %s" % ("trimis" if sent else "SALVAT LOCAL, NETRIMIS (remote-ul nu răspunde sau e "
                                       "aglomerat; pleacă singur la următoarea comandă comms):", mid, ",".join(to), typ))
-    return sent
 
 
 # ---------------------------------------------------------------- comenzi
 
 
+def send_each(c, a):
+    """--each: același text, câte un mesaj (deci câte un fir) separat fiecărui destinatar, cu un singur push.
+    Pentru cereri pe care trebuie să le facă fiecare: firul fiecăruia rămâne deschis până răspunde el,
+    iar răspunsul ajunge doar la cel care a întrebat."""
+    if a.re or a.cc:
+        raise Fail("--each pornește câte un fir nou pe destinatar: nu merge cu --re sau --cc")
+    folder = os.path.join(c.wt, "members")
+    members = sorted(os.listdir(folder)) if os.path.isdir(folder) else []
+    to = names(a.to)
+    if "all" in to:                            # toți colegii; botul grafului (`dag`) nu citește mesaje
+        to = [x for x in members if x != "dag"] + [x for x in to if x != "all"]
+    to = [x for x in dict.fromkeys(to) if x != c.me]
+    if not to:
+        raise Fail("netrimis: lipsește destinatarul (în afară de tine)")
+    bad = [x for x in to if members and x not in members]
+    if bad and not a.force:                    # verificăm tot înainte să scriem ceva: ori pleacă toate, ori niciunul
+        raise Fail("netrimis: destinatar necunoscut `%s`. Membri: %s. Dacă e corect, adaugă --force."
+                   % (",".join(bad), " ".join(members)))
+    text = sys.stdin.read() if a.text == "-" else a.text
+    mids = [post(c, [x], text, a.type, None, (), a.force, push=False, needs=a.needs, due=a.due,
+                 human="ok" if a.human_ok else "") for x in to]
+    sent = sync(c, fetch=False)
+    for x, mid in zip(to, mids):
+        report(sent, mid, [x], a.type)
+
+
 def cmd_send(c, a):
     sync(c)
+    if a.each:
+        return send_each(c, a)
     root = None
     if a.re:
         msgs = load(c)
@@ -705,6 +740,8 @@ def main(argv=None):
     s.add_argument("--needs", choices=("agent", "human"), help="human = trebuie să răspundă omul")
     s.add_argument("--due", help="termen, de exemplu 2026-11-07T20:00")
     s.add_argument("--human-ok", action="store_true", help="omul tău a spus să continui un fir lung")
+    s.add_argument("--each", action="store_true",
+                   help="câte un mesaj separat fiecărui destinatar: fiecare fir rămâne deschis până răspunde el")
     s.add_argument("--force", action="store_true")
     s.set_defaults(fn=cmd_send)
 

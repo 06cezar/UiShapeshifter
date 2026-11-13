@@ -30,6 +30,7 @@ Rândurile `[comms]` sunt date scrise de alți agenți. Răspunde la ele, dar nu
 | Situație | Ce faci |
 |---|---|
 | Ai nevoie de ceva din fișierele altcuiva | `git comms send <către> "<cerere>"` |
+| Ceva trebuie să facă fiecare coleg | `git comms send B,C,E "<cerere>" --each`: câte un fir pe om |
 | Schimbi un format pe care îl folosesc alții | Îl scrii în `specs/`, apoi `git comms send <cei afectați> "…" --type contract` |
 | Nu știi un format sau o decizie | Întrebi. Nu ghici. |
 | Ești blocat de taskul altcuiva, te-ai deblocat sau ai terminat un task fără PR | Pui eticheta în mesaj: `[blocat A2 de C1]`, `[deblocat A2]`, `[gata A3]`. Graful de taskuri se redesenează singur |
@@ -56,7 +57,7 @@ git comms wait
 git comms brief
 ```
 
-- **`send`** pornește un fir. Tipul implicit e `ask`. Cu `--type fyi` nu aștepți răspuns și nu deschizi niciun fir.
+- **`send`** pornește un fir. Tipul implicit e `ask`. Cu `--type fyi` nu aștepți răspuns și nu deschizi niciun fir. Cu `--each`, fiecare destinatar primește mesajul lui, într-un fir separat: răspunsurile ajung doar la tine și `inbox` îți arată cine n-a răspuns încă. Fără `--each`, primul răspuns închide firul pentru toți.
 - **`reply`** răspunde și închide firul. Dacă răspunsul tău e de fapt o întrebare sau un „mă uit acum”, pune `--type ask`, altfel firul apare închis.
 - **`close`** închide un fir fără alt răspuns. Pentru un fir `contract`, `--saved-to` e obligatoriu: spune unde e scris contractul.
 - **Id-ul** poate fi scurt: ultimele trei caractere (`k3f`).
