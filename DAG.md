@@ -3,14 +3,14 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 9/40 · **În lucru:** 6 · **Poate începe:** 1 · **Așteaptă:** 24 · **Blocat:** 0
+**Gata:** 10/40 · **În lucru:** 5 · **Poate începe:** 1 · **Așteaptă:** 24 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
   subgraph t_owner_A["A"]
     t_A1["A1 · Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT_FAKE=1) și jurnalul rulărilor<br/>✅ gata"]
     t_A2["A2 · Bucla agentului cu OpenRouter cap-coadă pe o pagină reală - get_page_snapshot, apply_css, verificare, say, finish (+ agentul fals adaptat)<br/>🔨 în lucru · încă așteaptă M0"]
-    t_A3["A3 · Uneltele etapei 2 - apply_ops, point_at, propose_changes, ask_user, wait_for_user_click + promptul care cere verificare după fiecare schimbare<br/>🔨 în lucru · încă așteaptă A2, M1, D8"]
+    t_A3["A3 · Uneltele etapei 2 - apply_ops, point_at, propose_changes, ask_user, wait_for_user_click + promptul care cere verificare după fiecare schimbare<br/>🔨 în lucru · încă așteaptă A2, M1"]
     t_A6["A6 · Profilul și rețeta site-ului în contextul agentului + update_profile; o cerere repetată devine preferință generală<br/>⏳ așteaptă"]
     t_A4["A4 · Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter<br/>⏳ așteaptă"]
     t_A5["A5 · Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes)<br/>⏳ așteaptă"]
@@ -24,7 +24,7 @@ flowchart LR
   subgraph t_owner_C["C"]
     t_C1["C1 · Motorul de audit - min-font, contrast, target-size, overlap, clipped, offscreen, line-height + scor (specs/07)<br/>✅ gata"]
     t_C5["C5 · Validarea a ce scrie agentul - CSS (fără url, @import, selectori spre interfața noastră) și HTML (fără script, iframe, atribute on*), funcții pure cu teste<br/>✅ gata"]
-    t_C2["C2 · Auditul pe pagina unui site, rulat după fiecare schimbare a agentului + reparațiile ca CSS; unealta audit_ui<br/>🔨 în lucru · încă așteaptă M1, D8"]
+    t_C2["C2 · Auditul pe pagina unui site, rulat după fiecare schimbare a agentului + reparațiile ca CSS; unealta audit_ui<br/>🔨 în lucru · încă așteaptă M1"]
     t_C3["C3 · Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10)<br/>🔨 în lucru · încă așteaptă M2"]
     t_C4["C4 · Preferințele de bază fără AI - din profil, pe orice site - font minim, contrast, ținte mari, aplicate peste CSS-ul agentului<br/>⏳ așteaptă"]
   end
@@ -34,7 +34,7 @@ flowchart LR
     t_D7["D7 · Contractele etapei 1 - SiteRecipe cu CSS, snapshot-ul paginii, uneltele get_page_snapshot/apply_css/say/finish, mesajele + specs 02, 04, 05, 06 rescrise<br/>✅ gata"]
     t_M0["M0 · PUNCT DE CONTROL 0 - extensia se vede pe două site-uri reale și mesajul de probă face drumul dus-întors<br/>🟢 poate începe"]
     t_D3["D3 · Chatul în extensie - câmp de text și bula de răspuns peste orice site, legate de server prin service worker<br/>⏳ așteaptă"]
-    t_D8["D8 · Contractele etapelor 2-4, ca adăugări - DomOp (remove, move, wrap, setText, insertHtml, bind, inject), point_at, propose_changes, audit, profilul extins, conturi + specs 03, 07-12<br/>🔨 în lucru"]
+    t_D8["D8 · Contractele etapelor 2-4, ca adăugări - DomOp (remove, move, wrap, setText, insertHtml, bind, inject), point_at, propose_changes, audit, profilul extins, conturi + specs 03, 07-12<br/>✅ gata"]
     t_M1["M1 · PUNCT DE CONTROL 1 - „ascunde X” pe site-ul de test și pe un site real, dispare și rămâne dispărut după reîncărcare, „Revino la original” îl aduce înapoi<br/>⏳ așteaptă"]
     t_D2["D2 · Mascota - animal animat din asset-uri cu licență liberă, se plimbă prin pagină și arată elementul (specs/11)<br/>⏳ așteaptă"]
     t_D9["D9 · Panoul de control în extensie - pași live, Oprește, previzualizare cu Păstrez/Anulez, „Revino la original” (refolosește D4)<br/>⏳ așteaptă"]
@@ -145,8 +145,8 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_C5 done
-  class t_B2,t_A2,t_D8,t_A3,t_C2,t_C3 progress
+  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_C5,t_D8 done
+  class t_B2,t_A2,t_A3,t_C2,t_C3 progress
   class t_M0 ready
   class t_B5,t_D3,t_E7,t_M1,t_B6,t_D2,t_D9,t_E2,t_M2,t_E8,t_A6,t_C4,t_B3,t_D10,t_M3,t_B4,t_A4,t_A5,t_E3,t_E6,t_M4,t_D5,t_E4,t_D6 wait
 ```
@@ -163,9 +163,8 @@ _nimic_
 
 - **B2** (E) Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină: branch `b2-registru` are commit-uri; încă așteaptă M0 _(Etapa 1 · vin 21:00. Gata = pe o pagină reală mare, snapshot-ul rămâne sub limita de mărime din D7; același element primește același id după reîncărcare; get\_page\_snapshot și apply\_css venite de la server se execută în pagină.)_
 - **A2** (A) Bucla agentului cu OpenRouter cap-coadă pe o pagină reală - get\_page\_snapshot, apply\_css, verificare, say, finish (+ agentul fals adaptat): branch `a2-bucla` are commit-uri; încă așteaptă M0 _(Etapa 1 · vin 21:30. Gata = „ascunde X” pe o pagină: snapshot → apply\_css → snapshot de verificare → finish, cu pașii în jurnal; AGENT\_FAKE=1 face același drum fără cheie.)_
-- **D8** (D) Contractele etapelor 2-4, ca adăugări - DomOp (remove, move, wrap, setText, insertHtml, bind, inject), point\_at, propose\_changes, audit, profilul extins, conturi + specs 03, 07-12: PR #23 deschis _(Se scrie în timpul etapei 1 · vin 21:30. Gata = tipurile trec check și nu strică nimic din etapa 1; specs/12 are scenariul nou de demo.)_
-- **A3** (A) Uneltele etapei 2 - apply\_ops, point\_at, propose\_changes, ask\_user, wait\_for\_user\_click + promptul care cere verificare după fiecare schimbare: branch `a3-unelte` are commit-uri; încă așteaptă A2, M1, D8 _(Etapa 2 · sâm 00:30. Gata = agentul mută un element, verifică, cere Păstrez/Anulez și arată rezultatul; la o cerere neclară întreabă.)_
-- **C2** (C) Auditul pe pagina unui site, rulat după fiecare schimbare a agentului + reparațiile ca CSS; unealta audit\_ui: branch `c2-reparatii` are commit-uri; încă așteaptă M1, D8 _(Etapa 2 · sâm 00:30. Gata = audit\_ui pe o pagină reală întoarce AuditReport într-un timp rezonabil, cu fix-uri aplicabile cu apply\_css; un CSS al agentului care coboară textul sub limită apare în raport.)_
+- **A3** (A) Uneltele etapei 2 - apply\_ops, point\_at, propose\_changes, ask\_user, wait\_for\_user\_click + promptul care cere verificare după fiecare schimbare: branch `a3-unelte` are commit-uri; încă așteaptă A2, M1 _(Etapa 2 · sâm 00:30. Gata = agentul mută un element, verifică, cere Păstrez/Anulez și arată rezultatul; la o cerere neclară întreabă.)_
+- **C2** (C) Auditul pe pagina unui site, rulat după fiecare schimbare a agentului + reparațiile ca CSS; unealta audit\_ui: branch `c2-reparatii` are commit-uri; încă așteaptă M1 _(Etapa 2 · sâm 00:30. Gata = audit\_ui pe o pagină reală întoarce AuditReport într-un timp rezonabil, cu fix-uri aplicabile cu apply\_css; un CSS al agentului care coboară textul sub limită apare în raport.)_
 - **C3** (C) Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10): PR #9 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.)_
 
 ## Așteaptă
@@ -174,7 +173,7 @@ _nimic_
 - **D3** (D) Chatul în extensie - câmp de text și bula de răspuns peste orice site, legate de server prin service worker: așteaptă M0 _(Etapa 1 · vin 21:00. Gata = pe orice site, mesajul scris ajunge la server și răspunsul agentului apare în bulă. Vocea vine în D10.)_
 - **E7** (E) Site-ul de test - o pagină aglomerată intenționat (meniuri, bannere, un „plătește factura” greu de găsit), servită local, cu date de test: așteaptă M0 _(Etapa 1 · vin 21:00. Gata = site-ul pornește cu npm run dev și extensia rulează pe el; pe el verificăm fiecare punct de control, fără internet.)_
 - **M1** (D) PUNCT DE CONTROL 1 - „ascunde X” pe site-ul de test și pe un site real, dispare și rămâne dispărut după reîncărcare, „Revino la original” îl aduce înapoi: așteaptă B2, B5, A2, D3, E7 _(vin 22:00. Fără PR: D îl marchează prin comms după ce omul a văzut că merge. De aici avem un produs care se poate arăta.)_
-- **B6** (B) Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul: așteaptă M1, D8 _(Etapa 2 · sâm 00:00. Gata = „mută căutarea sus” rezistă la reîncărcare și la navigarea în interiorul site-ului; Anulez scoate doar ultima schimbare.)_
+- **B6** (B) Motorul de rețete v2 - DomOp (remove, move, wrap, setText), undo pe revizii, reaplicare când pagina își schimbă singură conținutul: așteaptă M1 _(Etapa 2 · sâm 00:00. Gata = „mută căutarea sus” rezistă la reîncărcare și la navigarea în interiorul site-ului; Anulez scoate doar ultima schimbare.)_
 - **D2** (D) Mascota - animal animat din asset-uri cu licență liberă, se plimbă prin pagină și arată elementul (specs/11): așteaptă M1, B2 _(Etapa 2 · sâm 00:00. Gata = pe un site real, mascota merge până la elementul cerut de point\_at și rămâne pe el la scroll și resize; licența asset-urilor e notată în repo.)_
 - **D9** (D) Panoul de control în extensie - pași live, Oprește, previzualizare cu Păstrez/Anulez, „Revino la original” (refolosește D4): așteaptă M1 _(Etapa 2 · sâm 00:30. Gata = o rulare se vede pas cu pas peste site; Anulez readuce pagina cum era înainte de rulare.)_
 - **E2** (E) Colectarea semnalelor în content script - misclick, zoom, back\_loop, dwell, feature\_use, help\_request (specs/09): așteaptă M1, B2 _(Etapa 2 · sâm 00:00. Gata = loturile de semnale de pe un site real ajung pe server și se văd în log. Se folosesc în etapa 4 (E3).)_
