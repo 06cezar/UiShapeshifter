@@ -1,7 +1,16 @@
 {
-  "comms": {},
-  "last_comms_sha": "a60e312bed4c36c20dacd271288457d53c321cbf",
-  "last_run": "2026-11-13T13:25:57Z",
+  "comms": {
+    "ZZ9": {
+      "blocked": {
+        "by": null,
+        "reason": "test lanț",
+        "since": "2026-11-13T15:26:48+02:00",
+        "source": "comms:1526-D-t26@5149851"
+      }
+    }
+  },
+  "last_comms_sha": "5149851b6e2501985599fca807f212e3ca69737c",
+  "last_run": "2026-11-13T13:27:05Z",
   "last_sha": "e8e93a94e99cd9309a916959b9c7a1c42ece1cba",
   "prs": {
     "1": {
