@@ -3,4 +3,4 @@
 
 export { OUR_INTERFACE_MARKERS, validateCss } from "./css";
 export { validateHtml } from "./html";
-export type { CssValidation, HtmlDropped, HtmlDropReason, HtmlValidation } from "./result";
+export type { CssValidation, HtmlValidation } from "./result";
