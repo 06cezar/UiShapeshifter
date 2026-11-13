@@ -1,8 +1,8 @@
 {
   "comms": {},
-  "last_comms_sha": "2b713e7040ca1d34f64f4cab7fafd875c9320d2f",
-  "last_run": "2026-11-13T12:58:05Z",
-  "last_sha": "4037fcb568a4efefbc35c0f6627dcdb4793166c5",
+  "last_comms_sha": "0382d766ddbfdcda21af43afb8adec3baaee6ca8",
+  "last_run": "2026-11-13T12:59:01Z",
+  "last_sha": "0ffe9ff89d543f95759a9e98bc4bdb4cc2400555",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -11,8 +11,8 @@
     },
     "2": {
       "head": "d-stil-decizii",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T12:58:52Z",
+      "state": "MERGED"
     },
     "3": {
       "head": "c1-audit",
