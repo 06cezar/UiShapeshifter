@@ -24,6 +24,9 @@ export const CHAT_TEXT = {
   linkLost: "Am pierdut legătura cu serverul. Încearcă din nou în câteva secunde.",
   linkClosed: "Serverul nu răspunde.",
   errorPrefix: "Ceva n-a mers:",
+  voiceStart: "Vorbește",
+  voiceStop: "Oprește ascultarea",
+  voiceListening: "Te ascult…",
 } as const;
 
 export interface ChatMessage {

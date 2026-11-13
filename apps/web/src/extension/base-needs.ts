@@ -15,8 +15,18 @@ export const USER_ID_KEY = "userId";
 export function needsFromStored(values: Record<string, unknown>): Partial<UserNeeds> {
   const userId = values[USER_ID_KEY];
   const profile = typeof userId === "string" ? values[userId] : undefined;
-  if (isRecord(profile) && isRecord(profile.needs)) return needsFromStorage(profile);
-  return needsFromStorage(values[ONBOARDING_KEY]);
+  const onboarding = values[ONBOARDING_KEY];
+  // Profilul local câștigă doar dacă știe ceva: testul a fost făcut sau sărit (onboarding completat pe server).
+  // Fără server, profilul adus mai devreme poate fi cel gol, „de la zero”: atunci rezultatul testului e mai bun
+  // (C și D pe #49).
+  const profileKnows =
+    isRecord(profile) &&
+    isRecord(profile.needs) &&
+    isRecord(profile.onboarding) &&
+    (profile.onboarding.completed === true || profile.onboarding.skipped === true);
+  if (profileKnows) return needsFromStorage(profile);
+  if (isRecord(onboarding) && isRecord(onboarding.needs)) return needsFromStorage(onboarding);
+  return isRecord(profile) && isRecord(profile.needs) ? needsFromStorage(profile) : {};
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
