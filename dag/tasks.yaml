@@ -114,7 +114,7 @@
   owner: E
   title: Registrul paginii - snapshot rezumat al unui site oarecare (zone, titluri, elemente vizibile), id-uri și selectori stabili + executorul uneltelor în pagină
   depends_on: [B1, M0]
-  branch: b2-registru
+  branch: b5-retete # B2 și B5 într-un singur PR (registrul + motorul de rețete)
   status: auto
   note: "Etapa 1 · vin 21:00. Gata = pe o pagină reală mare, snapshot-ul rămâne sub limita de mărime din D7; același element primește același id după reîncărcare; get_page_snapshot și apply_css venite de la server se execută în pagină."
 

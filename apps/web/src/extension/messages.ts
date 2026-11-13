@@ -23,8 +23,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const OUTGOING_TYPES: readonly string[] = ["user_message", "tool_result", "signals", "cancel_run"];
-const SERVER_TYPES: readonly string[] = ["run_started", "step", "tool_call", "agent_message", "run_finished", "error"];
+const OUTGOING_TYPES: readonly string[] = [
+  "user_message",
+  "tool_result",
+  "signals",
+  "suggestion_decision",
+  "cancel_run",
+];
+const SERVER_TYPES: readonly string[] = [
+  "run_started",
+  "step",
+  "tool_call",
+  "agent_message",
+  "run_finished",
+  "suggestion",
+  "error",
+];
 
 /** Mesajele vin prin porturi și de pe socket: le verificăm forma de bază înainte să le folosim. */
 export function parseToWorker(value: unknown): ToWorker | null {
