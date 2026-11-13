@@ -209,6 +209,9 @@ export function hasOwnText(element: Element): boolean {
 
 export function isVisible(element: Element, rect: DOMRect): boolean {
   if (rect.width <= SCREEN_READER_ONLY_MAX_PX || rect.height <= SCREEN_READER_ONLY_MAX_PX) return false;
+  // Conținutul unui <details> închis (și orice sub `content-visibility: hidden`) are mărime în Chrome, dar nu se vede.
+  // Pe site-ul de test, „Plătește factura” din meniul „⋯” închis apărea altfel ca element vizibil. Browserul știe.
+  if (typeof element.checkVisibility === "function" && !element.checkVisibility()) return false;
   const style = getComputedStyle(element);
   // `opacity` gol înseamnă valoarea implicită, 1.
   return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || 1) > 0;
