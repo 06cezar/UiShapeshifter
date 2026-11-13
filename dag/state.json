@@ -7,8 +7,8 @@
       }
     }
   },
-  "last_comms_sha": "91f48710f5b4283c6986fb03f412d18cd6afba3d",
-  "last_run": "2026-11-13T18:47:48Z",
+  "last_comms_sha": "a3e87f4ee41973d4f77bef04973c9d0f5a03e0a0",
+  "last_run": "2026-11-13T19:08:57Z",
   "last_sha": "775065ced399288e299a9d6ad5732b7127aefdf1",
   "prs": {
     "1": {
@@ -165,6 +165,11 @@
       "head": "d-remove-ascunde",
       "merged_at": "2026-11-13T18:43:55Z",
       "state": "MERGED"
+    },
+    "38": {
+      "head": "c4-fixuri",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "4": {
       "head": "d1-schelet",
