@@ -4,6 +4,7 @@
 import { clearRecipe, loadRecipe } from "../ui/recipes/recipe-store";
 import { POPUP_PORT, parseFromWorker, type LinkStatus } from "./messages";
 import { normalizeHost } from "./page-info";
+import { savedChangesText } from "./popup-text";
 
 const STATUS_TEXT: Record<LinkStatus, string> = {
   connecting: "Se conectează la server…",
@@ -46,7 +47,7 @@ async function showSite() {
   }
   const { recipe } = await loadRecipe(chrome.storage.local, host, new Date().toISOString());
   siteText.textContent =
-    recipe.revision > 0 ? `${host}: ${recipe.revision} schimbări salvate.` : `${host}: nicio schimbare salvată.`;
+    recipe.revision > 0 ? `${host}: ${savedChangesText(recipe.revision)}.` : `${host}: nicio schimbare salvată.`;
   resetButton.disabled = recipe.revision === 0;
 }
 
