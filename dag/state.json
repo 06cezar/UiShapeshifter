@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "1f0ca893ae13c1a8e96f6fe729dafe38715cfe72",
-  "last_run": "2026-11-13T13:11:59Z",
+  "last_comms_sha": "d9c312a738a25f08c323bb45435f1a22d1252983",
+  "last_run": "2026-11-13T13:17:00Z",
   "last_sha": "215c35397690897d668518b69814f2b828fb6d8f",
   "prs": {
     "1": {
@@ -23,6 +23,11 @@
       "head": "d1-schelet",
       "merged_at": "2026-11-13T13:11:48Z",
       "state": "MERGED"
+    },
+    "5": {
+      "head": "d-prettier-contracte",
+      "merged_at": null,
+      "state": "OPEN"
     }
   },
   "statuses": {
