@@ -9,6 +9,7 @@ Fiecare element pe care agentul trebuie să-l vadă sau să-l arate are `data-ag
 | Id | Ce e |
 |---|---|
 | `nav.<moduleId>` | intrarea din meniu spre modul (`nav.messages`, `nav.photos`…) |
+| `nav.home` | intrarea „Acasă” din meniu; în `simple-tiles`, butonul „Înapoi la ecranul principal” |
 | `home.<moduleId>` | placa modulului pe ecranul principal |
 | `messages.list`, `messages.compose`, `messages.send`, `messages.attach-photo` | ecranul de mesaje |
 | `chat.<contactId>` | conversația cu un contact; `chat.<contactId>.input`, `chat.<contactId>.send` |
