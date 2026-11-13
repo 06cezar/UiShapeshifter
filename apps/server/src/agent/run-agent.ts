@@ -11,6 +11,7 @@ import {
   type ToolName,
   type ToolResult,
 } from "@uishapeshifter/contracts";
+import { OpenRouterError } from "./openrouter";
 import { parseReasoning } from "./reasoning";
 
 /** Ce vrea agentul să facă la pasul curent. */
@@ -41,6 +42,8 @@ export interface RunIO {
 const MAX_STEPS_SUMMARY = "M-am oprit după prea mulți pași. Am păstrat ce am reușit până acum.";
 const CANCELLED_SUMMARY = "Am oprit, cum ai cerut.";
 const CRASH_SUMMARY = "Am o problemă și m-am oprit. Încearcă din nou, te rog.";
+// după reîncercările din openrouter.ts (specs/05, „Eșecuri”)
+const CONNECTION_SUMMARY = "Am o problemă de conexiune, încerc din nou imediat.";
 
 function revisionOf(result: ToolResult): number | undefined {
   if (!result.ok) return undefined;
@@ -110,6 +113,10 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
     }
     return await end("failed", MAX_STEPS_SUMMARY, "confused");
   } catch (error) {
+    if (error instanceof OpenRouterError) {
+      console.error(`agent: rularea ${run.runId} oprită, OpenRouter nu răspunde: ${error.message}`);
+      return await end("failed", CONNECTION_SUMMARY, "confused");
+    }
     console.error(`agent: rularea ${run.runId} a căzut:`, error);
     return await end("failed", CRASH_SUMMARY, "confused");
   }

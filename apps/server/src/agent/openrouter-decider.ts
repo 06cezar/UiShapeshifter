@@ -3,7 +3,7 @@
 
 import { TOOL_DEFINITIONS, TOOL_RUNS_ON, type ToolName } from "@uishapeshifter/contracts";
 import { compactResult } from "./compact-result";
-import { chatCompletion, type ChatMessage } from "./openrouter";
+import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
 import { buildSystemPrompt } from "./system-prompt";
 
@@ -30,7 +30,13 @@ function parseArgs(raw: string): Record<string, unknown> | null {
   }
 }
 
-export function createOpenRouterDecider(goal: string, tools: readonly ToolName[] = A2_TOOLS): Decider {
+export interface OpenRouterDeciderOptions {
+  tools?: readonly ToolName[];
+  retryDelaysMs?: readonly number[]; // testele le pun pe 0
+}
+
+export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
+  const { tools = A2_TOOLS, retryDelaysMs = RETRY_DELAYS_MS } = options;
   const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const allowed = new Set<ToolName>(tools);
   const definitions = TOOL_DEFINITIONS.filter((definition) => allowed.has(definition.function.name));
@@ -53,7 +59,10 @@ export function createOpenRouterDecider(goal: string, tools: readonly ToolName[]
       }
 
       for (let attempt = 0; ; attempt++) {
-        const reply = await chatCompletion({ model, messages, tools: definitions, temperature: TEMPERATURE });
+        const reply = await chatCompletionWithRetry(
+          { model, messages, tools: definitions, temperature: TEMPERATURE },
+          retryDelaysMs,
+        );
         const call = reply.toolCalls[0]; // parallel_tool_calls: false → cel mult unul; dacă vin mai multe, primul
         const content = reply.content ?? "";
         if (!call) {

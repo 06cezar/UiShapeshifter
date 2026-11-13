@@ -3,6 +3,8 @@
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REQUEST_TIMEOUT_MS = 45_000;
+// rețea, 429, 5xx: 2 reîncercări cu pauză de 1 s, apoi 3 s (specs/05, „Eșecuri”)
+export const RETRY_DELAYS_MS: readonly number[] = [1000, 3000];
 const APP_TITLE = "UI Shapeshifter";
 
 export interface ChatToolCall {
@@ -49,6 +51,23 @@ function isToolCall(value: unknown): value is ChatToolCall {
     typeof call.function?.name === "string" &&
     typeof call.function?.arguments === "string"
   );
+}
+
+/** chatCompletion cu reîncercări pentru erorile trecătoare; celelalte (ex. cheie lipsă, 400) ies pe loc. */
+export async function chatCompletionWithRetry(
+  request: ChatRequest,
+  delaysMs: readonly number[] = RETRY_DELAYS_MS,
+): Promise<ChatReply> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await chatCompletion(request);
+    } catch (error) {
+      const retryable = error instanceof OpenRouterError && error.retryable;
+      if (!retryable || attempt >= delaysMs.length) throw error;
+      console.warn(`openrouter: ${(error as Error).message}; reîncerc în ${delaysMs[attempt]} ms`);
+      await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+    }
+  }
 }
 
 export async function chatCompletion(request: ChatRequest): Promise<ChatReply> {

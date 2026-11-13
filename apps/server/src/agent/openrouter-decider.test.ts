@@ -98,12 +98,28 @@ describe("createOpenRouterDecider", () => {
     expect(feedback.content).toContain("INVALID_ARGS");
   });
 
-  it("nu pune cheia în mesajele de eroare", async () => {
-    const decider = createOpenRouterDecider("x");
-    replies.push(new Response(JSON.stringify({ error: { message: "Rate limit" } }), { status: 429 }));
+  it("reîncearcă de 2 ori la 429 / 5xx, apoi renunță fără să pună cheia în mesaj", async () => {
+    const decider = createOpenRouterDecider("x", { retryDelaysMs: [0, 0] });
+    const rateLimited = () => new Response(JSON.stringify({ error: { message: "Rate limit" } }), { status: 429 });
+    replies.push(rateLimited(), rateLimited(), rateLimited());
     const error = await decider.decide(null).catch((e: Error) => e);
+    expect(sent).toHaveLength(3);
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toContain("429");
     expect((error as Error).message).not.toContain("cheie-de-test");
+  });
+
+  it("după o eroare trecătoare, a doua încercare reușește", async () => {
+    const decider = createOpenRouterDecider("x", { retryDelaysMs: [0, 0] });
+    replies.push(new Response("eroare", { status: 502 }), reply("Gata."));
+    expect(await decider.decide(null)).toEqual({ kind: "text", content: "Gata." });
+    expect(sent).toHaveLength(2);
+  });
+
+  it("nu reîncearcă erorile care nu trec singure (400)", async () => {
+    const decider = createOpenRouterDecider("x", { retryDelaysMs: [0, 0] });
+    replies.push(new Response(JSON.stringify({ error: { message: "bad request" } }), { status: 400 }));
+    await expect(decider.decide(null)).rejects.toThrow("400");
+    expect(sent).toHaveLength(1);
   });
 });
