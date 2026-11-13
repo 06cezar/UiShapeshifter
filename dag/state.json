@@ -7,8 +7,8 @@
       }
     }
   },
-  "last_comms_sha": "dcf617226561b2f1f005b01da9ceaad34dab86ed",
-  "last_run": "2026-11-13T18:24:36Z",
+  "last_comms_sha": "e6f3cafc088bb26e150cbb4c0e7b90e34d1ab081",
+  "last_run": "2026-11-13T18:25:37Z",
   "last_sha": "0c2f4af88941c52c7e6914146369cc7ec559c434",
   "prs": {
     "1": {
@@ -145,6 +145,11 @@
       "head": "c5-html-contract",
       "merged_at": "2026-11-13T18:24:23Z",
       "state": "MERGED"
+    },
+    "34": {
+      "head": "a2-page-nu-blocheaza",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "4": {
       "head": "d1-schelet",
