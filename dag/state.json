@@ -8,7 +8,7 @@
     }
   },
   "last_comms_sha": "38bfb9a83a623842baf37a231ce34daa168d98c6",
-  "last_run": "2026-11-13T19:13:06Z",
+  "last_run": "2026-11-13T19:16:06Z",
   "last_sha": "ca5b0215c4a31227844e5be2b05f94743b8b82ab",
   "prs": {
     "1": {
@@ -168,6 +168,11 @@
     },
     "38": {
       "head": "c4-fixuri",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "39": {
+      "head": "e-extensie-fixuri",
       "merged_at": null,
       "state": "OPEN"
     },
