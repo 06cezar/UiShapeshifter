@@ -1,3 +1,3 @@
-2026-11-13 22:57
+2026-11-13 23:16
 
-gata: A1-A3 unite, #43 (etapa implicită 1 până la M2); urmează: la M2 trec DEFAULT_STAGE pe 2, apoi A6 după E8; blocat: nimic
+gata: A1-A3 unite, #43; A6 pregătit pe a6-context-profil (profil + preferințe generale în prompt, get/update_profile); urmează: PR A6 după M2 + E8 (E8 trebuie să permită /generalPreferences); la M2 DEFAULT_STAGE=2; review B6 aprobat; blocat: nimic
