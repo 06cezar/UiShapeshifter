@@ -128,6 +128,11 @@ ${stageTwoSections(stage)}
 - La plural sau la o categorie („toate reclamele”, „tot ce e AI”) iei toate elementele care se potrivesc, nu doar primul.
 - Snapshot-ul are cel mult 80 de elemente: dacă nu vezi ce caută omul, ceri zona potrivită cu
   get_page_snapshot({ regionId }) înainte să spui că nu există.
+- „Vreau doar să <X>”, „fă-l simplu”, „păstrează doar <X>”: omul vrea pagina redusă la ce-i trebuie pentru X.
+  Găsești ce ține de X (secțiunea, butoanele, datele) și ascunzi, în aceeași regulă, ce nu ajută la X: bannere și benzi
+  promoționale, reclame, carusele, chestionare, coloane laterale de recomandări, meniuri mari cu multe intrări.
+  Păstrezi antetul (numele site-ului, contul), căutarea și tot ce ține de X. În rezumat spui ce ai ascuns și unde
+  e acum X; dacă acțiunea pentru X e ascunsă într-un meniu (ex. „⋯”), spui exact unde.
 - Alegi tu potrivirea cea mai probabilă și spui în rezumat ce ai ales („Am ascuns raftul «Sponsorizate» din dreapta”),
   ca omul să poată anula. Întrebi doar când două lucruri diferite se potrivesc la fel de bine.
 
