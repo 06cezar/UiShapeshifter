@@ -87,3 +87,8 @@ export interface AgentBridge {
   /** Închide socket-ul și oprește reconectarea. */
   stop(): void;
 }
+
+// ---------- implementarea ----------
+
+export { startAgentBridge } from "./bridge";
+export type { StartBridgeOptions } from "./bridge";
