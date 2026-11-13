@@ -1,0 +1,90 @@
+// Cele 10 mesaje de test (specs/12), în ordine cronologică. Conversația cu Ana e cea din demo
+// („Cum îi trimit o poză Anei?”), deci are cele mai multe mesaje, iar ultimul e necitit.
+
+import type { Message } from "./types";
+
+export const DEMO_MESSAGES: Message[] = [
+  {
+    id: "m01",
+    contactId: "ion",
+    from: "contact",
+    text: "Bună, mamă! Duminică venim la tine la masă.",
+    sentAt: "2026-11-10T09:15:00.000Z",
+    read: true,
+  },
+  {
+    id: "m02",
+    contactId: "ion",
+    from: "me",
+    text: "Ce bine! Fac sarmale.",
+    sentAt: "2026-11-10T09:40:00.000Z",
+    read: true,
+  },
+  {
+    id: "m03",
+    contactId: "dr-popescu",
+    from: "contact",
+    text: "Bună ziua! Vă aștept joi la ora 10 pentru control.",
+    sentAt: "2026-11-11T08:00:00.000Z",
+    read: true,
+  },
+  {
+    id: "m04",
+    contactId: "maria-v",
+    from: "contact",
+    text: "Mițu a dormit iar pe preșul tău. Uite-l!",
+    sentAt: "2026-11-11T12:05:00.000Z",
+    read: true,
+    photoId: "p05-pisica",
+  },
+  {
+    id: "m05",
+    contactId: "ion",
+    from: "contact",
+    text: "Ți-am trimis poza cu bradul de anul trecut.",
+    sentAt: "2026-11-12T18:20:00.000Z",
+    read: true,
+    photoId: "p09-brad",
+  },
+  {
+    id: "m06",
+    contactId: "ana",
+    from: "contact",
+    text: "Bunico, ce mai faci?",
+    sentAt: "2026-11-13T08:30:00.000Z",
+    read: true,
+  },
+  {
+    id: "m07",
+    contactId: "ana",
+    from: "me",
+    text: "Bine, draga mea. Mi-e dor de tine.",
+    sentAt: "2026-11-13T08:45:00.000Z",
+    read: true,
+  },
+  {
+    id: "m08",
+    contactId: "ana",
+    from: "contact",
+    text: "Uite tortul de la ziua mea!",
+    sentAt: "2026-11-13T09:00:00.000Z",
+    read: true,
+    photoId: "p04-tort",
+  },
+  {
+    id: "m09",
+    contactId: "ana",
+    from: "me",
+    text: "Ce frumos! Să-l mănânci sănătoasă.",
+    sentAt: "2026-11-13T09:10:00.000Z",
+    read: true,
+  },
+  {
+    id: "m10",
+    contactId: "ana",
+    from: "contact",
+    text: "Îmi trimiți și tu o poză cu grădina?",
+    sentAt: "2026-11-13T10:00:00.000Z",
+    read: false,
+  },
+];
