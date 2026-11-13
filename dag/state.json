@@ -7,8 +7,8 @@
       }
     }
   },
-  "last_comms_sha": "66762c3be35872350690d5dc407e58587f2b54b3",
-  "last_run": "2026-11-13T17:31:57Z",
+  "last_comms_sha": "7c49f4fb9fd27aba084b9a26dbb158186f9d9068",
+  "last_run": "2026-11-13T17:35:15Z",
   "last_sha": "c5436fb306cb6409b58ab584f81c064d345a6906",
   "prs": {
     "1": {
@@ -196,7 +196,7 @@
     "E4": "wait",
     "E5": "done",
     "E6": "wait",
-    "E7": "ready",
+    "E7": "progress",
     "E8": "wait",
     "M0": "done",
     "M1": "wait",
