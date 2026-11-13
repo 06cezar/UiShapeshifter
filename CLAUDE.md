@@ -32,7 +32,7 @@ interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmb�
   Datele care vin din afară (model, WebSocket, fișiere din `data/`) se verifică înainte de folosire.
 - **Nume:** identificatorii în engleză (`camelCase`, componente și tipuri `PascalCase`, fișiere `kebab-case.ts`,
   componente `PascalCase.tsx`); comentariile și commit-urile în română, ca în `packages/contracts`.
-- **Formatare:** Prettier cu setările implicite (după D1, `npm run format`). Nu reformata fișierele altora.
+- **Formatare:** Prettier (`npm run format`, rânduri de 120). Nu reformata fișierele altora.
 - **Atingi doar ce cere taskul.** Întâi ce oferă deja stack-ul; un pachet nou doar dacă economisește ore.
 - **Cu omul tău:** un task odată; pentru mai multe fișiere, întâi un plan în 3 rânduri (fișiere, test, cum știm că merge).
   La final, cel mult 3 propoziții: ce s-a schimbat (`fișier:linie`) și de ce. Omul trebuie să poată explica juriului.
@@ -53,8 +53,10 @@ interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmb�
 - Pe scurt, pentru toată echipa: `docs/CUM-LUCRAM.md`.
 
 ## Comenzi
-- `npm install`, apoi `npm run dev` (după taskul D1).
-- `npm run check -w @uishapeshifter/contracts`: verifică tipurile comune.
+- `npm install`, apoi `npm run dev`: web pe 5173, server pe 8787 (`/api/health`). Node 20.12 sau mai nou.
+- `npm run check`: tipurile în toate pachetele; `npm run check -w @uishapeshifter/contracts`: doar contractele.
+- `npm test`: testele (Vitest; în `apps/web` cu happy-dom). `npm run format`: Prettier.
+- Cheia: copiază `apps/server/.env.example` în `apps/server/.env`.
 - `python dag/build_dag.py --no-github --out <folder temporar>`: graful local, doar de probă.
 
 <!-- comms:start -->
