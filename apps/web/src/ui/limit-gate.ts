@@ -120,9 +120,13 @@ function checkTargetSize(config: UIConfig, thresholds: AuditThresholds): ConfigV
 }
 
 /** Textul de bază e „mare” de la HARD_LIMITS.largeTextPx; atunci se aplică pragul mai mic, pentru text mare. */
-function checkContrast(config: UIConfig, thresholds: AuditThresholds, contrastRatio: ContrastFn): ConfigViolation[] {
+export function requiredThemeContrast(config: UIConfig, thresholds: AuditThresholds): number {
   const isLarge = config.theme.baseFontPx >= HARD_LIMITS.largeTextPx;
-  const required = isLarge ? thresholds.minContrastLargeText : thresholds.minContrastText;
+  return isLarge ? thresholds.minContrastLargeText : thresholds.minContrastText;
+}
+
+function checkContrast(config: UIConfig, thresholds: AuditThresholds, contrastRatio: ContrastFn): ConfigViolation[] {
+  const required = requiredThemeContrast(config, thresholds);
   const palette = config.theme.palette;
   const violations: ConfigViolation[] = [];
   for (const { foreground, background } of CONTRAST_PAIRS) {

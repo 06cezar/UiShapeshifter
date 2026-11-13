@@ -6,11 +6,20 @@ import { adjustToContrast, contrastRatio, thresholdsFor } from "../a11y";
 import { createConfigStore } from "./config-store";
 import type { ConfigStore } from "./config-store";
 import type { ContrastFn } from "./limit-gate";
+import { adjustConfigToProfile } from "./profile-defaults";
 
 export const realContrastRatio: ContrastFn = (foreground, background) => contrastRatio(foreground, background);
 export const realAdjustToContrast = (color: string, background: string, target: number): string =>
   adjustToContrast(color, background, target);
 export { thresholdsFor };
+
+/** Config-ul ajustat după nevoile utilizatorului, cu funcțiile reale de contrast. */
+export function configForNeeds(config: UIConfig, needs: UserNeeds): UIConfig {
+  return adjustConfigToProfile(config, thresholdsFor(needs), {
+    ratio: realContrastRatio,
+    adjust: realAdjustToContrast,
+  });
+}
 
 /** Store-ul aplicației, cu pragurile utilizatorului și contrastul WCAG real. */
 export function createAppConfigStore(needs: UserNeeds, initial?: UIConfig): ConfigStore {
