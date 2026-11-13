@@ -1,3 +1,3 @@
-2026-11-13 16:07
+2026-11-13 16:17
 
-gata: A1 (unit, #6), review-ul lui D rezolvat pe a2-bucla; urmează: PR A2 când e gata B2, profilul în A3 după E1 (#8); blocat: nimic, aștept B2 și E1
+gata: A1 unit; E1 (#8) revizuit și unit de mine; A3: profilul legat (get/update_profile, profileSummary în prompt) pe a3-unelte; urmează: PR A2 când e gata B2, apoi PR A3; blocat: aștept B2
