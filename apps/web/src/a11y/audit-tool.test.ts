@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_CONFIG } from "@uishapeshifter/contracts";
 import type { ElementInfo, ToolResult, AuditReport, UISnapshot, UserNeeds } from "@uishapeshifter/contracts";
 import type { AgentRegistry, ToolContext } from "../agent-bridge";
+import { startAgentBridge } from "../agent-bridge/bridge";
+import { fakeSocketFactory } from "../agent-bridge/test-socket";
 import { createAppConfigStore } from "../ui/a11y-binding";
+import { createRegistry } from "../ui/registry";
 import { auditUiHandler, parseAuditArgs, registerAuditTool } from "./audit-tool";
 import { mergeFixes } from "./fixes";
 
@@ -132,5 +135,49 @@ describe("audit_ui", () => {
     const bridge = { registerTool: vi.fn(() => unregister) };
     expect(registerAuditTool(bridge)).toBe(unregister);
     expect(bridge.registerTool).toHaveBeenCalledWith("audit_ui", auditUiHandler);
+  });
+});
+
+describe("audit_ui prin WebSocket (C2: „Gata” din tasks.yaml)", () => {
+  it("un tool_call audit_ui de la server primește un tool_result cu AuditReport și reparații", async () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<section data-module-id="messages"><button data-agent-id="messages.send">Trimite</button></section>`;
+    document.body.appendChild(root);
+    // happy-dom nu face layout: butonul are mărimea implicită a temei (44px), sub pragul de 56px al Mariei.
+    for (const el of root.querySelectorAll<HTMLElement>("[data-agent-id]")) {
+      el.getBoundingClientRect = () => new DOMRect(10, 10, 120, 44);
+    }
+    const store = createAppConfigStore(MARIA, structuredClone(DEFAULT_CONFIG));
+    const createSocket = fakeSocketFactory();
+    const bridge = startAgentBridge({
+      url: "ws://server/ws",
+      userId: "maria",
+      sessionId: "tab-1",
+      store,
+      registry: createRegistry(store, root),
+      createSocket,
+    });
+    const unregister = registerAuditTool(bridge);
+    const socket = createSocket.last();
+    socket.open();
+
+    socket.receive({ type: "tool_call", runId: "run-1", callId: "c-audit", name: "audit_ui", args: {} });
+    const reply = await vi.waitFor(() => {
+      const message = socket.sent.find((m) => (m as { callId?: string }).callId === "c-audit");
+      expect(message).toBeDefined();
+      return message as { type: string; result: ToolResult<AuditReport> };
+    });
+
+    expect(reply.type).toBe("tool_result");
+    expect(reply.result.ok).toBe(true);
+    if (!reply.result.ok) return;
+    const report = reply.result.data;
+    expect(report.configRevision).toBe(store.getState().config.revision);
+    const tooSmall = report.issues.find((issue) => issue.rule === "target-size" && issue.elementId === "messages.send");
+    expect(tooSmall?.fix?.length ?? 0).toBeGreaterThan(0);
+
+    unregister();
+    bridge.stop();
+    root.remove();
   });
 });

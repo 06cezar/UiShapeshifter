@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { AgentBridgeProvider, startAgentBridge } from "./agent-bridge";
+import { registerAuditTool } from "./a11y";
 import type { AgentBridge, AgentRegistry } from "./agent-bridge";
 import { configForNeeds, createAppConfigStore } from "./ui/a11y-binding";
 import { loadInitialConfig, startConfigSaver, userIdFromSearch } from "./ui/config-persistence";
@@ -41,6 +42,7 @@ export function App() {
       const store = createAppConfigStore(needs, config);
       const registry = createRegistry(store);
       const bridge = startAgentBridge({ url: WS_URL, userId, store, registry });
+      const unregisterAudit = registerAuditTool(bridge);
       const unbindTheme = bindThemeToRoot(store);
       const stopSaver = startConfigSaver(store, userId, { apiUrl: API_URL });
       if (import.meta.env.DEV) {
@@ -48,6 +50,7 @@ export function App() {
         window.uiStore = store;
       }
       stopSync = () => {
+        unregisterAudit();
         bridge.stop();
         unbindTheme();
         stopSaver();
