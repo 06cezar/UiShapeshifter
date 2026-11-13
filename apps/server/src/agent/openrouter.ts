@@ -79,7 +79,13 @@ export async function chatCompletion(request: ChatRequest): Promise<ChatReply> {
     response = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "X-Title": APP_TITLE },
-      body: JSON.stringify({ ...request, tool_choice: "auto", parallel_tool_calls: false }),
+      // provider.sort: OpenRouter alege furnizorul cel mai rapid acum; latența contează mai mult decât prețul în demo
+      body: JSON.stringify({
+        ...request,
+        tool_choice: "auto",
+        parallel_tool_calls: false,
+        provider: { sort: "latency" },
+      }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
