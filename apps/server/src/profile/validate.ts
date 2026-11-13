@@ -3,6 +3,9 @@
 
 import {
   HARD_LIMITS,
+  type FamiliarSite,
+  type GeneralPreference,
+  type PreferenceCategory,
   type LayoutTemplate,
   type NavPosition,
   type OnboardingResult,
@@ -22,6 +25,23 @@ const AGE_RANGES: readonly NonNullable<Persona["ageRange"]>[] = ["18-34", "35-59
 const TECH_COMFORT: readonly Persona["techComfort"][] = ["low", "medium", "high"];
 const FACT_SOURCES: readonly ProfileFact["source"][] = ["onboarding", "usage", "conversation"];
 const CONTRAST: readonly UserNeeds["contrast"][] = ["normal", "high"];
+export const PREFERENCE_CATEGORIES: readonly PreferenceCategory[] = [
+  "ai-features",
+  "short-video",
+  "stories",
+  "promos",
+  "clutter",
+  "popups",
+  "autoplay",
+];
+const PREFERENCE_SOURCES: readonly GeneralPreference["source"][] = ["onboarding", "conversation", "usage"];
+const FAMILIAR_LEVELS: readonly FamiliarSite["level"][] = ["daily", "sometimes"];
+/** O preferință generală e o propoziție scurtă („fără rezumate AI”), nu un paragraf. */
+const PREFERENCE_TEXT_MAX_CHARS = 120;
+/** Id-ul preferinței ajunge în scopul agentului și în panou: scurt și fără caractere ciudate. */
+const PREFERENCE_ID = /^[a-z0-9-]{1,40}$/;
+/** Gazdă de site: litere, cifre, „.” și „-” (fără „www.”, litere mici; ca la cheia rețetei, specs/06). */
+const HOST = /^[a-z0-9.-]{1,253}$/;
 
 /** userId ajunge în numele fișierului: doar litere, cifre și cratimă, ca să nu iasă din data/profiles/. */
 const USER_ID_PATTERN = /^[a-z0-9-]{1,40}$/i;
@@ -153,6 +173,63 @@ function parseTrust(raw: unknown): TrustState {
   };
 }
 
+/** „www.Site.RO” → „site.ro”, ca la cheia rețetei (specs/06). */
+export function normalizeHost(host: string): string {
+  return host
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "");
+}
+
+function hostOf(value: unknown, field: string): string {
+  const host = normalizeHost(str(value, field));
+  if (!HOST.test(host)) fail(field, "trebuie să fie o gazdă de site, ex. youtube.com");
+  return host;
+}
+
+/**
+ * O preferință generală (specs/08). Din conversație sau din utilizare are nevoie de dovezi, ca un fapt;
+ * din testul inițial dovada e chiar alegerea omului, deci poate lipsi.
+ */
+function parseGeneralPreferenceUnsafe(raw: unknown, field: string): GeneralPreference {
+  const v = record(raw, field);
+  const id = str(v.id, `${field}.id`);
+  if (!PREFERENCE_ID.test(id)) fail(`${field}.id`, "doar litere mici, cifre și „-”, cel mult 40");
+  const text = str(v.text, `${field}.text`).trim();
+  if (!text || text.length > PREFERENCE_TEXT_MAX_CHARS) {
+    fail(`${field}.text`, `o propoziție scurtă, cel mult ${PREFERENCE_TEXT_MAX_CHARS} de caractere`);
+  }
+  const source = oneOf(v.source, PREFERENCE_SOURCES, `${field}.source`);
+  const evidence = strings(v.evidence, `${field}.evidence`);
+  if (source !== "onboarding" && evidence.length === 0) {
+    fail(`${field}.evidence`, "o preferință din conversație sau utilizare are nevoie de cel puțin o dovadă");
+  }
+  return {
+    id,
+    ...(v.category === undefined ? {} : { category: oneOf(v.category, PREFERENCE_CATEGORIES, `${field}.category`) }),
+    text,
+    source,
+    evidence,
+    createdAt: str(v.createdAt, `${field}.createdAt`),
+    appliedOn: strings(v.appliedOn ?? [], `${field}.appliedOn`).map((h, i) => hostOf(h, `${field}.appliedOn[${i}]`)),
+  };
+}
+
+function parseFamiliarSiteUnsafe(raw: unknown, field: string): FamiliarSite {
+  const v = record(raw, field);
+  return {
+    host: hostOf(v.host, `${field}.host`),
+    level: oneOf(v.level, FAMILIAR_LEVELS, `${field}.level`),
+    source: oneOf(v.source, PREFERENCE_SOURCES, `${field}.source`),
+  };
+}
+
+function optionalList<T>(value: unknown, field: string, parse: (item: unknown, field: string) => T): T[] {
+  if (value === undefined) return []; // profilurile vechi (E1) nu au câmpul: listă goală (specs/08)
+  if (!Array.isArray(value)) fail(field, "trebuie să fie o listă");
+  return value.map((item, i) => parse(item, `${field}[${i}]`));
+}
+
 function parseProfileUnsafe(raw: unknown): UserProfile {
   const v = record(raw, "profil");
   const userId = str(v.userId, "userId");
@@ -174,6 +251,8 @@ function parseProfileUnsafe(raw: unknown): UserProfile {
     persona: parsePersona(v.persona),
     facts: v.facts.map((fact, i) => parseFactUnsafe(fact, `facts[${i}]`)),
     trust: parseTrust(v.trust),
+    generalPreferences: optionalList(v.generalPreferences, "generalPreferences", parseGeneralPreferenceUnsafe),
+    familiarSites: optionalList(v.familiarSites, "familiarSites", parseFamiliarSiteUnsafe),
   };
 }
 
@@ -188,6 +267,10 @@ function guard<T>(parse: () => T): Parsed<T> {
 
 export function parseProfile(raw: unknown): Parsed<UserProfile> {
   return guard(() => parseProfileUnsafe(raw));
+}
+
+export function parseGeneralPreference(raw: unknown, field = "generalPreference"): Parsed<GeneralPreference> {
+  return guard(() => parseGeneralPreferenceUnsafe(raw, field));
 }
 
 export function parseFact(raw: unknown, field = "fact"): Parsed<ProfileFact> {
@@ -205,6 +288,15 @@ export function parseOnboardingResult(raw: unknown): Parsed<OnboardingResult> {
       preferences:
         v.preferences === undefined ? undefined : (record(v.preferences, "preferences") as Partial<UserPreferences>),
       persona: v.persona === undefined ? undefined : (record(v.persona, "persona") as Partial<Persona>),
+      // pașii noi ai testului (specs/10): ce îl deranjează și ce site-uri cunoaște
+      ...(v.dislikes === undefined
+        ? {}
+        : {
+            dislikes: strings(v.dislikes, "dislikes").map((c, i) => oneOf(c, PREFERENCE_CATEGORIES, `dislikes[${i}]`)),
+          }),
+      ...(v.familiarSites === undefined
+        ? {}
+        : { familiarSites: strings(v.familiarSites, "familiarSites").map((h, i) => hostOf(h, `familiarSites[${i}]`)) }),
       answers: answers.map((answer, i) => {
         const a = record(answer, `answers[${i}]`);
         const value = a.answer;

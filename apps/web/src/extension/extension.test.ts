@@ -3,7 +3,7 @@
 
 import { describe, expect, test } from "vitest";
 import type { ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
-import { needsFromStorage } from "./base-needs";
+import { needsFromStorage, needsFromStored } from "./base-needs";
 import { savedChangesText } from "./popup-text";
 import { parseServerMessage, parseToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
@@ -217,6 +217,17 @@ describe("nevoile pentru preferințele de bază", () => {
     });
     expect(needsFromStorage(undefined)).toEqual({});
     expect(needsFromStorage({ needs: "stricat" })).toEqual({});
+  });
+});
+
+describe("nevoile: profilul local întâi (E8)", () => {
+  test("profilul local bate testul inițial; fără profil, testul inițial; fără nimic, implicite", () => {
+    const profile = { userId: "u-1", needs: { minFontPx: 24 } };
+    expect(needsFromStored({ userId: "u-1", "u-1": profile, onboarding: { needs: { minFontPx: 18 } } })).toEqual({
+      minFontPx: 24,
+    });
+    expect(needsFromStored({ userId: "u-1", onboarding: { needs: { minFontPx: 18 } } })).toEqual({ minFontPx: 18 });
+    expect(needsFromStored({})).toEqual({});
   });
 });
 
