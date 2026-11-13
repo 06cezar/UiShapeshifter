@@ -71,6 +71,18 @@ de căutare se pot scoate; butoanele din bara browserului, nu.
 | **Să facă automat după ce folosești mai mult** | Semnale → reguli fără AI → agentul pornește singur; preferințele generale propuse pe site-uri noi | P1 | `09-semnale-si-adaptare.md` |
 | **Criteriu de accesibilitate: fonturile minime** | Font minim din profil, aplicat pe orice site, fără AI și peste orice a scris agentul; auditul de după fiecare schimbare prinde ce cade sub `HARD_LIMITS` | P0 | `07-accesibilitate.md` |
 
+### Accentele din discuția cu mentorii (cele mai importante)
+
+- **Aplicații complexe, tip Jira:** agentul scoate boilerplate-ul și lasă doar ce folosește omul, deci aplicația e mai
+  ușor de folosit și omul e mai rapid. E cazul-vedetă pentru „valoare pentru utilizator”: demo-ul îl arată pe site-ul
+  nostru de test cu aspect de aplicație densă (date de test), cu cifre înainte/după (elemente scoase, click-uri până la
+  o acțiune). Fraza de pitch: „pe aplicațiile pe care le folosești zilnic, agentul păstrează doar ce folosești tu”.
+- **Mai multe site-uri, un singur profil:** preferințele generale și profilul trec de la un site la altul. Se arată
+  explicit în demo: o preferință spusă pe un site apare propusă pe alt site.
+- **Stories:** exemplul unui mentor: scos „Stories” de pe Instagram. E un caz de nivelul 1 („Scoate”), la fel ca Shorts.
+- **Pe mobil:** un mentor ar vrea extensia și pe telefon. Chrome pe Android nu rulează extensii, deci acum rămâne în
+  afara scopului (vezi mai jos); în pitch o spunem ca direcție viitoare, nu ca funcție.
+
 ## Cum bifăm criteriile de jurizare (100 de puncte)
 
 | Criteriu | Puncte | Cum |
