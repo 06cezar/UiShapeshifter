@@ -12,15 +12,17 @@ const HOST = "uishapeshifter-root";
 beforeEach(() => {
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
     const hidden = getComputedStyle(this).display === "none" || this.closest("[hidden]") !== null;
+    // data-h: înălțimea dată de test (happy-dom nu face layout), ca să deosebim un raft de titlul lui
+    const h = Number((this as HTMLElement).dataset?.h ?? 20);
     return {
       x: 10,
       y: 10,
       width: hidden ? 0 : 100,
-      height: hidden ? 0 : 20,
+      height: hidden ? 0 : h,
       top: 10,
       left: 10,
       right: 110,
-      bottom: 30,
+      bottom: 10 + h,
       toJSON() {},
     } as DOMRect;
   });
@@ -95,6 +97,29 @@ describe("registrul și snapshot-ul", () => {
     const snap = registry().snapshot();
     expect(snap.elements).toHaveLength(SNAPSHOT_LIMITS.maxElements);
     expect(snap.truncated).toBe(true);
+  });
+});
+
+describe("blocurile cu titlu (raftul de Shorts, nu doar titlul)", () => {
+  test("raftul apare ca grup, cu selectorul care prinde toate rafturile de Shorts", () => {
+    document.body.innerHTML = `
+      <main>
+        <ytd-rich-shelf-renderer is-shorts="" data-h="600">
+          <div data-h="40"><h2 data-h="28"><span id="title" data-h="28">Shorts</span></h2></div>
+          <a href="/shorts/1">Clip 1</a><a href="/shorts/2">Clip 2</a>
+        </ytd-rich-shelf-renderer>
+        <ytd-rich-shelf-renderer data-h="600">
+          <div data-h="40"><h2 data-h="28"><span id="title" data-h="28">Recomandate</span></h2></div>
+          <a href="/watch?v=1">Video 1</a><a href="/watch?v=2">Video 2</a>
+        </ytd-rich-shelf-renderer>
+      </main>`;
+    const snap = registry().snapshot();
+    const shelf = snap.elements.find((e) => e.tag === "ytd-rich-shelf-renderer" && e.label === "Shorts")!;
+    expect(shelf).toMatchObject({ role: "group", selector: "ytd-rich-shelf-renderer[is-shorts]" });
+    expect(document.querySelectorAll(shelf.selector)).toHaveLength(1);
+    const other = snap.elements.find((e) => e.tag === "ytd-rich-shelf-renderer" && e.label === "Recomandate")!;
+    expect(other.role).toBe("group");
+    expect(document.querySelector(other.selector)?.textContent).toContain("Recomandate");
   });
 });
 

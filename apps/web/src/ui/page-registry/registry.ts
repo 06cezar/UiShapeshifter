@@ -86,6 +86,17 @@ const ELEMENT_SELECTOR = [
   '[role="dialog"]',
   "iframe[title]",
 ].join(",");
+/** Titluri după care căutăm blocul care le conține (raftul „Shorts”, cardul „Facturi”). */
+const TITLE_SELECTOR = 'h1, h2, h3, h4, [role="heading"], [id="title"]';
+/** Un bloc e cel puțin de atâtea ori mai înalt decât titlul lui și are măcar atâtea linkuri/butoane. */
+const BLOCK_HEIGHT_RATIO = 3;
+const BLOCK_MIN_LINKS = 2;
+/** Cât urcăm de la titlu după bloc. */
+const BLOCK_MAX_DEPTH = 10;
+/** Atributele unui element propriu al site-ului (ex. <ytd-rich-shelf-renderer is-shorts>) care spun ce fel de bloc e. */
+const KIND_ATTRIBUTE_MAX_CHARS = 30;
+const NOT_KIND_ATTRIBUTES = new Set(["id", "class", "style", "hidden", "tabindex", "role", "dir", "lang"]);
+
 const INTERACTIVE_TAGS = new Set(["a", "button", "input", "select", "textarea", "summary"]);
 const INPUT_ROLES: Record<string, string> = {
   checkbox: "checkbox",
@@ -142,6 +153,46 @@ function roleOf(element: Element): string {
   if (tag === "textarea") return "textbox";
   if (tag === "input") return INPUT_ROLES[(element.getAttribute("type") ?? "text").toLowerCase()] ?? "textbox";
   return "generic";
+}
+
+/**
+ * Blocul care conține un titlu: primul strămoș mult mai înalt decât titlul și cu câteva linkuri. Fără el, agentul ar
+ * vedea doar titlul „Shorts”, nu și raftul cu clipuri, și l-ar ascunde doar pe acela.
+ */
+function blockOfTitle(title: Element, stopAt: Set<Element>, doc: Document): Element | undefined {
+  const titleHeight = title.getBoundingClientRect().height || 1;
+  let current = title.parentElement;
+  for (let depth = 0; current && depth < BLOCK_MAX_DEPTH; depth++, current = current.parentElement) {
+    if (current === doc.body || current === doc.documentElement || stopAt.has(current)) return undefined;
+    const tall = current.getBoundingClientRect().height >= titleHeight * BLOCK_HEIGHT_RATIO;
+    if (tall && current.querySelectorAll("a[href], button").length >= BLOCK_MIN_LINKS) return current;
+  }
+  return undefined;
+}
+
+/**
+ * Selectorul unui bloc: pentru elementele proprii ale site-ului (cu „-” în nume), eticheta plus atributul care spune
+ * ce fel de bloc e, ex. `ytd-rich-shelf-renderer[is-shorts]`. Prinde intenționat TOATE blocurile de felul ăsta
+ * (toate rafturile de Shorts), fiindcă asta vrea omul când spune „fără Shorts”.
+ */
+function blockSelector(block: Element, doc: Document): string {
+  const tag = block.tagName.toLowerCase();
+  if (tag.includes("-")) {
+    const kinds = [...block.attributes]
+      .filter((a) => !NOT_KIND_ATTRIBUTES.has(a.name) && a.value.length <= KIND_ATTRIBUTE_MAX_CHARS)
+      .map((a) => (a.value === "" ? `${tag}[${a.name}]` : `${tag}[${a.name}="${a.value.replace(/"/g, '\\"')}"]`));
+    const all = doc.querySelectorAll(tag).length;
+    // atributul care deosebește blocul de frații lui de același tip (nu e pe toți)
+    for (const selector of kinds) {
+      try {
+        const count = doc.querySelectorAll(selector).length;
+        if (count >= 1 && count < all) return selector;
+      } catch {
+        // atribut cu nume ciudat: îl sărim
+      }
+    }
+  }
+  return buildSelector(block, doc);
 }
 
 function isShown(element: Element): boolean {
@@ -205,6 +256,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
 
   function snapshot(request: { regionId?: string } = {}): PageSnapshot {
     const recipe = options.recipe();
+    const blockTitles = new Map<Element, Element>();
     const regions = findRegions();
     // Zona cea mai adâncă ce conține elementul (ultima în ordinea DOM dintre cele care îl conțin).
     const regionOf = (element: Element) => {
@@ -215,7 +267,21 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
 
     // Id-urile se dau în ordinea paginii, pe toată pagina, ca același element să aibă același id după reîncărcare
     // (indiferent dacă primul snapshot a fost al unei zone sau al întregii pagini).
-    const all = [...doc.querySelectorAll(ELEMENT_SELECTOR)].filter((element) => !isOurs(element, options.ourHostId));
+    const direct = [...doc.querySelectorAll(ELEMENT_SELECTOR)].filter((element) => !isOurs(element, options.ourHostId));
+    const regionElements = new Set(regions.map((r) => r.element));
+    const blocks = new Set<Element>();
+    for (const title of doc.querySelectorAll(TITLE_SELECTOR)) {
+      if (isOurs(title, options.ourHostId)) continue;
+      const block = blockOfTitle(title, regionElements, doc);
+      if (block) {
+        blocks.add(block);
+        blockTitles.set(block, title);
+      }
+    }
+    const directSet = new Set(direct);
+    const all = [...direct, ...[...blocks].filter((b) => !directSet.has(b))].sort((a, b) =>
+      a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+    );
     for (const element of all) idOf(element);
     const candidates = scope ? all.filter((element) => scope.contains(element)) : all;
 
@@ -236,12 +302,13 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       const visible = shownNow.has(element);
       const tag = element.tagName.toLowerCase();
       const fontPx = parseFloat(getComputedStyle(element).fontSize);
+      const title = blocks.has(element) ? blockTitles.get(element) : undefined;
       return {
         id: idOf(element),
-        selector: buildSelector(element, doc),
+        selector: title ? blockSelector(element, doc) : buildSelector(element, doc),
         tag,
-        role: roleOf(element),
-        label: labelOf(element, doc),
+        role: title ? (element.getAttribute("role") ?? "group") : roleOf(element),
+        label: title ? labelOf(title, doc) : labelOf(element, doc),
         regionId: regionOf(element)?.id,
         rect,
         visible,
