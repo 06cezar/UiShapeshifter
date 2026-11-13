@@ -87,6 +87,9 @@ de căutare se pot scoate; butoanele din bara browserului, nu.
   Agentul citește pagina din fața lui și găsește singur ce înseamnă „Shorts” sau „funcții AI” acolo.
 - Un **singur apel LLM** nu vede rezultatul: nu află că a ascuns și butonul de căutare sau că pagina a rămas goală.
   Agentul verifică după fiecare schimbare (snapshot nou, audit) și repară.
+- **Se vede și rămâne în jurnal:** ca să nu pară un filtru CSS, în demo bucla rulează pe ecran, pas cu pas, în panou
+  (cu cel puțin un eșec reparat, de exemplu un audit picat care duce la o corecție), iar aceiași pași sunt înregistrați în
+  jurnalul rulării și se pot reda ulterior. Ecranul e pentru juriu, jurnalul e dovada inspectabilă.
 - **AI doar la decizie:** odată găsită, rețeta se reaplică fără model, deci repede și fără cost la fiecare vizită.
 
 ## Cum construim: din aproape în aproape

@@ -31,6 +31,11 @@ extensia și vede că merge cap-coadă. Tabelul etapelor: `specs/00-produs.md`.
   elemente; totul trece prin validare (fără JavaScript, fără `url()`/`@import`, fără atribute `on*`) și se salvează ca
   rețetă a site-ului (`specs/01`). JavaScript generat de model nu se execută niciodată.
 - **Rețeta salvată se reaplică fără AI.** Modelul e chemat doar când omul cere ceva sau când pornește o adaptare.
+- **Bucla agentului se vede, nu doar rezultatul.** Juriul trebuie să poată deosebi agentul de un filtru CSS. Fiecare pas
+  (observă, decide, acționează, verifică, repară) apare **pe ecran** în panou, cât rulează, și e **înregistrat** în jurnalul
+  rulării (`apps/server/src/runs/`, citit de `apps/web/src/journal/`), cu rezultatul intermediar care a schimbat pasul
+  următor (scorul de audit, elementul negăsit, operația refuzată). Orice funcție nouă a agentului scrie pași în jurnal.
+  La demo arătăm cel puțin un eșec reparat, nu doar căi fericite (`specs/00`, „De ce agent”).
 - **Cheia OpenRouter doar pe server** (`apps/server/.env`), niciodată în extensie, în loguri sau în git.
 - Elementele noastre interactive au `data-agent-id` (`specs/04`); elementele site-ului primesc id din registru.
 - În interfața noastră, nicio culoare sau mărime hardcodată: totul din temă (variabile CSS).
