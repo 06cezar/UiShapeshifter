@@ -1,15 +1,36 @@
-// Content script-ul: rulează în fiecare pagină. În etapa 0 montează rădăcina noastră (shadow DOM), arată un semn
-// că extensia e aici și duce un mesaj de probă pagină → service worker → server și înapoi (punctul de control M0).
-// Etapele următoare adaugă aici rețeta (B5), registrul și uneltele (B2), semnalele (E2), chatul și mascota (D).
+// Content script-ul: rulează în fiecare pagină, de la document_start.
+// 1. Rețeta site-ului (B5): citită din stocare și pusă în pagină înainte să se vadă, fără server și fără model.
+// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), insigna cu un câmp de cerere, registrul paginii (B2)
+//    și executorul uneltelor. Chatul și mascota (D) înlocuiesc insigna; semnalele (E2) vin în etapa 2.
 
 import type { ServerMessage } from "@uishapeshifter/contracts";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
 import { createPageRegistry } from "../ui/page-registry/registry";
+import { createRecipeEngine } from "../ui/recipes/recipe-engine";
+import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
 import { PAGE_PORT, parseFromWorker, type LinkStatus, type ToWorker } from "./messages";
-import { pageInfo } from "./page-info";
+import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
 
 const PROBE_TEXT = "Probă de la extensie";
+const host = normalizeHost(location.hostname);
+
+// Interfața noastră e vizibilă? (motorul anulează o revizie care ar ascunde-o)
+function isOurUiVisible(): boolean {
+  const ourHost = document.getElementById(HOST_ID);
+  if (!ourHost) return true; // încă nemontată: nimic de stricat
+  const badge = ourHost.shadowRoot?.querySelector(".badge");
+  const rect = badge?.getBoundingClientRect();
+  return getComputedStyle(ourHost).display !== "none" && !!rect && rect.width > 0 && rect.height > 0;
+}
+
+const recipes = createRecipeEngine({ host, storage: chrome.storage.local, isOurUiVisible });
+void recipes.load();
+// Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
+chrome.storage.onChanged.addListener((changes, area) => {
+  const change = changes[recipeKey(host)];
+  if (area === "local" && change) recipes.adopt(parseStoredRecipe(change.newValue, host, new Date().toISOString()));
+});
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
 const RECONNECT_PORT_MS = 1000;
 
@@ -33,6 +54,11 @@ const BADGE_CSS = `
 .dot[data-status="open"] { background: var(--uis-ok); }
 .dot[data-status="closed"] { background: var(--uis-error); }
 .reply { color: var(--uis-muted); }
+input {
+  min-height: var(--uis-target); min-width: 12em; padding: 0 var(--uis-space);
+  font: inherit; color: var(--uis-bg); background: var(--uis-fg);
+  border: none; border-radius: var(--uis-radius);
+}
 button {
   min-height: var(--uis-target); min-width: var(--uis-target);
   padding: 0 calc(var(--uis-space) * 2);
@@ -69,19 +95,23 @@ function startBadge() {
     <span class="dot" aria-hidden="true"></span>
     <span><strong>UI Shapeshifter</strong> · <span class="status">${STATUS_TEXT.connecting}</span></span>
     <span class="reply"></span>
-    <button type="button" data-agent-id="extension.probe">Trimite proba</button>`;
+    <input type="text" data-agent-id="extension.request" aria-label="Ce vrei să schimbi pe pagină?"
+      placeholder="Ce vrei să schimbi?" />
+    <button type="button" data-agent-id="extension.probe">Trimite</button>`;
   root.shadow.appendChild(badge);
 
   const dot = badge.querySelector<HTMLElement>(".dot")!;
   const statusText = badge.querySelector<HTMLElement>(".status")!;
   const replyText = badge.querySelector<HTMLElement>(".reply")!;
   const probeButton = badge.querySelector<HTMLButtonElement>("button")!;
+  const requestInput = badge.querySelector<HTMLInputElement>("input")!;
 
   let port: chrome.runtime.Port | null = null;
 
   // Registrul paginii (B2) și uneltele din pagină. Motorul de rețete (B5) se adaugă ca `recipes`.
   const tools: PageToolDeps = {
-    registry: createPageRegistry({ ourHostId: HOST_ID, recipe: () => ({ revision: 0, css: "" }) }),
+    registry: createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() }),
+    recipes,
     say: (text) => (replyText.textContent = `Agentul: ${text}`),
   };
 
@@ -117,15 +147,23 @@ function startBadge() {
     });
   }
 
-  probeButton.addEventListener("click", () => {
+  // Câmpul gol trimite proba din etapa 0; altfel, cererea omului (până vine chatul lui D).
+  function sendRequest() {
+    const text = requestInput.value.trim() || PROBE_TEXT;
     replyText.textContent = "Trimit…";
+    requestInput.value = "";
     send({
       type: "to_server",
-      message: { type: "user_message", text: PROBE_TEXT, source: "text", page: pageInfo(location, document.title) },
+      message: { type: "user_message", text, source: "text", page: pageInfo(location, document.title) },
     });
+  }
+  probeButton.addEventListener("click", sendRequest);
+  requestInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") sendRequest();
   });
 
   connect();
 }
 
-startBadge();
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startBadge, { once: true });
+else startBadge();

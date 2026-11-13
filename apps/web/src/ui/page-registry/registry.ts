@@ -57,7 +57,10 @@ const ROLE_SHORT: Record<string, string> = {
   region: "region",
 };
 
-/** Ce vede agentul: titlurile și tot ce se poate apăsa sau completa. */
+/**
+ * Ce vede agentul: titlurile, tot ce se poate apăsa sau completa și blocurile cu nume (reclame, rafturi, ferestre),
+ * fiindcă exact pe acestea vrea omul să le scoată („ascunde reclama”, „fără Shorts”).
+ */
 const ELEMENT_SELECTOR = [
   "a[href]",
   "button",
@@ -76,6 +79,12 @@ const ELEMENT_SELECTOR = [
   '[role="checkbox"]',
   '[role="switch"]',
   '[tabindex]:not([tabindex="-1"])',
+  "[aria-label]",
+  "section",
+  "article",
+  "dialog",
+  '[role="dialog"]',
+  "iframe[title]",
 ].join(",");
 const INTERACTIVE_TAGS = new Set(["a", "button", "input", "select", "textarea", "summary"]);
 const INPUT_ROLES: Record<string, string> = {
