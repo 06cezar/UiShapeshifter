@@ -2,6 +2,7 @@
 // pentru site-ul din tab-ul curent (B5). Contul vine cu E6.
 
 import { currentAccount, signIn, signOut } from "../sync/account-sync";
+import { loadDemoProfile, resetDemo } from "./demo-reset";
 import { clearRecipe, loadRecipe } from "../ui/recipes/recipe-store";
 import { POPUP_PORT, parseFromWorker, type LinkStatus } from "./messages";
 import { normalizeHost } from "./page-info";
@@ -106,3 +107,23 @@ signOutButton.addEventListener("click", async () => {
 });
 
 void showAccount();
+
+// ---------- Pentru demo (E4): totul de la zero și profilul de demo din specs/08 ----------
+
+const demoStatus = document.getElementById("demo-status")!;
+const demoOptions = { apiUrl: API_URL, storage: chrome.storage.local };
+
+document.getElementById("demo-reset")!.addEventListener("click", async () => {
+  if (!confirm("Ștergi rețetele, profilul și contul de pe acest calculator, ca la instalare?")) return;
+  const { recipes, server } = await resetDemo(demoOptions);
+  demoStatus.textContent = `Gata: ${recipes} site-uri revenite la original${server ? "" : " (serverul nu a răspuns: doar local)"}. Reîncarcă paginile deschise.`;
+  await showSite();
+  await showAccount();
+});
+
+document.getElementById("demo-profile")!.addEventListener("click", async () => {
+  const ok = await loadDemoProfile(demoOptions);
+  demoStatus.textContent = ok
+    ? "Profilul de demo e încărcat: text de 20px, contrast mare, fără AI și fără clipuri scurte."
+    : "Profilul de demo e doar local: serverul nu a răspuns.";
+});
