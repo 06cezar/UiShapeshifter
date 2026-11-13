@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 0/21 · **În lucru:** 1 · **Poate începe:** 1 · **Așteaptă:** 19 · **Blocat:** 0
+**Gata:** 0/21 · **În lucru:** 2 · **Poate începe:** 0 · **Așteaptă:** 19 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -25,7 +25,7 @@ flowchart LR
     t_C3["C3 · Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10)<br/>⏳ așteaptă"]
   end
   subgraph t_owner_D["D"]
-    t_D1["D1 · Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev)<br/>🟢 poate începe"]
+    t_D1["D1 · Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev)<br/>🔨 în lucru"]
     t_D2["D2 · Mascota SVG + Framer Motion, cele 7 stări, pointAt cu lăbuța (specs/11, specs/04)<br/>⏳ așteaptă"]
     t_D3["D3 · Chat text + voce (Web Speech ro-RO) + bula mascotei, conectate la WebSocket<br/>⏳ așteaptă"]
     t_D4["D4 · Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas<br/>⏳ așteaptă"]
@@ -78,14 +78,13 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_C1 progress
-  class t_D1 ready
+  class t_D1,t_C1 progress
   class t_D2,t_D3,t_D4,t_D5,t_D6,t_A1,t_A2,t_A3,t_A4,t_B1,t_B2,t_B3,t_B4,t_C2,t_C3,t_E1,t_E2,t_E3,t_E4 wait
 ```
 
 ## Poate începe acum
 
-- **D1** (D) Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev) _(vin 15:00. Gata = npm install && npm run dev pornește web pe 5173 și server pe 8787 cu /api/health; contracts importabile din ambele.)_
+_nimic_
 
 ## Blocat
 
@@ -93,6 +92,7 @@ _nimic_
 
 ## În lucru
 
+- **D1** (D) Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev): branch `d1-schelet` are commit-uri _(vin 15:00. Gata = npm install && npm run dev pornește web pe 5173 și server pe 8787 cu /api/health; contracts importabile din ambele.)_
 - **C1** (C) Motorul de audit - min-font, contrast, target-size, overlap, clipped, offscreen, line-height + scor (specs/07): PR #3 deschis _(vin 21:00. Gata = funcții pure pe UISnapshot + DOM, cu teste unitare (contrast #777 pe alb = 4.48).)_
 
 ## Așteaptă
