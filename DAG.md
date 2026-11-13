@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 20/40 · **În lucru:** 5 · **Poate începe:** 0 · **Așteaptă:** 15 · **Blocat:** 0
+**Gata:** 20/40 · **În lucru:** 6 · **Poate începe:** 0 · **Așteaptă:** 14 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -11,7 +11,7 @@ flowchart LR
     t_A1["A1 · Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT_FAKE=1) și jurnalul rulărilor<br/>✅ gata"]
     t_A2["A2 · Bucla agentului cu OpenRouter cap-coadă pe o pagină reală - get_page_snapshot, apply_css, verificare, say, finish (+ agentul fals adaptat)<br/>✅ gata"]
     t_A3["A3 · Uneltele etapei 2 - apply_ops, point_at, propose_changes, ask_user, wait_for_user_click + promptul care cere verificare după fiecare schimbare<br/>✅ gata"]
-    t_A6["A6 · Profilul și rețeta site-ului în contextul agentului + update_profile; o cerere repetată devine preferință generală<br/>⏳ așteaptă"]
+    t_A6["A6 · Profilul și rețeta site-ului în contextul agentului + update_profile; o cerere repetată devine preferință generală<br/>🔨 în lucru · încă așteaptă E8"]
     t_A4["A4 · Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter<br/>⏳ așteaptă"]
     t_A5["A5 · Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes)<br/>⏳ așteaptă"]
   end
@@ -146,8 +146,8 @@ flowchart LR
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
   class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_A3,t_C2,t_C4 done
-  class t_B6,t_D2,t_D9,t_E2,t_C3 progress
-  class t_M2,t_E8,t_A6,t_B3,t_D10,t_M3,t_B4,t_A4,t_A5,t_E3,t_E6,t_M4,t_D5,t_E4,t_D6 wait
+  class t_B6,t_D2,t_D9,t_E2,t_C3,t_A6 progress
+  class t_M2,t_E8,t_B3,t_D10,t_M3,t_B4,t_A4,t_A5,t_E3,t_E6,t_M4,t_D5,t_E4,t_D6 wait
 ```
 
 ## Poate începe acum
@@ -165,12 +165,12 @@ _nimic_
 - **D9** (D) Panoul de control în extensie - pași live, Oprește, previzualizare cu Păstrez/Anulez, „Revino la original” (refolosește D4): PR #45 deschis _(Etapa 2 · sâm 00:30. Gata = o rulare se vede pas cu pas peste site; Anulez readuce pagina cum era înainte de rulare.)_
 - **E2** (E) Colectarea semnalelor în content script - misclick, zoom, back\_loop, dwell, feature\_use, help\_request (specs/09): PR #42 deschis _(Etapa 2 · sâm 00:00. Gata = loturile de semnale de pe un site real ajung pe server și se văd în log. Se folosesc în etapa 4 (E3).)_
 - **C3** (C) Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10): PR #9 deschis; încă așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.)_
+- **A6** (A) Profilul și rețeta site-ului în contextul agentului + update\_profile; o cerere repetată devine preferință generală: branch `a6-context-profil` are commit-uri; încă așteaptă E8 _(Etapa 3 · sâm 03:00. Gata = cine a spus „nu vreau AI” pe un site nu mai trebuie să explice pe următorul; agentul nu reface ce e deja în rețetă.)_
 
 ## Așteaptă
 
 - **M2** (D) PUNCT DE CONTROL 2 - „mută X sus” merge și rămâne, mascota merge la element, pașii se văd în panou, Anulez readuce pagina: așteaptă B6, D2, D9, E2 _(sâm 01:00. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
 - **E8** (E) Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08): așteaptă M2 _(Etapa 3 · sâm 02:00. Gata = profilul rezistă la repornirea browserului fără cont; rezumatul pentru prompt include preferințele generale.)_
-- **A6** (A) Profilul și rețeta site-ului în contextul agentului + update\_profile; o cerere repetată devine preferință generală: așteaptă E8 _(Etapa 3 · sâm 03:00. Gata = cine a spus „nu vreau AI” pe un site nu mai trebuie să explice pe următorul; agentul nu reface ce e deja în rețetă.)_
 - **B3** (B) Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03): așteaptă B6, M2 _(Etapa 3 · sâm 03:00. Gata = „vreau o scurtătură spre X” pune un element nou în pagină, apăsarea lui îl declanșează pe cel real, rămâne după reîncărcare; HTML cu script sau on\* e respins.)_
 - **D10** (D) Vocea - cererea vorbită (Web Speech ro-RO) din bula mascotei: așteaptă M2 _(Etapa 3 · sâm 02:30. Gata = o cerere vorbită ajunge la agent ca una scrisă; dacă browserul nu are recunoaștere vocală, butonul nu apare.)_
 - **M3** (D) PUNCT DE CONTROL 3 - instalare proaspătă → test → profil; un site nou are fontul minim fără AI; o scurtătură generată merge; cererea vorbită merge: așteaptă C3, E8, A6, B3, D10 _(sâm 03:30. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
