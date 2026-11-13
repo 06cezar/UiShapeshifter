@@ -4,12 +4,13 @@
 import { randomUUID } from "node:crypto";
 import type { AgentRun, RunOrigin } from "@uishapeshifter/contracts";
 import { loadConfig } from "../config/config-store";
+import { profileSummary } from "../profile";
 import { saveRun } from "../runs/run-store";
 import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Session } from "../ws/sessions";
 import { createFakeDecider } from "./fake-decider";
 import { createOpenRouterDecider } from "./openrouter-decider";
 import { runAgent, type Decider } from "./run-agent";
-import { callServerTool } from "./server-tools";
+import { callServerTool, profiles } from "./server-tools";
 
 // pauza dintre pașii agentului fals, ca pașii să apară în panou unul câte unul
 const FAKE_STEP_DELAY_MS = Number(process.env.AGENT_FAKE_DELAY_MS ?? 600);
@@ -27,7 +28,10 @@ const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 function createDecider(userId: string, goal: string): Decider {
   if (process.env.AGENT_FAKE === "1") return createFakeDecider(goal, FAKE_STEP_DELAY_MS);
   return createOpenRouterDecider(goal, {
-    loadContext: async () => ({ config: await loadConfig(userId) }),
+    loadContext: async () => ({
+      config: await loadConfig(userId),
+      profileSummary: profileSummary(await profiles.get(userId)),
+    }),
   });
 }
 
@@ -52,7 +56,7 @@ function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
 
   active.done = runAgent(run, decider, {
     callWebTool: (name, args) => callWebTool(session, run.runId, name, args),
-    callServerTool: async (name, args) => callServerTool(run.runId, name, args),
+    callServerTool: (name, args) => callServerTool(run.runId, session.userId, name, args),
     send: (message) => sendToSession(session, message),
     saveRun,
     isCancelled: () => active.cancelled,
