@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "0319cba2189d69cec031d808921f35a79aae4f5a",
-  "last_run": "2026-11-13T13:25:05Z",
+  "last_comms_sha": "a60e312bed4c36c20dacd271288457d53c321cbf",
+  "last_run": "2026-11-13T13:25:57Z",
   "last_sha": "e8e93a94e99cd9309a916959b9c7a1c42ece1cba",
   "prs": {
     "1": {
@@ -48,7 +48,7 @@
     "D4": "wait",
     "D5": "wait",
     "D6": "wait",
-    "E1": "ready",
+    "E1": "progress",
     "E2": "wait",
     "E3": "wait",
     "E4": "wait"

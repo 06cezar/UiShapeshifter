@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 2/21 · **În lucru:** 1 · **Poate începe:** 2 · **Așteaptă:** 16 · **Blocat:** 0
+**Gata:** 2/21 · **În lucru:** 2 · **Poate începe:** 1 · **Așteaptă:** 16 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
     t_D6["D6 · Pitch de 5 minute, descrierea de o pagină, screenshot-uri, README final, trimiterea pe Slack<br/>⏳ așteaptă"]
   end
   subgraph t_owner_E["E"]
-    t_E1["E1 · Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08)<br/>🟢 poate începe"]
+    t_E1["E1 · Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08)<br/>🔨 în lucru"]
     t_E2["E2 · Colectarea semnalelor în frontend - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)<br/>⏳ așteaptă"]
     t_E3["E3 · Regulile de adaptare automată + încrederea (autoApplyLowRisk) + pornirea agentului cu origin adaptation<br/>⏳ așteaptă"]
     t_E4["E4 · Datele de test, butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă<br/>⏳ așteaptă"]
@@ -79,15 +79,14 @@ flowchart LR
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
   class t_D1,t_C1 done
-  class t_B1 progress
-  class t_A1,t_E1 ready
+  class t_B1,t_E1 progress
+  class t_A1 ready
   class t_D2,t_D3,t_D4,t_D5,t_D6,t_A2,t_A3,t_A4,t_B2,t_B3,t_B4,t_C2,t_C3,t_E2,t_E3,t_E4 wait
 ```
 
 ## Poate începe acum
 
 - **A1** (A) Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT\_FAKE=1) și jurnalul rulărilor _(vin 18:00. Gata = hello/user\_message/tool\_call/tool\_result/step/run\_finished merg cu agentul fals; GET /api/runs/:id; GET/PUT /api/config/:userId (data/configs).)_
-- **E1** (E) Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08) _(vin 20:00. Gata = GET/PUT profil, PUT onboarding, profileSummary(profile) sub 150 de cuvinte.)_
 
 ## Blocat
 
@@ -96,6 +95,7 @@ _nimic_
 ## În lucru
 
 - **B1** (B) Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane: branch `b1-store-layout` are commit-uri _(vin 19:00. Gata = applyPatch refuză baseFontPx 14 cu LIMIT\_VIOLATION; cele 3 șabloane se randează din config.)_
+- **E1** (E) Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08): branch `e1-profil` are commit-uri _(vin 20:00. Gata = GET/PUT profil, PUT onboarding, profileSummary(profile) sub 150 de cuvinte.)_
 
 ## Așteaptă
 
