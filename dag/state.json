@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "d28e0ef89b1115a4cc1428d7d0f5537f51813311",
-  "last_run": "2026-11-13T14:18:55Z",
+  "last_comms_sha": "d2f7573786c4daabcfcdb293e50f6372b3da0cec",
+  "last_run": "2026-11-13T14:19:16Z",
   "last_sha": "3b79bb796e0a35b76353230a261fbcc53f7c3fc1",
   "prs": {
     "1": {
@@ -13,6 +13,11 @@
       "head": "d-regula-review",
       "merged_at": "2026-11-13T14:02:51Z",
       "state": "MERGED"
+    },
+    "11": {
+      "head": "d4-panou",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "2": {
       "head": "d-stil-decizii",
