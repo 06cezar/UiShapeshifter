@@ -1,11 +1,12 @@
 // Content script-ul: rulează în fiecare pagină, de la document_start.
 // 1. Rețeta site-ului (B5): citită din stocare și pusă în pagină înainte să se vadă, fără server și fără model.
-// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), chatul (D3), registrul paginii (B2) și executorul
-//    uneltelor. Mascota și panoul (D) vin în etapa 2, la fel și semnalele (E2).
+// 2. După ce pagina s-a încărcat: rădăcina noastră (shadow DOM), chatul (D3), mascota (D2), registrul paginii (B2) și
+//    executorul uneltelor. Panoul (D9) și semnalele (E2) vin tot în etapa 2.
 
 import { mountChat } from "../chat";
+import { mountMascot, type MascotController } from "../mascot";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
-import type { UserNeeds } from "@uishapeshifter/contracts";
+import type { ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
 import { runAuditUi } from "../a11y";
 import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
 import { thresholdsFor } from "../a11y/thresholds";
@@ -66,6 +67,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+/** Ce face mascota la mesajele serverului: se gândește cât rulează agentul, se bucură sau se încurcă la final. */
+function moveMascot(mascot: MascotController, server: ServerMessage) {
+  if (server.type === "run_started") mascot.setState("thinking");
+  else if (server.type === "agent_message") mascot.setState(server.mascot);
+  else if (server.type === "run_finished") mascot.setState(server.success ? "happy" : "confused");
+  else if (server.type === "error") mascot.setState("confused");
+}
+
 function start() {
   let port: chrome.runtime.Port | null = null;
 
@@ -73,10 +82,12 @@ function start() {
     port?.postMessage(message);
   }
 
-  const chat = mountChat(mountOurRoot(), {
+  const ourRoot = mountOurRoot();
+  const chat = mountChat(ourRoot, {
     send: (message) => send({ type: "to_server", message }),
     page: () => pageInfo(location, document.title),
   });
+  const mascot = mountMascot(ourRoot);
 
   // Preferințele de bază pornesc cu nevoile salvate de testul inițial (sau implicite) și se reaplică peste rețetă.
   void chrome.storage.local.get(ONBOARDING_KEY).then((saved) => {
@@ -84,7 +95,7 @@ function start() {
     base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
 
-  // Registrul paginii (B2), motorul de rețete (B5) și bula chatului pentru `say`.
+  // Registrul paginii (B2), motorul de rețete (B5), bula chatului pentru `say` și mascota pentru `point_at` (D2).
   const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
   const tools: PageToolDeps = {
     registry,
@@ -106,7 +117,11 @@ function start() {
         regionElement: (regionId) => registry.elementOf(regionId),
         pauseRecipe: recipes.pause,
       }),
-    say: (text) => chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" }),
+    say: (text) => {
+      chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" });
+      mascot.setState("speaking");
+    },
+    pointAt: (element, message) => mascot.pointAt(element, message),
   };
 
   function connect() {
@@ -126,6 +141,7 @@ function start() {
         return;
       }
       chat.handleServerMessage(server);
+      moveMascot(mascot, server);
     });
     port.onDisconnect.addListener(() => {
       port = null;
