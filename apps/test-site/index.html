@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contul meu · Furnizorul Demo de Energie</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <!--
+    Site-ul de test al echipei (E7): o pagină aglomerată INTENȚIONAT, cu date de test, pe care verificăm extensia
+    fără internet. Furnizorul, numele și sumele sunt inventate. Ce e greu de găsit: butonul „Plătește factura”
+    (ascuns în meniul „Mai multe acțiuni” al facturii curente, mic și gri).
+  -->
+  <body>
+    <div class="promo-strip" aria-label="Bandă promoțională">
+      ⚡ Doar azi: -15% la abonamentul Verde Plus! <a href="#oferte">Vezi oferta</a>
+      <button type="button" class="promo-close" aria-label="Închide banda">×</button>
+    </div>
+
+    <header class="site-header">
+      <a href="#" class="logo">Furnizorul <b>Demo</b></a>
+      <nav aria-label="Meniu principal" class="mega-nav">
+        <a href="#acasa">Acasă</a>
+        <a href="#persoane">Persoane fizice</a>
+        <a href="#firme">Firme</a>
+        <a href="#oferte">Oferte</a>
+        <a href="#energie-verde">Energie verde</a>
+        <a href="#gaz">Gaz natural</a>
+        <a href="#servicii">Servicii tehnice</a>
+        <a href="#mobilitate">Mobilitate electrică</a>
+        <a href="#blog">Blog</a>
+        <a href="#cariere">Cariere</a>
+        <a href="#investitori">Investitori</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <form class="search" role="search" aria-label="Căutare pe site" onsubmit="return false">
+        <input type="search" placeholder="Caută pe site…" aria-label="Caută pe site" />
+        <button type="submit">Caută</button>
+      </form>
+      <div class="header-tools">
+        <button type="button" aria-label="Notificări (7)">🔔 <span class="badge">7</span></button>
+        <button type="button" aria-label="Limba">RO ▾</button>
+        <button type="button" aria-label="Contul meu">👤 Maria P.</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side-menu" aria-label="Meniu cont">
+        <h2>Contul meu</h2>
+        <a href="#sumar">Sumar</a>
+        <a href="#locuri">Locuri de consum</a>
+        <a href="#contracte">Contracte</a>
+        <a href="#facturi" class="active">Facturi și plăți</a>
+        <a href="#istoric">Istoric consum</a>
+        <a href="#index">Transmite indexul</a>
+        <a href="#acorduri">Acorduri și consimțăminte</a>
+        <a href="#date">Date personale</a>
+        <a href="#programari">Programări</a>
+        <a href="#sesizari">Sesizări</a>
+        <a href="#documente">Documente</a>
+        <a href="#recomanda">Recomandă un prieten</a>
+        <a href="#puncte">Puncte de fidelitate</a>
+        <a href="#setari">Setări</a>
+        <a href="#ajutor">Ajutor</a>
+      </aside>
+
+      <main>
+        <section class="hero" aria-label="Carusel de noutăți">
+          <h1>Bun venit înapoi, Maria!</h1>
+          <p>Descoperă noul program de fidelitate: puncte la fiecare factură plătită la timp.</p>
+          <div class="carousel-dots" aria-hidden="true">● ○ ○ ○ ○</div>
+          <a href="#fidelitate" class="cta">Află mai multe</a>
+        </section>
+
+        <div class="ad" aria-label="Reclamă">
+          <span class="ad-label">Sponsorizat</span>
+          <strong>Panouri solare cu 0% avans</strong>
+          <span>Calculează economia pentru casa ta în 2 minute.</span>
+          <a href="#solar">Calculează acum</a>
+        </div>
+
+        <section class="cards">
+          <article class="card">
+            <h2>Sold curent</h2>
+            <p class="big">248,37 lei</p>
+            <p class="muted">Scadența: 25 noiembrie 2026</p>
+          </article>
+          <article class="card">
+            <h2>Consum luna aceasta</h2>
+            <p class="big">212 kWh</p>
+            <p class="muted">+8% față de luna trecută</p>
+          </article>
+          <article class="card">
+            <h2>Puncte de fidelitate</h2>
+            <p class="big">1.240</p>
+            <a href="#puncte">Folosește punctele</a>
+          </article>
+          <article class="card">
+            <h2>Index</h2>
+            <p class="muted">Perioada de transmitere: 1–5 decembrie</p>
+            <a href="#index">Transmite indexul</a>
+          </article>
+        </section>
+
+        <section id="facturi" class="invoices">
+          <h2>Facturi și plăți</h2>
+          <div class="filters">
+            <label>An <select><option>2026</option><option>2025</option></select></label>
+            <label>Loc de consum <select><option>Str. Exemplului 10, București</option></select></label>
+            <label>Tip <select><option>Toate</option><option>Energie</option><option>Gaz</option></select></label>
+            <button type="button">Exportă CSV</button>
+            <button type="button">Exportă PDF</button>
+            <button type="button">Abonează-te la e-factură</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Nr. factură</th><th>Emisă</th><th>Perioada</th><th>Valoare</th><th>Stare</th><th>Acțiuni</th></tr>
+            </thead>
+            <tbody>
+              <tr class="current">
+                <td>DEMO-2026-0011</td><td>10.11.2026</td><td>oct. 2026</td><td>248,37 lei</td>
+                <td><span class="status due">De plată</span></td>
+                <td class="actions">
+                  <a href="#descarca-11">Descarcă</a>
+                  <a href="#detalii-11">Detalii</a>
+                  <details class="more">
+                    <summary aria-label="Mai multe acțiuni pentru factura DEMO-2026-0011">⋯</summary>
+                    <div class="more-menu">
+                      <a href="#retrimite">Retrimite pe e-mail</a>
+                      <a href="#contesta">Contestă factura</a>
+                      <a href="#esalonare">Cere eșalonare</a>
+                      <a href="./plata.html" class="pay">Plătește factura</a>
+                    </div>
+                  </details>
+                </td>
+              </tr>
+              <tr><td>DEMO-2026-0010</td><td>10.10.2026</td><td>sept. 2026</td><td>231,12 lei</td><td><span class="status paid">Plătită</span></td><td class="actions"><a href="#d10">Descarcă</a> <a href="#x10">Detalii</a></td></tr>
+              <tr><td>DEMO-2026-0009</td><td>10.09.2026</td><td>aug. 2026</td><td>265,80 lei</td><td><span class="status paid">Plătită</span></td><td class="actions"><a href="#d9">Descarcă</a> <a href="#x9">Detalii</a></td></tr>
+              <tr><td>DEMO-2026-0008</td><td>10.08.2026</td><td>iul. 2026</td><td>274,05 lei</td><td><span class="status paid">Plătită</span></td><td class="actions"><a href="#d8">Descarcă</a> <a href="#x8">Detalii</a></td></tr>
+              <tr><td>DEMO-2026-0007</td><td>10.07.2026</td><td>iun. 2026</td><td>219,44 lei</td><td><span class="status paid">Plătită</span></td><td class="actions"><a href="#d7">Descarcă</a> <a href="#x7">Detalii</a></td></tr>
+              <tr><td>DEMO-2026-0006</td><td>10.06.2026</td><td>mai 2026</td><td>201,90 lei</td><td><span class="status paid">Plătită</span></td><td class="actions"><a href="#d6">Descarcă</a> <a href="#x6">Detalii</a></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="news" aria-label="Noutăți">
+          <h2>Noutăți</h2>
+          <article><h3>Program nou de lucru în agenții</h3><p>De luni, agențiile sunt deschise până la ora 19.</p></article>
+          <article><h3>Sfaturi de economisire iarna aceasta</h3><p>Cinci lucruri simple care scad factura.</p></article>
+          <article><h3>Am lansat aplicația pe telefon</h3><p>Descarc-o și primești 100 de puncte.</p></article>
+        </section>
+
+        <section class="survey" aria-label="Chestionar">
+          <h2>Cât de mulțumit ești de noi?</h2>
+          <div class="stars"><button type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button></div>
+        </section>
+      </main>
+
+      <aside class="right-rail" aria-label="Recomandări">
+        <h2>Recomandate pentru tine</h2>
+        <div class="ad small" aria-label="Reclamă laterală"><span class="ad-label">Sponsorizat</span> Asigurare pentru locuință de la 9 lei/lună <a href="#asig">Vezi</a></div>
+        <div class="ad small" aria-label="Reclamă laterală 2"><span class="ad-label">Sponsorizat</span> Becuri LED la jumătate de preț <a href="#led">Cumpără</a></div>
+        <a href="#quiz">Fă quiz-ul energetic</a>
+        <a href="#concurs">Participă la concurs</a>
+      </aside>
+    </div>
+
+    <footer class="site-footer">
+      <nav aria-label="Legături utile">
+        <a href="#despre">Despre noi</a><a href="#presa">Presă</a><a href="#termeni">Termeni</a>
+        <a href="#confidentialitate">Confidențialitate</a><a href="#cookies">Cookie-uri</a><a href="#anpc">Protecția consumatorului</a>
+        <a href="#harta">Harta site-ului</a><a href="#accesibilitate">Accesibilitate</a><a href="#agentii">Agenții</a>
+      </nav>
+      <p>© 2026 Furnizorul Demo de Energie. Site de test, date inventate.</p>
+    </footer>
+
+    <button type="button" class="chat-bubble" aria-label="Asistent virtual">💬 Ai nevoie de ajutor?</button>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "@uishapeshifter/test-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5180 --strictPort",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}
