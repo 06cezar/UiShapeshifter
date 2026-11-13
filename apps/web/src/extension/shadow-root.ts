@@ -1,8 +1,8 @@
 // Rădăcina interfeței noastre în pagina unui site: un element gazdă cu shadow DOM închis la stilurile site-ului.
 // Mascota, chatul și panoul (D) se montează aici, ca site-ul să nu ne strice și noi să nu-l stricăm (specs/01).
 
-/** Id-ul gazdei: îl folosesc validarea (C5: „fără selectori spre interfața noastră”) și registrul (îl sare). */
-export const HOST_ID = "ui-shapeshifter-root";
+/** Id-ul gazdei: conține „uishapeshifter”, ca validarea CSS (C5) să blocheze orice selector spre interfața noastră; registrul îl sare. */
+export const HOST_ID = "uishapeshifter-root";
 
 /** Peste orice element al site-ului: cea mai mare valoare z-index posibilă. */
 const TOP_Z_INDEX = "2147483647";

@@ -25,5 +25,7 @@ declare namespace chrome {
       remove(keys: string | string[]): Promise<void>;
     }
     const local: StorageArea;
+    /** Ține cât e pornit browserul, peste repornirile service worker-ului. */
+    const session: StorageArea;
   }
 }

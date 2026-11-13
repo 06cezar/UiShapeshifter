@@ -4,6 +4,7 @@
 
 import type { ServerMessage } from "@uishapeshifter/contracts";
 import { PAGE_PORT, parseFromWorker, type LinkStatus, type ToWorker } from "./messages";
+import { pageInfo } from "./page-info";
 import { mountOurRoot } from "./shadow-root";
 
 const PROBE_TEXT = "Probă de la extensie";
@@ -116,7 +117,10 @@ function startBadge() {
 
   probeButton.addEventListener("click", () => {
     replyText.textContent = "Trimit…";
-    send({ type: "to_server", message: { type: "user_message", text: PROBE_TEXT, source: "text" } });
+    send({
+      type: "to_server",
+      message: { type: "user_message", text: PROBE_TEXT, source: "text", page: pageInfo(location, document.title) },
+    });
   });
 
   connect();

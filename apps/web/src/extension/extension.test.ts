@@ -2,8 +2,10 @@
 // Drumul real (Chrome + server) se verifică încărcând extensia: pașii sunt în README.
 
 import { describe, expect, test } from "vitest";
-import type { ClientMessage } from "@uishapeshifter/contracts";
+import type { ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
 import { parseServerMessage, parseToWorker } from "./messages";
+import { normalizeHost, pageInfo } from "./page-info";
+import { createRunRouter } from "./run-router";
 import { startServerLink, type SocketLike } from "./server-link";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
 import { getOrCreateSessionId, getOrCreateUserId, type KeyValueStore } from "./storage";
@@ -130,5 +132,45 @@ describe("rădăcina shadow DOM", () => {
     expect(second.host).toBe(first.host);
     expect(document.querySelectorAll(`#${HOST_ID}`)).toHaveLength(1);
     expect(first.shadow.querySelector("style")?.textContent).toContain("--uis-font-size");
+  });
+});
+
+describe("rutarea runId → tab", () => {
+  const started = (runId: string, origin: "user" | "adaptation" = "user") =>
+    ({ type: "run_started", runId, goal: "g", origin }) as const;
+  const finished = (runId: string) => ({ type: "run_finished", runId, success: true, summary: "" }) as const;
+  const toolCall = (runId: string) =>
+    ({ type: "tool_call", runId, callId: "c", name: "say", args: { message: "x" } }) as unknown as ServerMessage;
+
+  test("mesajele unei rulări ajung doar în tab-ul care a cerut-o", () => {
+    const router = createRunRouter<string>();
+    const open = new Set(["tab-a", "tab-b"]);
+    router.requestedBy("tab-a");
+    router.requestedBy("tab-b");
+    expect(router.targetsFor(started("r1"), open)).toEqual(["tab-a"]);
+    expect(router.targetsFor(started("r2"), open)).toEqual(["tab-b"]);
+    expect(router.targetsFor(toolCall("r2"), open)).toEqual(["tab-b"]);
+    expect(router.targetsFor(finished("r1"), open)).toEqual(["tab-a"]);
+  });
+
+  test("o rulare pornită de server nu ia cererea unui tab; tool_call spre un tab închis nu pleacă nicăieri", () => {
+    const router = createRunRouter<string>();
+    const open = new Set(["tab-a"]);
+    router.requestedBy("tab-a");
+    expect(router.targetsFor(started("adapt", "adaptation"), open)).toEqual(["tab-a"]);
+    expect(router.targetsFor(started("r1"), open)).toEqual(["tab-a"]);
+    router.forget("tab-a");
+    expect(router.targetsFor(toolCall("r1"), new Set())).toEqual([]);
+  });
+});
+
+describe("pagina din care vine cererea", () => {
+  test("host fără www. și cu litere mici", () => {
+    expect(normalizeHost("WWW.Exemplu.RO")).toBe("exemplu.ro");
+    expect(pageInfo({ href: "https://www.site.ro/a", hostname: "www.site.ro" }, "T")).toEqual({
+      url: "https://www.site.ro/a",
+      host: "site.ro",
+      title: "T",
+    });
   });
 });

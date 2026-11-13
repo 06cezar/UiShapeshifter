@@ -1,4 +1,5 @@
-// Stocarea locală a extensiei (chrome.storage.local): userId-ul anonim, generat o dată, și sesiunea serverului.
+// Stocarea extensiei: userId-ul anonim în chrome.storage.local (generat o dată, la instalare) și sessionId-ul în
+// chrome.storage.session (unul pe service worker).
 // Fără cont totul stă aici (specs/01, „Salvare: local întâi”); profilul și rețetele vin în etapele următoare.
 
 const USER_ID_KEY = "userId";
@@ -23,7 +24,10 @@ export function getOrCreateUserId(store: KeyValueStore): Promise<string> {
   return getOrCreate(store, USER_ID_KEY, () => `u-${crypto.randomUUID().slice(0, 8)}`);
 }
 
-/** Aceeași sesiune după o repornire a service worker-ului, ca serverul să lege socket-ul nou de rularea veche. */
+/**
+ * Un sessionId pe service worker (specs/06), ținut în chrome.storage.session: rămâne același când MV3 oprește și
+ * repornește worker-ul, ca serverul să lege socket-ul nou de rularea în curs; la repornirea browserului e altul.
+ */
 export function getOrCreateSessionId(store: KeyValueStore): Promise<string> {
   return getOrCreate(store, SESSION_ID_KEY, () => crypto.randomUUID());
 }
