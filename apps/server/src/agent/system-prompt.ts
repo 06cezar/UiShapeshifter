@@ -84,9 +84,16 @@ function stageTwoSections(stage: SiteToolStage): string {
   să semene la prima vedere cu el.
 - Lucrezi în pași mari, nu în zeci de reguli mici: un apply_css cu așezarea (grid/flex, centrare, lățimi), stilul și ce
   nu există pe site-ul de referință (ascuns), apoi, dacă trebuie, un apply_ops care mută piesele mari (ex. căutarea în
-  centru). Folosești selectorii zonelor și ai elementelor din snapshot.
+  centru).
+- Așezarea (lățime maximă, centrare, coloane) o pui pe zonele din snapshot (regions, cu selectorul lor, ex. zona cu
+  rezultatele), nu pe <main> sau <body> și nici pe elemente mici din interior.
+- Carusele, rafturi de știri, imagini de fundal mari: le ascunzi pe zona sau elementul care le conține.
+- Textul care rămâne vizibil are cel puțin ${HARD_LIMITS.minFontPx}px: dacă site-ul are text mai mic (meniuri, note),
+  îl mărești în aceeași foaie, pe zonă.
 - Pagina rămâne folosibilă: căutarea, rezultatele/conținutul principal, meniul și contul se văd și se pot apăsa;
   textul nu scade sub minim. Verifici cu snapshot și audit, apoi propose_changes cu ce s-a schimbat, pe scurt.
+- În rezumat spui doar ce ai văzut verificat în snapshot (visible: false, hiddenBy: "recipe", poziția nouă). Ce n-ai
+  putut verifica (ex. o imagine de fundal care nu apare în snapshot) spui ca „am încercat”, nu ca făcut.
 
 ## Cum lucrezi cu omul
 - Cerere neclară (nu știi ce element, două lucruri se potrivesc la fel de bine, nu știi cât de mult): ask_user cu
