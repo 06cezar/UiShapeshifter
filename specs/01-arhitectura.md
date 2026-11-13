@@ -10,6 +10,7 @@ apps/web  (React + Vite + TypeScript, Zustand, Framer Motion)  → se construie�
   ├─ ui/          motorul de rețete: aplică operațiile pe pagină, poarta de limite, undo     (B)
   │               + registrul paginii: id-uri stabile, selectori, snapshot                   (B)
   ├─ generated/   elementele generate din catalog, puse în pagină și legate de cele reale    (B)
+  ├─ validation/  validarea a ce scrie agentul: CSS și HTML, funcții pure                    (C)
   ├─ a11y/        auditul pe DOM-ul paginii, reparațiile, preferințele de bază fără AI       (C)
   ├─ onboarding/  testul inițial (pagina extensiei, deschisă la instalare)                   (C)
   ├─ mascot/      mascota care se plimbă prin pagină și arată                                (D)
@@ -27,8 +28,9 @@ apps/server  (Node 20 + Express + ws + TypeScript, rulat cu tsx)          port 8
   ├─ accounts/    conturile opționale, legarea datelor anonime de cont                       (E)
   └─ adaptation/  regulile pe semnale, declanșatoarele                                       (E)
 
+apps/test-site       site-ul nostru de test, aglomerat intenționat, servit local             (E)
 packages/contracts   tipurile comune (singura sursă de adevăr)                               (D)
-data/                profiles/, recipes/, accounts/, runs/ (git-ignored) + site-ul de test   (E)
+data/                profiles/, recipes/, accounts/, runs/ (git-ignored)                     (E)
 ```
 
 ## Părțile extensiei
@@ -37,7 +39,7 @@ data/                profiles/, recipes/, accounts/, runs/ (git-ignored) + site-
 |---|---|---|
 | **Content script** | în fiecare pagină | aplică rețeta salvată, ține registrul paginii, execută uneltele, colectează semnale, montează interfața noastră |
 | **Interfața noastră** (mascotă, chat, panou) | în pagină, într-un **shadow DOM** | izolată de stilurile site-ului, ca site-ul să nu ne strice și noi să nu-l stricăm |
-| **Service worker** | în fundal | ține WebSocket-ul cu serverul (o pagină `https` nu poate deschide `ws://localhost`), trimite mesajele între pagini și server |
+| **Service worker** | în fundal | ține un singur WebSocket cu serverul pentru toate tab-urile, ca legătura să nu depindă de regulile fiecărui site (CSP); trimite mesajele între pagini și server |
 | **Pagina de test inițial** | pagină a extensiei | se deschide la instalare; refolosește `onboarding/` |
 | **Popup** | butonul extensiei | pornit/oprit pe site-ul curent, „Revino la original”, cont |
 
@@ -62,7 +64,8 @@ DomOp = schimbări de structură, pe elemente alese din snapshot (după id):
         | inject            o componentă din catalogul nostru (plăci, scurtături), pentru cazurile obișnuite
 ```
 
-Forma exactă se stabilește în `packages/contracts` (taskul **D7**); până atunci, schița de mai sus e orientativă.
+Forma exactă se stabilește în `packages/contracts`: partea de CSS în **D7** (etapa 1), `DomOp` în **D8** (etapele 2–4).
+Până atunci, schița de mai sus e orientativă. Construim din aproape în aproape: etapa 1 folosește doar `css`.
 
 **Ce nu face niciodată: nu rulează JavaScript scris de model.** Chrome nu lasă o extensie MV3 să execute cod generat
 pe loc, iar cod scris de un model pe site-ul unei bănci e un risc pe care nu-l luăm. Comportamentul elementelor

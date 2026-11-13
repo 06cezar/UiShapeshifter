@@ -3,9 +3,9 @@
 Sursa de adevăr pentru tipuri e **`packages/contracts/src/`**; documentele de aici explică regulile și comportamentul.
 Dacă un document și tipurile se contrazic, tipurile câștigă, iar documentul se repară.
 
-> **După schimbarea de direcție (vineri 17:00):** `00` și `01` sunt la zi. `02`–`06` și `12` descriu încă vechea
-> aplicație și se rescriu în taskul **D7**; până atunci, la contradicții câștigă `00` și `01`. `07`–`11` rămân valabile
-> ca idee și se ajustează de proprietarii lor în taskurile adaptate din `dag/tasks.yaml`.
+> **După schimbarea de direcție (vineri 17:00):** `00` și `01` sunt la zi. Restul descriu încă vechea aplicație și se
+> rescriu pe etape: `02`, `04`, `05`, `06` în taskul **D7** (doar ce trebuie etapei 1), `03` și `07`–`12` în **D8**.
+> Până atunci, la contradicții câștigă `00` și `01`.
 
 | Fișier | Despre | Cine îl ține |
 |---|---|---|
