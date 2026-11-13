@@ -1,3 +1,3 @@
-2026-11-13 18:12
+2026-11-13 18:46
 
-E5 gata pe e5-extensie (împins, PR de deschis din browser); verificat în Edge pe localhost, example.com, ro.wikipedia: semnul apare, proba face dus-întors. Urmează: E7 după M0; blocat: nimic
+gata: E5 (#24 unit); B2 pe b2-registru-pagina, B5 pe b5-retete (verificate cu agent fals: ascunde→rămâne după reload→Revino la original); urmează: PR-uri B2/B5 după M0, apoi E7; blocat: nimic
