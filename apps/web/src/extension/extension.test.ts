@@ -132,6 +132,9 @@ describe("rădăcina shadow DOM", () => {
     expect(second.host).toBe(first.host);
     expect(document.querySelectorAll(`#${HOST_ID}`)).toHaveLength(1);
     expect(first.shadow.querySelector("style")?.textContent).toContain("--uis-font-size");
+    // Inline cu !important, ca o regulă largă a agentului (* { display: none }) să nu ne ascundă interfața.
+    expect(first.host.style.getPropertyValue("display")).toBe("block");
+    expect(first.host.style.getPropertyPriority("display")).toBe("important");
   });
 });
 

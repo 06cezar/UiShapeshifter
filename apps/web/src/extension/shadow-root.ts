@@ -7,6 +7,20 @@ export const HOST_ID = "uishapeshifter-root";
 /** Peste orice element al site-ului: cea mai mare valoare z-index posibilă. */
 const TOP_Z_INDEX = "2147483647";
 
+/** Stilul gazdei: fixă, peste tot, mereu vizibilă, fără mărime proprie (conținutul din shadow se poziționează singur). */
+const HOST_STYLE: Record<string, string> = {
+  display: "block",
+  visibility: "visible",
+  opacity: "1",
+  position: "fixed",
+  inset: "auto 0 0 auto",
+  width: "0",
+  height: "0",
+  "z-index": TOP_Z_INDEX,
+  transform: "none",
+  filter: "none",
+};
+
 /** Tema interfeței noastre, ca variabile CSS (nicio culoare sau mărime direct în componente). */
 const THEME_CSS = `
 :host {
@@ -40,9 +54,9 @@ export function mountOurRoot(doc: Document = document): OurRoot {
   const host = existing ?? doc.createElement("div");
   if (!existing) {
     host.id = HOST_ID;
-    host.style.position = "fixed";
-    host.style.zIndex = TOP_Z_INDEX;
-    host.style.inset = "auto 0 0 auto";
+    // Inline cu !important: bate orice foaie de stil a paginii, deci și o regulă largă a agentului (`* {display:none}`,
+    // `html > div {…}`) pe care validarea n-o poate lega de numele nostru. Interfața noastră rămâne vizibilă.
+    for (const [property, value] of Object.entries(HOST_STYLE)) host.style.setProperty(property, value, "important");
     doc.documentElement.appendChild(host);
   }
   const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
