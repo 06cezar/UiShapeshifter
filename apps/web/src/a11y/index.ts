@@ -14,3 +14,10 @@ export {
 export { fixCssFor, withFixCss } from "./fix-css";
 export { auditWithoutRecipe, introducedIssues, type PauseRecipe } from "./introduced";
 export { parseAuditArgs, runAuditUi, type AuditToolDeps } from "./audit-tool";
+// Preferințele de bază fără AI, pe orice site (C4).
+export {
+  BASE_STYLE_ID,
+  startBasePreferences,
+  type BasePreferences,
+  type BasePreferencesOptions,
+} from "./base-preferences";

@@ -1,0 +1,190 @@
+// Preferințele de bază, fără AI (C4, specs/07 nivelul 2): din profil, pe orice site, de la prima încărcare.
+// Ridică textul sub fontul minim, culorile sub contrastul cerut și țintele sub mărimea minimă. Nu schimbă structura
+// și nu ascunde nimic; doar aduce pagina la limitele omului.
+//
+// De ce stil inline cu `!important`, element cu element: CSS-ul nu poate spune „cel puțin 20px” fără să afle mărimea
+// fiecărui element (un `max(20px, 1em)` global ar strica titlurile mari), deci măsurăm. Iar o regulă `!important`
+// a rețetei agentului cu un selector mai specific ar bate orice foaie de-a noastră; un stil inline `!important` nu
+// poate fi bătut de nicio foaie. Așa se aplică „ultimele, peste tot ce a scris agentul”.
+
+import type { AuditThresholds, UserNeeds } from "@uishapeshifter/contracts";
+import { adjustToContrast, composite, contrastRatio, parseColor, requiredTextContrast, toHex } from "./contrast";
+import { effectiveBackground } from "./dom";
+import { hasOwnText, isInteractive, isVisible, SKIPPED_TAGS } from "./page-audit";
+import { thresholdsFor } from "./thresholds";
+
+/** Foaia noastră pentru mișcare redusă; „uishapeshifter” în id, ca rețeta agentului să n-o poată atinge (C5). */
+export const BASE_STYLE_ID = "uishapeshifter-base";
+/** Câte elemente verificăm cel mult la o trecere; o pagină mai mare primește restul pe măsură ce se schimbă. */
+export const MAX_BASE_ELEMENTS = 20_000;
+
+const REDUCED_MOTION_CSS =
+  "*, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;" +
+  " transition-duration: 0.01ms !important; scroll-behavior: auto !important; }";
+
+export interface BasePreferencesOptions {
+  needs: Partial<UserNeeds>;
+  /** Gazda interfeței noastre (HOST_ID): are tema ei, nu o atingem. */
+  ourHostId: string;
+  doc?: Document;
+}
+
+export interface BasePreferences {
+  /** Profilul s-a schimbat: totul se reface după noile limite. */
+  update(needs: Partial<UserNeeds>): void;
+  /** Pagina s-a schimbat mult (ex. rețeta agentului a fost aplicată): se măsoară din nou totul. */
+  refresh(): void;
+  /** Pagina revine la cum era (preferințele oprite pe site-ul acesta). */
+  stop(): void;
+  /** Câte elemente au fost ajustate acum; pentru panou și pentru teste. */
+  adjustedCount(): number;
+}
+
+/** Ce era în stilul inline al unui element înainte de noi, ca `stop()` să-l pună la loc exact. */
+type SavedInline = Map<string, { value: string; priority: string }>;
+
+export function startBasePreferences(options: BasePreferencesOptions): BasePreferences {
+  const doc = options.doc ?? document;
+  let thresholds = thresholdsFor(options.needs);
+  let needs = options.needs;
+  const saved = new Map<HTMLElement, SavedInline>();
+
+  function setImportant(element: HTMLElement, property: string, value: string): void {
+    let inline = saved.get(element);
+    if (!inline) {
+      inline = new Map();
+      saved.set(element, inline);
+    }
+    if (!inline.has(property)) {
+      inline.set(property, {
+        value: element.style.getPropertyValue(property),
+        priority: element.style.getPropertyPriority(property),
+      });
+    }
+    element.style.setProperty(property, value, "important");
+  }
+
+  function restoreAll(): void {
+    for (const [element, inline] of saved) {
+      for (const [property, { value, priority }] of inline) {
+        if (value) element.style.setProperty(property, value, priority);
+        else element.style.removeProperty(property);
+      }
+    }
+    saved.clear();
+  }
+
+  function adjustSubtree(root: Element): void {
+    const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+      acceptNode(node) {
+        const element = node as Element;
+        if (SKIPPED_TAGS.has(element.localName) || element.id === options.ourHostId) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    let visited = 0;
+    for (let node: Node | null = root; node && visited < MAX_BASE_ELEMENTS; node = walker.nextNode()) {
+      visited += 1;
+      if (node instanceof HTMLElement && !isOurs(node)) adjustElement(node);
+    }
+  }
+
+  function isOurs(element: Element): boolean {
+    return element.id === options.ourHostId || element.closest(`#${CSS.escape(options.ourHostId)}`) !== null;
+  }
+
+  function adjustElement(element: HTMLElement): void {
+    const rect = element.getBoundingClientRect();
+    if (!isVisible(element, rect)) return;
+    const style = getComputedStyle(element);
+    if (hasOwnText(element)) adjustText(element, style, thresholds);
+    if (isInteractive(element) && !isLinkInSentence(element, style)) adjustTarget(element, style, rect, thresholds);
+  }
+
+  function adjustText(element: HTMLElement, style: CSSStyleDeclaration, t: AuditThresholds): void {
+    let fontPx = parseFloat(style.fontSize);
+    if (fontPx < t.minFontPx) {
+      setImportant(element, "font-size", `${t.minFontPx}px`);
+      fontPx = t.minFontPx;
+    }
+    const color = parseColor(style.color);
+    if (!color) return;
+    const background = effectiveBackground(element);
+    const text = toHex(composite(color, background));
+    const required = requiredTextContrast(fontPx, parseInt(style.fontWeight, 10) || undefined, t);
+    if (contrastRatio(text, background) < required) {
+      setImportant(element, "color", adjustToContrast(text, background, required));
+    }
+  }
+
+  function adjustTarget(element: HTMLElement, style: CSSStyleDeclaration, rect: DOMRect, t: AuditThresholds): void {
+    if (rect.width >= t.minTargetPx && rect.height >= t.minTargetPx) return;
+    // Un element inline nu ia min-height; inline-block îl lasă în rând, dar cu mărimea cerută.
+    if (style.display === "inline") setImportant(element, "display", "inline-block");
+    setImportant(element, "min-height", `${t.minTargetPx}px`);
+    setImportant(element, "min-width", `${t.minTargetPx}px`);
+  }
+
+  function applyMotion(): void {
+    const existing = doc.getElementById(BASE_STYLE_ID);
+    if (!needs.reducedMotion) {
+      existing?.remove();
+      return;
+    }
+    if (existing) return;
+    const sheet = doc.createElement("style");
+    sheet.id = BASE_STYLE_ID;
+    sheet.textContent = REDUCED_MOTION_CSS;
+    (doc.head ?? doc.documentElement).append(sheet);
+  }
+
+  function applyAll(): void {
+    restoreAll();
+    applyMotion();
+    adjustSubtree(doc.body ?? doc.documentElement);
+  }
+
+  // Ce adaugă site-ul după încărcare (liste care se încarcă pe parcurs, aplicații de o pagină) primește aceleași limite.
+  // Le strângem și le ajustăm o dată, după ce site-ul a terminat schimbarea curentă.
+  let pending: Element[] = [];
+  const observer = new MutationObserver((records) => {
+    const first = pending.length === 0;
+    for (const record of records) {
+      for (const node of record.addedNodes) if (node instanceof Element) pending.push(node);
+    }
+    if (first && pending.length > 0) {
+      queueMicrotask(() => {
+        const added = pending;
+        pending = [];
+        for (const element of added) if (element.isConnected) adjustSubtree(element);
+      });
+    }
+  });
+
+  applyAll();
+  observer.observe(doc.body ?? doc.documentElement, { childList: true, subtree: true });
+
+  return {
+    update(next) {
+      needs = next;
+      thresholds = thresholdsFor(next);
+      applyAll();
+    },
+    refresh: applyAll,
+    stop() {
+      observer.disconnect();
+      pending = [];
+      restoreAll();
+      doc.getElementById(BASE_STYLE_ID)?.remove();
+    },
+    adjustedCount: () => saved.size,
+  };
+}
+
+/**
+ * Un link în mijlocul unei propoziții nu se mărește (WCAG 2.5.5 îl scutește): ar rupe rândul de text în care stă.
+ * Doar butoanele și linkurile de sine stătătoare primesc ținte mari.
+ */
+function isLinkInSentence(element: HTMLElement, style: CSSStyleDeclaration): boolean {
+  return style.display === "inline" && element.parentElement !== null && hasOwnText(element.parentElement);
+}
