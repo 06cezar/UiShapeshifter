@@ -3,20 +3,15 @@
 
 import type { ModuleConfig } from "@uishapeshifter/contracts";
 import { useConfigStoreApi } from "./config-store-context";
-import { HOME_ID } from "./layout-model";
-import { useAgentElement } from "./registry-context";
 
 /** Placa de pe ecranul principal: un buton mare care deschide modulul (`home.<moduleId>`, specs/04). */
 export function ModuleTile({ module }: { module: ModuleConfig }) {
   const store = useConfigStoreApi();
-  const agentId = `home.${module.id}`;
-  const ref = useAgentElement(agentId, { moduleId: HOME_ID });
   return (
     <button
-      ref={ref}
       type="button"
       className={`ui-tile ui-size-${module.size}`}
-      data-agent-id={agentId}
+      data-agent-id={`home.${module.id}`}
       onClick={() => store.getState().navigate(module.id)}
     >
       <span className="ui-tile-title">{module.title}</span>

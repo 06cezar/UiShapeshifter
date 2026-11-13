@@ -4,7 +4,6 @@
 import type { CSSProperties } from "react";
 import { useConfigState, useConfigStoreApi } from "./config-store-context";
 import { HOME_ID, moduleIdOfRoute, navModules } from "./layout-model";
-import { useAgentElement } from "./registry-context";
 
 export function NavBar() {
   const store = useConfigStoreApi();
@@ -16,54 +15,36 @@ export function NavBar() {
 
   return (
     <nav className="ui-nav" data-nav-position={config.nav.position} aria-label="Meniu" style={style}>
-      <NavItem
-        moduleId={HOME_ID}
-        title="Acasă"
-        active={activeId === HOME_ID}
-        showLabel={config.nav.showLabels}
-        onSelect={() => store.getState().navigate(HOME_ID)}
-      />
+      <button
+        type="button"
+        className="ui-nav-item"
+        data-agent-id={`nav.${HOME_ID}`}
+        aria-current={activeId === HOME_ID ? "page" : undefined}
+        aria-label="Acasă"
+        onClick={() => store.getState().navigate(HOME_ID)}
+      >
+        <span className="ui-nav-icon" aria-hidden="true">
+          {initialOf("Acasă")}
+        </span>
+        {config.nav.showLabels && <span className="ui-nav-label">Acasă</span>}
+      </button>
       {entries.map((m) => (
-        <NavItem
+        <button
           key={m.id}
-          moduleId={m.id}
-          title={m.title}
-          active={activeId === m.id}
-          showLabel={config.nav.showLabels}
-          onSelect={() => store.getState().navigate(m.id)}
-        />
+          type="button"
+          className="ui-nav-item"
+          data-agent-id={`nav.${m.id}`}
+          aria-current={activeId === m.id ? "page" : undefined}
+          aria-label={m.title}
+          onClick={() => store.getState().navigate(m.id)}
+        >
+          <span className="ui-nav-icon" aria-hidden="true">
+            {initialOf(m.title)}
+          </span>
+          {config.nav.showLabels && <span className="ui-nav-label">{m.title}</span>}
+        </button>
       ))}
     </nav>
-  );
-}
-
-interface NavItemProps {
-  moduleId: string;
-  title: string;
-  active: boolean;
-  showLabel: boolean;
-  onSelect: () => void;
-}
-
-/** O intrare din meniu: `nav.<moduleId>`, înregistrată în registru. */
-function NavItem({ moduleId, title, active, showLabel, onSelect }: NavItemProps) {
-  const agentId = `nav.${moduleId}`;
-  const ref = useAgentElement(agentId);
-  return (
-    <button
-      ref={ref}
-      type="button"
-      className="ui-nav-item"
-      data-agent-id={agentId}
-      aria-current={active ? "page" : undefined}
-      aria-label={title}
-      onClick={onSelect}
-    >
-      <span className="ui-nav-icon" aria-hidden="true">
-        {initialOf(title)}
-      </span>
-      {showLabel && <span className="ui-nav-label">{title}</span>}
-    </button>
   );
 }
 

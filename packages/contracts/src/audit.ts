@@ -18,7 +18,12 @@ export interface AuditIssue {
   measured: number | string;
   expected: number | string;
   message: string;           // în română, pe înțeles, ex. „Textul are 13px; minimul tău e 18px.”
-  fix?: JsonPatchOp[];       // propunerea de reparație, dacă se poate deduce
+  fix?: JsonPatchOp[];       // propunerea de reparație, dacă se poate deduce (aplicația veche)
+  /**
+   * Pe site-uri: reparația ca CSS, pe care agentul o dă lui apply_css (append). Ex. `a.btn{min-height:44px}`.
+   * `elementId` e id-ul din registru (`PageElement.id`).
+   */
+  fixCss?: string;
 }
 
 export interface AuditThresholds {

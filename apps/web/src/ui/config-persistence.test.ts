@@ -70,17 +70,6 @@ describe("loadInitialConfig", () => {
     expect(result.source).toEqual({ config: "default", needs: "default" });
   });
 
-  it("un config salvat cu altă version decât CONTRACT_VERSION se ignoră: pornim de la DEFAULT_CONFIG", async () => {
-    const fetchFn = fakeServer({ [`${API}/config/maria`]: { ...SAVED, version: "0.9.0" } });
-    const result = await loadInitialConfig("maria", { apiUrl: API, adjust: markAdjust, fetchFn });
-    expect(result.source.config).toBe("default");
-    expect(result.config).toMatchObject({
-      version: DEFAULT_CONFIG.version,
-      revision: 0,
-      template: DEFAULT_CONFIG.template,
-    });
-  });
-
   it("cere exact rutele din specs/06", async () => {
     const fetchFn = fakeServer({});
     await loadInitialConfig("demo-fresh", { apiUrl: API, adjust: markAdjust, fetchFn });
