@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "6e441c8dc7b60fe9c09d3d57471cc5933dc79e1d",
-  "last_run": "2026-11-13T22:40:18Z",
-  "last_sha": "7857a2b4c1c51238241215fea336ae18dcea7193",
+  "last_comms_sha": "34a6a300e5365fbc1bca0a334f40184a25c64200",
+  "last_run": "2026-11-13T22:41:10Z",
+  "last_sha": "a7dbc8f849f2cea2937ce664b638f84f58f1be32",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -230,8 +230,8 @@
     },
     "47": {
       "head": "b3-generate",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T22:41:00Z",
+      "state": "MERGED"
     },
     "48": {
       "head": "d10-voce",
@@ -288,7 +288,7 @@
     "A6": "progress",
     "B1": "done",
     "B2": "done",
-    "B3": "progress",
+    "B3": "done",
     "B4": "wait",
     "B5": "done",
     "B6": "done",
