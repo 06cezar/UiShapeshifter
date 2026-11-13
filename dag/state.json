@@ -5,10 +5,16 @@
         "since": "2026-11-13T18:55:50+02:00",
         "source": "comms:1855-D-yvs@efd51c1"
       }
+    },
+    "M1": {
+      "done": {
+        "since": "2026-11-13T21:38:53+02:00",
+        "source": "comms:2138-D-dvh@0d91278"
+      }
     }
   },
-  "last_comms_sha": "e50b18a85b8ca5215c872884775bbc0e3cff6067",
-  "last_run": "2026-11-13T19:35:33Z",
+  "last_comms_sha": "4828f7b78d450700ddc594471e2327a8064e15f8",
+  "last_run": "2026-11-13T19:39:17Z",
   "last_sha": "7124e85ccab488006a61d4c6ca34a92e8aa04af6",
   "prs": {
     "1": {
@@ -232,14 +238,14 @@
     "C5": "done",
     "D1": "done",
     "D10": "wait",
-    "D2": "wait",
+    "D2": "ready",
     "D3": "done",
     "D4": "done",
     "D5": "wait",
     "D6": "wait",
     "D7": "done",
     "D8": "done",
-    "D9": "wait",
+    "D9": "ready",
     "E1": "done",
     "E2": "progress",
     "E3": "wait",
@@ -249,7 +255,7 @@
     "E7": "done",
     "E8": "wait",
     "M0": "done",
-    "M1": "ready",
+    "M1": "done",
     "M2": "wait",
     "M3": "wait",
     "M4": "wait"
