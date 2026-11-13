@@ -3,19 +3,18 @@
 Sursa de adevăr pentru tipuri e **`packages/contracts/src/`**; documentele de aici explică regulile și comportamentul.
 Dacă un document și tipurile se contrazic, tipurile câștigă, iar documentul se repară.
 
-> **După schimbarea de direcție (vineri 17:00):** `00` și `01` sunt la zi. Restul descriu încă vechea aplicație și se
-> rescriu pe etape: `02`, `04`, `05`, `06` în taskul **D7** (doar ce trebuie etapei 1), `03` și `07`–`12` în **D8**.
-> Până atunci, la contradicții câștigă `00` și `01`.
+> **După schimbarea de direcție (vineri 17:00):** `00`, `01`, `02`, `04`, `05`, `06` sunt la zi pentru etapa 1 (D7). `03` și
+> `07`–`12` descriu încă vechea aplicație și se rescriu în **D8**. Până atunci, la contradicții câștigă fișierele la zi.
 
 | Fișier | Despre | Cine îl ține |
 |---|---|---|
 | [00-produs.md](00-produs.md) | produsul, utilizatorul, cerințele juriului, criteriile | D |
 | [01-arhitectura.md](01-arhitectura.md) | foldere, cine ce face, fluxul, decizii, convenții | D |
-| [02-ui-config.md](02-ui-config.md) | `UIConfig`, store-ul, poarta de limite, undo, șabloane | B |
+| [02-ui-config.md](02-ui-config.md) | rețeta site-ului (`SiteRecipe`): CSS, validare, revizii, undo | B |
 | [03-componente-generate.md](03-componente-generate.md) | elementele DOM generate la cerere, catalogul | B |
-| [04-registru-si-snapshot.md](04-registru-si-snapshot.md) | `data-agent-id`, registrul, snapshot-ul, coordonatele pentru lăbuță | B |
-| [05-unelte-agent.md](05-unelte-agent.md) | bucla, promptul, uneltele, eșecurile | A |
-| [06-protocol.md](06-protocol.md) | WebSocket și HTTP între web și server | A |
+| [04-registru-si-snapshot.md](04-registru-si-snapshot.md) | registrul paginii, id-uri, selectori, snapshot-ul | B |
+| [05-unelte-agent.md](05-unelte-agent.md) | bucla, promptul, uneltele etapei 1, eșecurile | A |
+| [06-protocol.md](06-protocol.md) | WebSocket (prin service worker) și HTTP între extensie și server | A |
 | [07-accesibilitate.md](07-accesibilitate.md) | limitele, fontul minim, auditul, reparațiile | C |
 | [08-profil-si-memorie.md](08-profil-si-memorie.md) | profilul (ICP), memoria, faptele învățate | E |
 | [09-semnale-si-adaptare.md](09-semnale-si-adaptare.md) | semnalele de utilizare, regulile de adaptare automată | E |

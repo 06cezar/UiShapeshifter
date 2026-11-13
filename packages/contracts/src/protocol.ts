@@ -12,11 +12,18 @@ export const WEB_PORT = 5173;
 
 export type MascotState = "idle" | "listening" | "thinking" | "speaking" | "pointing" | "happy" | "confused";
 
+/** Pagina din care vine cererea (extensia): agentul știe pe ce site lucrează. Lipsește pe pagina de probă. */
+export interface PageInfo {
+  url: string;
+  host: string;   // fără „www.”; cheia rețetei
+  title: string;
+}
+
 // ---------- frontend -> server ----------
 
 export type ClientMessage =
   | { type: "hello"; userId: string; sessionId: string }
-  | { type: "user_message"; text: string; source: "text" | "voice" }
+  | { type: "user_message"; text: string; source: "text" | "voice"; page?: PageInfo }
   | { type: "tool_result"; callId: string; result: ToolResult }
   | { type: "signals"; signals: UsageSignal[] }   // trimise în loturi, cel mult o dată la 5 s
   | { type: "cancel_run"; runId: string };
@@ -46,5 +53,9 @@ export type ServerMessage =
 // PUT  /api/config/:userId                 <- UIConfig          -> { revision }
 // GET  /api/runs?userId=…                  -> { runId, goal, status, startedAt }[]
 // GET  /api/runs/:runId                    -> AgentRun (pentru reluarea pas cu pas)
+// GET  /api/recipes/:userId                -> SiteRecipe[] (toate rețetele omului; pentru sincronizare, doar cu cont)
+// GET  /api/recipes/:userId/:host          -> SiteRecipe (404 dacă nu există)
+// PUT  /api/recipes/:userId/:host          <- SiteRecipe        -> { revision }
+// DELETE /api/recipes/:userId/:host        -> { ok: true }      („Revino la original”)
 
 export type RunListItem = Pick<AgentRun, "runId" | "goal" | "status" | "startedAt" | "origin">;
