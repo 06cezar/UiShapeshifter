@@ -12,3 +12,4 @@ CLAUDE.local.md
 # graful stă pe branch-ul `dag`, scris doar de bot
 /DAG.md
 /dag/state.json
+.comms/

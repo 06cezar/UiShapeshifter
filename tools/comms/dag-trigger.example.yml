@@ -1,0 +1,23 @@
+# Se pune pe branch-ul `comms`, ca `.github/workflows/dag-trigger.yml`.
+# Pornește workflow-ul `dag.yml` de pe branch-ul implicit doar când un mesaj comms are o etichetă
+# pentru graf: [blocat ID …], [deblocat ID] sau [gata ID]. `git comms` marchează acele commit-uri cu [dag].
+# Mesajele obișnuite nu pornesc nimic și nu consumă minute de Actions.
+name: dag-trigger
+
+on:
+  push:
+    branches: [comms]
+
+permissions:
+  actions: write
+
+jobs:
+  trigger:
+    if: contains(join(github.event.commits.*.message, ' '), '[dag]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Pornește dag.yml pe branch-ul implicit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run dag.yml --repo "${{ github.repository }}" --ref "${{ github.event.repository.default_branch }}"
