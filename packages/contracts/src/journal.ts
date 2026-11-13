@@ -18,6 +18,9 @@ export interface AgentStep {
   durationMs?: number;
   configRevisionBefore?: number;
   configRevisionAfter?: number;
+  /** Etapa 1: revizia rețetei site-ului înainte și după pas (panoul le arată, „Anulez” se întoarce la `Before`). */
+  recipeRevisionBefore?: number;
+  recipeRevisionAfter?: number;
 }
 
 export interface AgentRun {

@@ -64,8 +64,8 @@ DomOp = schimbări de structură, pe elemente alese din snapshot (după id):
         | inject            o componentă din catalogul nostru (plăci, scurtături), pentru cazurile obișnuite
 ```
 
-Forma exactă se stabilește în `packages/contracts`: partea de CSS în **D7** (etapa 1), `DomOp` în **D8** (etapele 2–4).
-Până atunci, schița de mai sus e orientativă. Construim din aproape în aproape: etapa 1 folosește doar `css`.
+Forma exactă e în `packages/contracts`: `SiteRecipe` cu `css` (D7, `specs/02`), `DomOp` urmează în **D8** (etapele 2–4).
+Construim din aproape în aproape: etapa 1 folosește doar `css`.
 
 **Ce nu face niciodată: nu rulează JavaScript scris de model.** Chrome nu lasă o extensie MV3 să execute cod generat
 pe loc, iar cod scris de un model pe site-ul unei bănci e un risc pe care nu-l luăm. Comportamentul elementelor

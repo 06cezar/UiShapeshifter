@@ -22,6 +22,8 @@ export interface JournalPanelProps {
 const HISTORY_SHOWN = 10;
 
 const TOOL_ICONS: Record<ToolName, string> = {
+  get_page_snapshot: "👀",
+  apply_css: "🎨",
   get_ui_snapshot: "👀",
   patch_config: "🛠️",
   apply_template: "🧩",
