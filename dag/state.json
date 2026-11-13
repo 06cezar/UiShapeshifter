@@ -8,7 +8,7 @@
     }
   },
   "last_comms_sha": "a1ef2d188e7292508d7cb2d86ed8a89a74c52b8f",
-  "last_run": "2026-11-13T18:18:03Z",
+  "last_run": "2026-11-13T18:18:16Z",
   "last_sha": "c265e22e04ff6a3434238b7c109e8b89b1a10387",
   "prs": {
     "1": {
@@ -140,6 +140,11 @@
       "head": "d-apply-ops-schema",
       "merged_at": "2026-11-13T18:17:05Z",
       "state": "MERGED"
+    },
+    "33": {
+      "head": "c5-html-contract",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "4": {
       "head": "d1-schelet",
