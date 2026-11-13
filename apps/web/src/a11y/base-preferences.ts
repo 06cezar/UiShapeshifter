@@ -10,7 +10,7 @@
 import type { AuditThresholds, UserNeeds } from "@uishapeshifter/contracts";
 import { adjustToContrast, composite, contrastRatio, parseColor, requiredTextContrast, toHex } from "./contrast";
 import { effectiveBackground } from "./dom";
-import { hasOwnText, isInteractive, isVisible, SKIPPED_TAGS } from "./page-audit";
+import { hasOwnText, isInteractive, isLinkInSentence, isVisible, SKIPPED_TAGS } from "./page-audit";
 import { thresholdsFor } from "./thresholds";
 
 /** Foaia noastră pentru mișcare redusă; „uishapeshifter” în id, ca rețeta agentului să n-o poată atinge (C5). */
@@ -179,12 +179,4 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     },
     adjustedCount: () => saved.size,
   };
-}
-
-/**
- * Un link în mijlocul unei propoziții nu se mărește (WCAG 2.5.5 îl scutește): ar rupe rândul de text în care stă.
- * Doar butoanele și linkurile de sine stătătoare primesc ținte mari.
- */
-function isLinkInSentence(element: HTMLElement, style: CSSStyleDeclaration): boolean {
-  return style.display === "inline" && element.parentElement !== null && hasOwnText(element.parentElement);
 }
