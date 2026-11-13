@@ -5,7 +5,7 @@
 import type { AuditReport, AuditThresholds, ElementInfo } from "@uishapeshifter/contracts";
 import { computeScore, runRules, type DomFacts, type DomFactsMap } from "./audit";
 import { composite, parseColor, toHex } from "./contrast";
-import { effectiveBackground, factsOf } from "./dom";
+import { effectiveBackground, factsOf, hasImageBackground } from "./dom";
 
 /** Cum numește registrul paginii un element: id pentru raport, selector pentru CSS-ul de reparație. */
 export interface PageIdentity {
@@ -167,7 +167,8 @@ function describe(element: HTMLElement, id: string, rect: DOMRect, inViewport: b
     const color = parseColor(style.color);
     info.fontPx = parseFloat(style.fontSize);
     info.fontWeight = parseInt(style.fontWeight, 10) || undefined;
-    if (color) info.color = toHex(composite(color, background));
+    // Pe gradient sau imagine nu știm fundalul: fără `color`, regula de contrast sare elementul (fără alarme false).
+    if (color && !hasImageBackground(element)) info.color = toHex(composite(color, background));
   }
   return info;
 }

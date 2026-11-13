@@ -71,6 +71,12 @@ describe("auditPage pe un site", () => {
     expect(Object.keys(auditPage(THRESHOLDS, OPTIONS).elements)).not.toContain("buton");
   });
 
+  it("textul pe gradient sau imagine nu e judecat la contrast: fundalul nu se poate măsura", () => {
+    page(`<div style="background-color: #ffffff; background-image: linear-gradient(#0b3d91, #1e88e5)">
+      <p data-t="pe-gradient" style="color: #ffffff; font-size: 20px; line-height: 1.6">Doar azi</p></div>`);
+    expect(issuesOf("contrast")).not.toContain("pe-gradient");
+  });
+
   it("un link din mijlocul unei fraze nu e țintă mică (WCAG 2.5.5); unul de sine stătător, da", () => {
     expect(issuesOf("target-size")).not.toContain("in-fraza");
     expect(issuesOf("target-size")).toContain("link");
