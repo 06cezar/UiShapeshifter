@@ -4,7 +4,7 @@
 // ale uneltelor, deci verificarea chiar se uită dacă elementele au dispărut.
 // Cererile pot fi vagi („șterge reclamele”): potrivim pe rădăcini și câteva sinonime, nu pe textul exact (C, pe #27).
 
-import type { PageElement, PageSnapshot, ToolArgs } from "@uishapeshifter/contracts";
+import type { PageElement, PageSnapshot, SiteToolStage, ToolArgs } from "@uishapeshifter/contracts";
 import type { Decider, Decision, PreviousStep } from "./run-agent";
 
 export const FAKE_MODEL = "fake";
@@ -109,9 +109,47 @@ function labels(elements: PageElement[]): string {
   return elements.map((element) => `„${element.label}”`).join(", ");
 }
 
-function hideScript(goal: string, wanted: string): Script[] {
-  let found: PageElement[] = [];
+/**
+ * Din etapa 2, după ce schimbarea s-a verificat în snapshot: audit_ui → propose_changes → finish după decizia omului
+ * (specs/05, „Verificare după fiecare schimbare”). În etapa 1, direct finish.
+ */
+function closingSteps(stage: SiteToolStage, title: () => string, done: () => string): Script[] {
+  const finish = (summary: string): Decision =>
+    tool("finish", { summary, success: true }, "Observ: Omul a ales. Fac: Închei. Pentru că: Cererea e îndeplinită.");
+  if (stage < 2) return [() => finish(done())];
   return [
+    () =>
+      tool(
+        "audit_ui",
+        {},
+        "Observ: Schimbarea se vede. Fac: Verific accesibilitatea. Pentru că: Nu vreau să fi stricat ceva.",
+      ),
+    () =>
+      tool(
+        "propose_changes",
+        { title: title(), summary: done(), risk: "low" },
+        "Observ: Auditul a trecut. Fac: Îți arăt schimbarea. Pentru că: Tu alegi dacă o păstrezi.",
+      ),
+    (previous) => {
+      const decision =
+        previous?.name === "propose_changes" && previous.result.ok
+          ? (previous.result.data as { decision?: string } | null)?.decision
+          : undefined;
+      return finish(decision === "undo" ? "Am lăsat pagina cum era, cum ai ales." : done());
+    },
+  ];
+}
+
+function hideScript(goal: string, wanted: string, stage: SiteToolStage): Script[] {
+  let found: PageElement[] = [];
+  let failed: Decision | null = null;
+  const closing = (): Script[] =>
+    closingSteps(
+      stage,
+      () => "Ascund ce nu vrei",
+      () => `Am ascuns ${labels(found)}. Rămân ascunse și data viitoare.`,
+    );
+  const steps: Script[] = [
     () =>
       tool(
         "get_page_snapshot",
@@ -121,6 +159,11 @@ function hideScript(goal: string, wanted: string): Script[] {
     (previous) => {
       found = findElements(snapshotFrom(previous), wanted);
       if (found.length === 0) {
+        failed = tool(
+          "finish",
+          { summary: `Nu am găsit „${wanted}” pe pagină, așa că n-am schimbat nimic.`, success: false },
+          "Observ: N-am găsit elementul. Fac: Închei. Pentru că: Nu am ce ascunde.",
+        );
         return tool(
           "say",
           { message: `Nu găsesc „${wanted}” pe pagina asta.`, mascot: "confused" },
@@ -135,33 +178,91 @@ function hideScript(goal: string, wanted: string): Script[] {
       );
     },
     () =>
-      found.length > 0
-        ? tool(
-            "get_page_snapshot",
-            {},
-            `Observ: Am aplicat CSS-ul. Fac: Mă uit din nou la pagină. Pentru că: Verific că ${labels(found)} au dispărut.`,
-          )
-        : tool(
-            "finish",
-            { summary: `Nu am găsit „${wanted}” pe pagină, așa că n-am schimbat nimic.`, success: false },
-            "Observ: N-am găsit elementul. Fac: Închei. Pentru că: Nu am ce ascunde.",
-          ),
+      failed ??
+      tool(
+        "get_page_snapshot",
+        {},
+        `Observ: Am aplicat CSS-ul. Fac: Mă uit din nou la pagină. Pentru că: Verific că ${labels(found)} au dispărut.`,
+      ),
     (previous) => {
       const after = snapshotFrom(previous)?.elements ?? [];
       const stillVisible = found.filter((element) => after.some((e) => e.id === element.id && e.visible));
+      if (stillVisible.length > 0) {
+        failed = tool(
+          "finish",
+          {
+            summary: `Am încercat să ascund ${labels(found)}, dar ${labels(stillVisible)} încă se vede.`,
+            success: false,
+          },
+          "Observ: Unele elemente se văd încă. Fac: Închei și spun. Pentru că: În modul de probă nu încerc altceva.",
+        );
+        return failed;
+      }
+      return closing()[0](previous);
+    },
+  ];
+  // pașii de după verificare (audit, propunere, finish), fără primul, deja folosit mai sus
+  return [...steps, ...closing().slice(1)];
+}
+
+// „mută căutarea sus”, „pune meniul jos”
+const MOVE_REQUEST =
+  /(?:mut[ăa]|pune|du)\s+(.+?)\s+(sus|jos|deasupra|dedesubt|primul|prima|la [îi]nceput|la sf[âa]r[șs]it)\b/i;
+const TOWARDS_TOP = /sus|deasupra|primul|prima|[îi]nceput/i;
+
+function moveScript(goal: string, wanted: string, towardsTop: boolean, stage: SiteToolStage): Script[] {
+  let found: PageElement | undefined;
+  let failed: Decision | null = null;
+  const where = towardsTop ? "sus" : "jos";
+  const closing = (): Script[] =>
+    closingSteps(
+      stage,
+      () => `Mut „${found?.label ?? wanted}” ${where}`,
+      () => `Am mutat „${found?.label ?? wanted}” ${where} în pagină.`,
+    );
+  return [
+    () =>
+      tool(
+        "get_page_snapshot",
+        {},
+        `Observ: Mi se cere: „${goal}”. Fac: Mă uit la pagină. Pentru că: Trebuie să găsesc „${wanted}” și unde îl pun.`,
+      ),
+    (previous) => {
+      const snapshot = snapshotFrom(previous);
+      found = findElements(snapshot, wanted)[0];
+      const regions = [...(snapshot?.regions ?? [])].filter((r) => r.visible).sort((a, b) => a.rect.y - b.rect.y);
+      const target = towardsTop ? regions[0] : regions.at(-1);
+      if (!found || !target) {
+        failed = tool(
+          "finish",
+          { summary: `Nu am găsit „${wanted}” pe pagină, așa că n-am mutat nimic.`, success: false },
+          "Observ: N-am găsit elementul. Fac: Închei. Pentru că: Nu am ce muta.",
+        );
+        return failed;
+      }
       return tool(
-        "finish",
-        stillVisible.length === 0
-          ? { summary: `Am ascuns ${labels(found)}. Rămân ascunse și data viitoare.`, success: true }
-          : {
-              summary: `Am încercat să ascund ${labels(found)}, dar ${labels(stillVisible)} încă se vede.`,
-              success: false,
+        "apply_ops",
+        {
+          ops: [
+            {
+              op: "move",
+              selector: found.selector,
+              to: { selector: target.selector, position: towardsTop ? "prepend" : "append" },
             },
-        stillVisible.length === 0
-          ? "Observ: Elementele nu se mai văd. Fac: Închei. Pentru că: Cererea e îndeplinită."
-          : "Observ: Unele elemente se văd încă. Fac: Închei și spun. Pentru că: În modul de probă nu încerc altceva.",
+          ],
+          reason: `Mut „${found.label}” ${where}, cerut de om.`,
+        },
+        `Observ: „${found.label}” e elementul ${found.id}. Fac: Îl mut ${where}, în „${target.label}”. Pentru că: Omul îl vrea acolo.`,
       );
     },
+    () =>
+      failed ??
+      tool(
+        "get_page_snapshot",
+        {},
+        `Observ: Am aplicat mutarea. Fac: Mă uit din nou la pagină. Pentru că: Verific că „${found?.label}” e ${where}.`,
+      ),
+    ...closing(),
   ];
 }
 
@@ -177,22 +278,28 @@ function defaultScript(goal: string): Script[] {
       tool(
         "say",
         { message: "Sunt în modul de probă. Încearcă: „ascunde <ceva de pe pagină>”.", mascot: "speaking" },
-        "Observ: În modul de probă știu doar să ascund. Fac: Îi spun omului ce poate încerca. Pentru că: Să nu rămână fără răspuns.",
+        "Observ: În modul de probă știu doar câteva cereri. Fac: Îi spun omului ce poate încerca. Pentru că: Să nu rămână fără răspuns.",
       ),
     () =>
       tool(
         "finish",
-        { summary: "Sunt în modul de probă și știu doar să ascund elemente.", success: false },
+        { summary: "Sunt în modul de probă: știu să ascund și să mut elemente.", success: false },
         "Observ: Nu am un plan pentru cererea asta. Fac: Închei. Pentru că: Nu ghicesc.",
       ),
   ];
 }
 
-export function createFakeDecider(goal: string, stepDelayMs = 0): Decider {
+function scriptFor(goal: string, stage: SiteToolStage): Script[] {
+  const move = stage >= 2 ? MOVE_REQUEST.exec(goal) : null;
+  if (move) return moveScript(goal, move[1], TOWARDS_TOP.test(move[2]), stage);
   const wanted = HIDE_REQUEST.exec(goal)?.[1]
     ?.replace(/[.!?]+$/, "")
     .trim();
-  const script = wanted ? hideScript(goal, wanted) : defaultScript(goal);
+  return wanted ? hideScript(goal, wanted, stage) : defaultScript(goal);
+}
+
+export function createFakeDecider(goal: string, stepDelayMs = 0, stage: SiteToolStage = 1): Decider {
+  const script = scriptFor(goal, stage);
   let next = 0;
   return {
     model: FAKE_MODEL,

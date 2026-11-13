@@ -66,6 +66,21 @@ export function effectiveBackground(el: Element | null): Rgba {
   return layers.reduceRight<Rgba>((under, layer) => composite(layer, under), WHITE);
 }
 
+/**
+ * Sub text e o imagine sau un gradient (până la primul fundal opac)? Atunci culoarea fundalului nu se poate măsura din
+ * CSS: `backgroundColor` e doar rezerva, iar textul alb de pe un banner albastru ar părea alb pe alb. Nu judecăm și
+ * nu reparăm contrastul acolo.
+ */
+export function hasImageBackground(el: Element | null): boolean {
+  for (let node = el; node; node = node.parentElement) {
+    const cs = getComputedStyle(node);
+    if (cs.backgroundImage && cs.backgroundImage !== "none") return true;
+    const c = parseColor(cs.backgroundColor);
+    if (c && c.a >= 1) return false;
+  }
+  return false;
+}
+
 function visibleBorderColor(cs: CSSStyleDeclaration): Rgba | null {
   for (const side of ["top", "right", "bottom", "left"]) {
     const width = parseFloat(cs.getPropertyValue(`border-${side}-width`));
