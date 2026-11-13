@@ -20,6 +20,7 @@ import { isHelpRequest, startSignalCollector, type SignalCollector } from "../si
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
+import { measurePage, type PageMeasure } from "./measure";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
 
 /** Pus de build.mjs: true în build-ul de dezvoltare, false cu --prod. */
@@ -224,6 +225,22 @@ function start() {
         undoRun,
       }),
   };
+
+  // Doar în build-ul de dezvoltare: măsurătorile pentru pitch (E4). În consolă: uiMeasure() sau uiMeasure("Caută").
+  if (__UIS_DEV__) {
+    (globalThis as { uiMeasure?: (target?: string) => PageMeasure }).uiMeasure = (target) =>
+      measurePage(
+        {
+          ourHostId: HOST_ID,
+          thresholds: () => thresholdsFor(needs),
+          idOf: registry.idOf,
+          selectorOf: (element) => buildSelector(element),
+          revision: () => recipes.view().revision,
+          pauseRecipe: recipes.pause,
+        },
+        target,
+      );
+  }
 
   function connect() {
     if (!extensionAlive()) return retire();
