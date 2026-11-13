@@ -5,8 +5,12 @@
 
 import { mountChat } from "../chat";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
+import type { UserNeeds } from "@uishapeshifter/contracts";
+import { runAuditUi } from "../a11y";
 import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
+import { thresholdsFor } from "../a11y/thresholds";
 import { createPageRegistry } from "../ui/page-registry/registry";
+import { buildSelector } from "../ui/page-registry/selector";
 import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
 import { needsFromStorage, ONBOARDING_KEY } from "./base-needs";
@@ -43,6 +47,8 @@ void recipes.load();
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 /** Preferințele de bază (C4): fontul minim, contrastul și țintele din profil, fără AI, aplicate ultimele. */
 let base: BasePreferences | null = null;
+/** Nevoile omului (testul inițial; implicite până atunci): folosite de preferințele de bază și de audit. */
+let needs: Partial<UserNeeds> = {};
 
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 // Testul inițial a salvat alte nevoi: preferințele de bază se refac după ele.
@@ -54,7 +60,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
     base?.refresh();
   }
   const needsChange = changes[ONBOARDING_KEY];
-  if (needsChange) base?.update(needsFromStorage(needsChange.newValue));
+  if (needsChange) {
+    needs = needsFromStorage(needsChange.newValue);
+    base?.update(needs);
+  }
 });
 
 function start() {
@@ -71,12 +80,14 @@ function start() {
 
   // Preferințele de bază pornesc cu nevoile salvate de testul inițial (sau implicite) și se reaplică peste rețetă.
   void chrome.storage.local.get(ONBOARDING_KEY).then((saved) => {
-    base = startBasePreferences({ needs: needsFromStorage(saved[ONBOARDING_KEY]), ourHostId: HOST_ID });
+    needs = needsFromStorage(saved[ONBOARDING_KEY]);
+    base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
 
   // Registrul paginii (B2), motorul de rețete (B5) și bula chatului pentru `say`.
+  const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
   const tools: PageToolDeps = {
-    registry: createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() }),
+    registry,
     recipes: {
       // După fiecare CSS al agentului, fontul minim se verifică din nou (C4: „ultimele, peste tot ce a scris agentul”).
       async applyCss(args) {
@@ -85,6 +96,16 @@ function start() {
         return result;
       },
     },
+    // Auditul (C2): aceleași id-uri și selectori ca snapshot-ul și aceleași nevoi ca preferințele de bază.
+    audit: (args) =>
+      runAuditUi(args, {
+        thresholds: () => thresholdsFor(needs),
+        identity: { idOf: registry.idOf, selectorOf: (element) => buildSelector(element) },
+        ourHostId: HOST_ID,
+        revision: () => recipes.view().revision,
+        regionElement: (regionId) => registry.elementOf(regionId),
+        pauseRecipe: recipes.pause,
+      }),
     say: (text) => chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" }),
   };
 

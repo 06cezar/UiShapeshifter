@@ -43,6 +43,8 @@ export interface RecipeEngine {
   /** Ce a scris alt tab sau popup-ul în stocare: aplicăm aici fără să salvăm din nou. */
   adopt(stored: StoredRecipe): void;
   view(): RecipeView;
+  /** Oprește foaia rețetei și întoarce funcția care o repornește (auditul „cum era înainte de agent”, C2). */
+  pause(): () => void;
 }
 
 /**
@@ -207,6 +209,15 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     adopt(next) {
       stored = next;
       render();
+    },
+
+    pause() {
+      const sheet = (doc.getElementById(RECIPE_STYLE_ID) as HTMLStyleElement | null)?.sheet;
+      if (!sheet) return () => {};
+      sheet.disabled = true;
+      return () => {
+        sheet.disabled = false;
+      };
     },
 
     view() {

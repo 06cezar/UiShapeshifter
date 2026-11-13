@@ -17,6 +17,8 @@ export interface CssApplier {
 export interface PageToolDeps {
   registry: PageRegistry;
   recipes?: CssApplier;
+  /** Auditul de accesibilitate al paginii (C2, runAuditUi), legat în content script cu registrul și rețeta. */
+  audit?(args: unknown): ToolResult;
   /** Arată mesajul agentului (bula mascotei, D3); fără ea, îl ignorăm, dar răspundem „shown”. */
   say?(message: string): void;
 }
@@ -58,6 +60,10 @@ export async function runPageTool(
         }
         if (!deps.recipes) return fail("INTERNAL", "Motorul de rețete nu e încă pornit în pagină.");
         return await deps.recipes.applyCss({ css: a.css, mode: a.mode, reason: a.reason, runId });
+      }
+      case "audit_ui": {
+        if (!deps.audit) return fail("INTERNAL", "Auditul nu e încă pornit în pagină.");
+        return deps.audit(args);
       }
       case "say": {
         if (typeof a.message !== "string") return fail("INVALID_ARGS", "say cere message.");
