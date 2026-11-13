@@ -99,6 +99,16 @@ const BLOCK_MAX_DEPTH = 10;
 const KIND_ATTRIBUTE_MAX_CHARS = 30;
 const NOT_KIND_ATTRIBUTES = new Set(["id", "class", "style", "hidden", "tabindex", "role", "dir", "lang"]);
 
+/** Câte elemente ascunse de site (din meniuri închise) intră cel mult în rezumat; au locuri rezervate. */
+const MAX_SITE_HIDDEN = 15;
+
+function isInteractive(element: Element): boolean {
+  const tag = element.tagName.toLowerCase();
+  if (INTERACTIVE_TAGS.has(tag)) return true;
+  const role = element.getAttribute("role");
+  return role === "button" || role === "link" || role === "menuitem" || role === "tab";
+}
+
 const INTERACTIVE_TAGS = new Set(["a", "button", "input", "select", "textarea", "summary"]);
 const INPUT_ROLES: Record<string, string> = {
   checkbox: "checkbox",
@@ -138,7 +148,9 @@ function labelOf(element: Element, doc: Document): string {
     const forLabel = id ? doc.querySelector(`label[for="${CSS.escape(id)}"]`)?.textContent : null;
     return cleanText(forLabel ?? element.getAttribute("placeholder") ?? element.getAttribute("name") ?? "");
   }
-  const own = (element as HTMLElement).innerText ?? element.textContent ?? "";
+  // innerText e gol pentru ce nu se vede (ex. într-un <details> închis); atunci textul din DOM, ca butonul ascuns de
+  // site să aibă totuși nume (A, probat în Chromium pe „Plătește factura”).
+  const own = (element as HTMLElement).innerText?.trim() || element.textContent || "";
   if (own.trim()) return cleanText(own);
   const img = element.querySelector("img[alt]");
   return cleanText(element.getAttribute("title") ?? img?.getAttribute("alt") ?? "");
@@ -202,6 +214,8 @@ function blockSelector(block: Element, doc: Document): string {
 }
 
 function isShown(element: Element): boolean {
+  // checkVisibility prinde și ce are mărime dar nu se desenează (conținutul unui <details> închis, content-visibility)
+  if (typeof element.checkVisibility === "function" && !element.checkVisibility()) return false;
   const rect = element.getBoundingClientRect();
   if (rect.width === 0 && rect.height === 0) return false;
   const style = getComputedStyle(element);
@@ -301,8 +315,22 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       sheet.disabled = false;
     }
 
+    // Ce a ascuns SITE-UL (meniuri închise, <details>, „Mai multe acțiuni ⋯”): doar ce se poate apăsa și are nume.
+    // Fără ele agentul n-ar ști că există „Plătește factura” din meniul ⋯ și n-ar putea face o scurtătură spre el.
+    const hiddenBySite = new Set(
+      candidates.filter(
+        (element) =>
+          !shownNow.has(element) &&
+          !hiddenByRecipe.has(element) &&
+          isInteractive(element) &&
+          labelOf(element, doc) !== "",
+      ),
+    );
+
     const viewport = { width: doc.defaultView?.innerWidth ?? 0, height: doc.defaultView?.innerHeight ?? 0 };
-    const listed = candidates.filter((element) => shownNow.has(element) || hiddenByRecipe.has(element));
+    const listed = candidates.filter(
+      (element) => shownNow.has(element) || hiddenByRecipe.has(element) || hiddenBySite.has(element),
+    );
     const elements: PageElement[] = listed.map((element) => {
       const rect = rectOf(element);
       const visible = shownNow.has(element);
@@ -326,17 +354,21 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
           rect.y + rect.height > 0,
         interactive: INTERACTIVE_TAGS.has(tag) || element.hasAttribute("role") || element.hasAttribute("tabindex"),
         fontPx: Number.isFinite(fontPx) ? Math.round(fontPx) : undefined,
-        ...(visible ? {} : { hiddenBy: "recipe" as const }),
+        ...(visible ? {} : { hiddenBy: hiddenByRecipe.has(element) ? ("recipe" as const) : ("site" as const) }),
       };
     });
 
     // Ce a ascuns rețeta întâi: sunt puține și fără ele agentul nu-și poate verifica munca (pe o pagină aglomerată,
     // elementele vizibile ar umple singure limita). Apoi ce e în viewport, apoi restul, în ordinea paginii.
+    // Ce a ascuns site-ul are locuri rezervate (cel mult MAX_SITE_HIDDEN), ca să nu fie împins afară de restul paginii.
     const rank = (e: PageElement) => (e.hiddenBy === "recipe" ? 0 : e.inViewport ? 1 : 2);
     const ordered = elements
       .map((e, index) => ({ e, index }))
-      .sort((a, b) => rank(a.e) - rank(b.e) || a.index - b.index);
-    const kept = ordered.slice(0, SNAPSHOT_LIMITS.maxElements).map(({ e }) => e);
+      .sort((a, b) => rank(a.e) - rank(b.e) || a.index - b.index)
+      .map(({ e }) => e);
+    const siteHidden = ordered.filter((e) => e.hiddenBy === "site").slice(0, MAX_SITE_HIDDEN);
+    const others = ordered.filter((e) => e.hiddenBy !== "site");
+    const kept = [...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length), ...siteHidden];
 
     const regionList: PageRegion[] = regions.map(({ element, id, role }) => ({
       id,
