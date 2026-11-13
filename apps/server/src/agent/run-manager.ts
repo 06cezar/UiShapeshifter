@@ -23,8 +23,10 @@ interface ActiveRun {
 const activeByUser = new Map<string, ActiveRun>();
 const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 
-// etapa la care e extensia (specs/00); se mărește la fiecare punct de control. Citită la fiecare rulare.
-const DEFAULT_STAGE: SiteToolStage = 2;
+// etapa la care e extensia (specs/00), citită la fiecare rulare. Implicit 1, singura cu toate uneltele în extensie
+// acum (get_page_snapshot, apply_css, say); etapa 2 se pornește cu AGENT_STAGE=2 după M2, când extensia are și
+// apply_ops, point_at, ask_user, propose_changes. Altfel modelul cere unelte pe care pagina le refuză.
+const DEFAULT_STAGE: SiteToolStage = 1;
 
 export function agentStage(): SiteToolStage {
   const stage = Number(process.env.AGENT_STAGE);
