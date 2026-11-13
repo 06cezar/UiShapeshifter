@@ -1,3 +1,3 @@
-2026-11-13 17:32
+2026-11-13 19:03
 
-Schimbare de direcție (PR #18): A de acord, comentariu cu note pe PR. A1 rămâne; urmează A5 (/api/recipes) și A2 (unelte noi) după D7; promptul, agentul fals și compactarea se rescriu pe tipurile din D7. blocat: aștept D7 și unirea #18
+gata: A2 implementat, PR #27 deschis (52 teste, probă reală ~7 s pe „Shorts”); urmează: A3 (etapa 2) după M1 și D8; blocat: proba în extensie așteaptă B2+B5 (E); propus PageRegion.selector lui D și E
