@@ -202,24 +202,34 @@ def derive(
     1. status forțat în tasks.yaml
     2. PR unit                         -> gata
     3. [gata ID] în COMMS              -> gata
-    4. [blocat ID ...] în COMMS        -> blocat
+    4. [blocat ID ...] în COMMS        -> blocat (dar nu dacă e `de X`, iar X e gata după 1–3)
     5. PR deschis / branch cu commit-uri -> în lucru
     6. toate depends_on gata           -> poate începe
     7. altfel                          -> așteaptă (cu lista exactă)
     """
+    # Ce e gata după regulile 1–3 (nu depind de blocaje): un `[blocat X de Y]` cade singur când Y e gata.
+    done_early = set()
+    for t in tasks:
+        found = task_pr(t, prs)
+        if (t["status"] == "done" or (t["status"] == "auto" and (
+                (found and found[1]["state"] == "MERGED") or comms.get(t["id"], {}).get("done")))):
+            done_early.add(t["id"])
+
     out: dict[str, dict] = {}
     for t in tasks:
         c = comms.get(t["id"], {})
         found = task_pr(t, prs)
         num, pr = found if found else (None, None)
         info: dict = {"status": None, "why": "", "pr": num, "blocked": None}
+        # blocat de un task care între timp e gata: blocajul nu mai contează, decid regulile 5–7
+        blocked = c.get("blocked") if (c.get("blocked") or {}).get("by") not in done_early else None
         if t["status"] != "auto":
             info["status"], info["why"] = t["status"], "forțat în tasks.yaml"
         elif pr and pr["state"] == "MERGED":
             info["status"], info["why"] = "done", f"PR #{num} unit"
         elif c.get("done"):
             info["status"], info["why"] = "done", "[gata] în COMMS"
-        elif c.get("blocked"):
+        elif blocked:
             info["status"], info["why"] = "blocked", "[blocat] în COMMS"
             info["blocked"] = c["blocked"]
         elif pr and pr["state"] == "OPEN":
@@ -333,25 +343,36 @@ def branch_checker(root: Path) -> Callable[[str], bool]:
 
 
 # [blocat A2 de C1] · [blocat A2: motiv] · [blocat A2 de C1: motiv] · [deblocat A2] · [gata A2]
-TAG_RE = re.compile(r"\[\s*(blocat|deblocat|gata)\s+([A-Za-z][\w.-]*)\s*([^\]]*)\]", re.IGNORECASE)
+# și mai multe id-uri deodată: [gata A1, B1] · [blocat A2, A3 de C1]
+_ID = r"[A-Za-z][\w.-]*"
+TAG_RE = re.compile(rf"\[\s*(blocat|deblocat|gata)\s+({_ID}(?:\s*,\s*{_ID})*)\s*([^\]]*)\]", re.IGNORECASE)
+
+
+def _clean_id(tid: str) -> str:
+    """`A2.` sau `A2-` (punctuație lipită de id) -> `A2`."""
+    return tid.strip().rstrip(".-")
 
 
 def parse_tags(line: str) -> list[dict]:
     events = []
-    for kind, tid, rest in TAG_RE.findall(line):
+    for kind, ids, rest in TAG_RE.findall(line):
         kind = kind.lower()
-        if tid.lower() == "de":  # „[blocat de X]” fără id: nu știm ce task
-            continue
-        ev = {"kind": kind, "task": tid, "by": None, "reason": None}
+        by = reason = None
         rest = rest.strip()
         if kind == "blocat" and rest:
-            by, _, reason = rest.partition(":")
-            if by.strip().lower().startswith("de "):
-                ev["by"] = by.strip()[3:].strip() or None
-            elif by.strip() and not rest.startswith(":"):
+            head, _, tail = rest.partition(":")
+            if head.strip().lower().startswith("de "):
+                by = _clean_id(head.strip()[3:]) or None
+                reason = tail
+            elif head.strip() and not rest.startswith(":"):
                 reason = rest  # text liber fără „de”/„:”
-            ev["reason"] = reason.strip() or None
-        events.append(ev)
+            else:
+                reason = tail
+            reason = reason.strip() or None
+        for tid in (_clean_id(t) for t in ids.split(",")):
+            if not tid or tid.lower() == "de":  # „[blocat de X]” fără id: nu știm ce task
+                continue
+            events.append({"kind": kind, "task": tid, "by": by, "reason": reason})
     return events
 
 
@@ -404,13 +425,21 @@ def comms_msg_events(root: Path, since_sha: str | None, tip: str) -> list[dict]:
     events: list[dict] = []
     when = sha = mid = None
     fences = 0  # câte rânduri `---` am văzut în fișierul curent; textul începe după al doilea
+    in_header = False  # între `diff --git` și primul `@@`: aici `+++ b/…` e numele fișierului
     for line in r.stdout.splitlines():
         if line.startswith("\x00"):
             sha, _, when = line[1:].partition(" ")
-        elif line.startswith("+++ "):
+            mid, in_header = None, False
+        elif line.startswith("diff --git "):
+            mid, in_header = None, True
+        elif in_header and line.startswith("+++ "):
             path = line[6:] if line.startswith("+++ b/") else ""
             mid = path.rsplit("/", 1)[-1].removesuffix(".md") if path.endswith(".md") else None
             fences = -1
+        elif in_header and line.startswith("@@"):
+            in_header = False
+        elif in_header:
+            continue
         elif line.startswith("+") and mid:
             text = line[1:].rstrip("\r")
             if fences == -1:  # primul rând: are antet sau nu?
@@ -434,13 +463,17 @@ def _event_time(ev: dict) -> dt.datetime:
 
 
 def apply_comms(comms: dict, events: Iterable[dict], known: set[str]) -> None:
+    # id-urile din etichete se potrivesc fără să conteze majusculele: [gata a1] e A1
+    canon = {k.lower(): k for k in known}
     for ev in events:
-        tid = ev["task"]
+        tid = canon.get(ev["task"].lower(), ev["task"])
         if tid not in known:
             warn(f"eticheta [{ev['kind']} {tid}] din {ev['source']}: taskul nu e în tasks.yaml (o păstrez)")
         c = comms.setdefault(tid, {})
         if ev["kind"] == "blocat":
             c["blocked"] = {k: ev[k] for k in ("by", "reason", "since", "source")}
+            if ev["by"]:
+                c["blocked"]["by"] = canon.get(ev["by"].lower(), ev["by"])
         elif ev["kind"] == "deblocat":
             c.pop("blocked", None)
         elif ev["kind"] == "gata":
