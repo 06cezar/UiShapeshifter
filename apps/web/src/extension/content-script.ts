@@ -121,15 +121,16 @@ function start() {
       base?.refresh();
     },
   });
-  /** Rețeta de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
-  const runStart = new Map<string, { revision: number; css: string }>();
+  /** Revizia rețetei de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
+  const runStart = new Map<string, number>();
 
-  /** Readuce rețeta de la începutul rulării. Cu motorul de acum: CSS-ul de atunci, sau nimic dacă era goală. */
+  /**
+   * Readuce rețeta exact la revizia de la începutul rulării (B6: CSS și operațiile de structură, reviziile de după se
+   * șterg). O rulare pornită înainte de reîncărcare n-are revizie de start: atunci nu ghicim și nu ștergem nimic.
+   */
   async function undoRun(runId: string | undefined): Promise<number> {
     const start = runId ? runStart.get(runId) : undefined;
-    if (!start?.css.trim()) await recipes.reset();
-    else
-      await recipes.applyCss({ css: start.css, mode: "replace", reason: "Anulez: cum era înainte de rulare", runId });
+    if (start !== undefined) await recipes.revertTo(start);
     base?.refresh();
     return recipes.view().revision;
   }
@@ -189,7 +190,7 @@ function start() {
     proposeChanges: (args, runId) =>
       proposeChanges(args, runId, {
         ask: panel.askProposal,
-        revisionBefore: (id) => (id ? runStart.get(id)?.revision : undefined) ?? recipes.view().revision,
+        revisionBefore: (id) => (id ? runStart.get(id) : undefined) ?? recipes.view().revision,
         currentRevision: () => recipes.view().revision,
         undoRun,
       }),
@@ -216,10 +217,7 @@ function start() {
         );
         return;
       }
-      if (server.type === "run_started") {
-        const recipe = recipes.view();
-        runStart.set(server.runId, { revision: recipe.revision, css: recipe.css });
-      }
+      if (server.type === "run_started") runStart.set(server.runId, recipes.view().revision);
       chat.handleServerMessage(server);
       moveMascot(mascot, server);
       panel.journal.getState().handleServerMessage(server);

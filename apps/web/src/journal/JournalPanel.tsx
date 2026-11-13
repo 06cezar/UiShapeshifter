@@ -60,7 +60,7 @@ export function JournalPanel(props: JournalPanelProps) {
   return (
     <aside className="journal" data-agent-id="journal-panel" aria-label="Panoul de control">
       <div className="journal-header">
-        <h2>Ce face vulpița</h2>
+        <h2>Ce face ratonul</h2>
         <button type="button" data-agent-id="journal-panel.toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
           {open ? "Ascunde" : "Arată"}
         </button>
