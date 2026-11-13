@@ -92,7 +92,7 @@ _nimic_
 
 ## În lucru
 
-- **D1** (D) Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev): branch `d1-schelet` are commit-uri _(vin 15:00. Gata = npm install && npm run dev pornește web pe 5173 și server pe 8787 cu /api/health; contracts importabile din ambele.)_
+- **D1** (D) Scheletul monorepo (npm workspaces, apps/web Vite+React+TS, apps/server Express+ws+tsx, npm run dev): PR #4 deschis _(vin 15:00. Gata = npm install && npm run dev pornește web pe 5173 și server pe 8787 cu /api/health; contracts importabile din ambele.)_
 - **C1** (C) Motorul de audit - min-font, contrast, target-size, overlap, clipped, offscreen, line-height + scor (specs/07): PR #3 deschis _(vin 21:00. Gata = funcții pure pe UISnapshot + DOM, cu teste unitare (contrast #777 pe alb = 4.48).)_
 
 ## Așteaptă
