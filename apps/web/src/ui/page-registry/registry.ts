@@ -102,6 +102,15 @@ const NOT_KIND_ATTRIBUTES = new Set(["id", "class", "style", "hidden", "tabindex
 /** Câte elemente ascunse de site (din meniuri închise) intră cel mult în rezumat; au locuri rezervate. */
 const MAX_SITE_HIDDEN = 15;
 
+/** O coloană a conținutului principal e cel puțin atât de lată (rezultatele, coloana din dreapta). */
+const COLUMN_MIN_WIDTH_PX = 200;
+/** Măcar o coloană din rând e atât de înaltă: un rând de carduri scurte nu e o așezare pe coloane. */
+const MAIN_COLUMN_MIN_HEIGHT_PX = 600;
+/** Cât coborâm sub <main> după coloane (la Bing: main > #b_mcw > #b_results). */
+const COLUMN_SEARCH_DEPTH = 3;
+/** Cu display inline sau contents, cutia elementului nu spune unde e conținutul: îl iau din copii. */
+const BOXLESS_DISPLAYS = new Set(["inline", "contents"]);
+
 function isInteractive(element: Element): boolean {
   const tag = element.tagName.toLowerCase();
   if (INTERACTIVE_TAGS.has(tag)) return true;
@@ -123,6 +132,54 @@ const INPUT_ROLES: Record<string, string> = {
 function rectOf(element: Element): Rect {
   const r = element.getBoundingClientRect();
   return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+}
+
+/**
+ * Dreptunghiul unei zone. La Bing, <main> și <aside> au display inline: cutia lor e o linie de 16px de la sfârșitul
+ * paginii, iar coloanele reale sunt copiii. Atunci zona ocupă cât copiii ei care se văd.
+ */
+function regionRectOf(element: Element): Rect {
+  if (!BOXLESS_DISPLAYS.has(getComputedStyle(element).display)) return rectOf(element);
+  const boxes = [...element.children].map(regionRectOf).filter((r) => r.width > 0 && r.height > 0);
+  if (boxes.length === 0) return rectOf(element);
+  const left = Math.min(...boxes.map((r) => r.x));
+  const top = Math.min(...boxes.map((r) => r.y));
+  const right = Math.max(...boxes.map((r) => r.x + r.width));
+  const bottom = Math.max(...boxes.map((r) => r.y + r.height));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function sideBySide(a: Rect, b: Rect): boolean {
+  const apart = a.x + a.width <= b.x || b.x + b.width <= a.x;
+  const sameRow = a.y < b.y + b.height && b.y < a.y + a.height;
+  return apart && sameRow;
+}
+
+/**
+ * Coloanele conținutului principal (rezultatele | coloana din dreapta): primul nivel sub <main> unde copii lați stau unul
+ * lângă altul. Fără ele, „coloana din dreapta” sau „lista de rezultate” n-ar avea o zonă și un selector.
+ */
+function columnsOf(main: Element): Element[] {
+  let level = [main];
+  for (let depth = 0; depth < COLUMN_SEARCH_DEPTH && level.length > 0; depth++) {
+    const next: Element[] = [];
+    for (const parent of level) {
+      const wide = [...parent.children]
+        .map((element) => ({ element, rect: regionRectOf(element) }))
+        .filter(({ rect }) => rect.width >= COLUMN_MIN_WIDTH_PX && rect.height > 0);
+      const columns = wide.filter((c) => wide.some((other) => other !== c && sideBySide(c.rect, other.rect)));
+      if (columns.length >= 2 && columns.some(({ rect }) => rect.height >= MAIN_COLUMN_MIN_HEIGHT_PX)) {
+        return columns.map(({ element }) => element);
+      }
+      next.push(...wide.map(({ element }) => element));
+    }
+    level = next;
+  }
+  return [];
+}
+
+function byDocumentOrder(a: Element, b: Element): number {
+  return a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
 }
 
 function cleanText(text: string): string {
@@ -254,8 +311,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
 
   /** Zonele în ordinea din DOM; id-ul după rol și numărul de ordine (r.nav, r.nav-2), deci același la reîncărcare. */
   function findRegions(): { element: Element; id: string; role: string }[] {
-    const seen = new Map<string, number>();
-    const regions: { element: Element; id: string; role: string }[] = [];
+    const found: { element: Element; role: string }[] = [];
     for (const element of doc.querySelectorAll(REGION_SELECTOR)) {
       if (isOurs(element, options.ourHostId)) continue;
       // Un <header>/<footer> dintr-un articol sau dintr-o secțiune e antetul acelui bloc, nu al paginii (regula ARIA).
@@ -263,7 +319,22 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       if ((tag === "header" || tag === "footer") && !element.hasAttribute("role")) {
         if (element.parentElement?.closest("article, aside, main, nav, section")) continue;
       }
-      const role = element.getAttribute("role") ?? TAG_REGION_ROLE[element.tagName.toLowerCase()] ?? "region";
+      found.push({ element, role: element.getAttribute("role") ?? TAG_REGION_ROLE[tag] ?? "region" });
+    }
+    const known = new Set(found.map(({ element }) => element));
+    for (const { element } of found.filter(({ role }) => role === "main")) {
+      for (const column of columnsOf(element)) {
+        if (known.has(column) || isOurs(column, options.ourHostId)) continue;
+        known.add(column);
+        found.push({ element: column, role: "region" });
+      }
+    }
+    // În ordinea DOM: regionOf ia ultima zonă care conține elementul, adică pe cea mai adâncă.
+    found.sort((a, b) => byDocumentOrder(a.element, b.element));
+
+    const seen = new Map<string, number>();
+    const regions: { element: Element; id: string; role: string }[] = [];
+    for (const { element, role } of found) {
       const short = ROLE_SHORT[role] ?? "region";
       const count = (seen.get(short) ?? 0) + 1;
       seen.set(short, count);
@@ -299,9 +370,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       }
     }
     const directSet = new Set(direct);
-    const all = [...direct, ...[...blocks].filter((b) => !directSet.has(b))].sort((a, b) =>
-      a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
-    );
+    const all = [...direct, ...[...blocks].filter((b) => !directSet.has(b))].sort(byDocumentOrder);
     for (const element of all) idOf(element);
     const candidates = scope ? all.filter((element) => scope.contains(element)) : all;
 
@@ -376,7 +445,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       selector: buildSelector(element, doc),
       role,
       label: labelOf(element.querySelector("h1, h2, h3, [aria-label]") ?? element, doc),
-      rect: rectOf(element),
+      rect: regionRectOf(element),
       visible: isShown(element),
       elementCount: elements.filter((e) => e.regionId === id).length,
     }));

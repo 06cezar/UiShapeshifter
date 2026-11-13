@@ -208,3 +208,58 @@ describe("executorul uneltelor în pagină", () => {
     expect(bad.ok ? null : bad.error.code).toBe("INVALID_ARGS");
   });
 });
+
+/** Layout din atribute (data-x/y/w/h), ca să putem pune coloane una lângă alta; happy-dom nu face layout. */
+function layoutFromData() {
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    const data = (this as HTMLElement).dataset ?? {};
+    const hidden = getComputedStyle(this).display === "none";
+    const [x, y, width, height] = [data.x ?? 10, data.y ?? 10, data.w ?? 100, data.h ?? 20].map(Number) as [
+      number,
+      number,
+      number,
+      number,
+    ];
+    const w = hidden ? 0 : width;
+    const h = hidden ? 0 : height;
+    return { x, y, width: w, height: h, top: y, left: x, right: x + w, bottom: y + h, toJSON() {} } as DOMRect;
+  });
+}
+
+describe("coloanele unei pagini de rezultate (ca la Bing)", () => {
+  const BING_LIKE = `
+    <main aria-label="Rezultate" style="display:inline" data-x="0" data-y="3600" data-w="1000" data-h="16">
+      <div id="mcw" data-x="0" data-y="100" data-w="1000" data-h="2000">
+        <ol id="b_results" data-x="0" data-y="100" data-w="600" data-h="2000">
+          <li><h2><a href="https://exemplu.test/a">Rezultatul A</a></h2></li>
+        </ol>
+        <aside aria-label="Mai multe" style="display:inline" data-x="650" data-y="3600" data-w="300" data-h="16">
+          <ol id="b_context" data-x="650" data-y="100" data-w="300" data-h="400">
+            <li><a href="https://exemplu.test/b">Căutări asemănătoare</a></li>
+          </ol>
+        </aside>
+      </div>
+    </main>`;
+
+  test("o zonă cu display inline primește dreptunghiul copiilor ei, nu linia de 16px", () => {
+    layoutFromData();
+    document.body.innerHTML = BING_LIKE;
+    const snap = registry().snapshot();
+    const main = snap.regions.find((r) => r.role === "main");
+    const aside = snap.regions.find((r) => r.role === "complementary");
+    expect(main?.rect).toEqual({ x: 0, y: 100, width: 1000, height: 2000 });
+    expect(aside?.rect).toEqual({ x: 650, y: 100, width: 300, height: 400 });
+  });
+
+  test("coloanele puse una lângă alta din conținutul principal devin zone (#b_results)", () => {
+    layoutFromData();
+    document.body.innerHTML = BING_LIKE;
+    const snap = registry().snapshot();
+    const results = snap.regions.find((r) => r.selector === "#b_results");
+    expect(results).toMatchObject({ role: "region", rect: { x: 0, y: 100, width: 600, height: 2000 } });
+    // coloana din dreapta e deja zonă (aside), nu se dublează
+    expect(snap.regions.filter((r) => r.role === "complementary")).toHaveLength(1);
+    const link = snap.elements.find((e) => e.label === "Rezultatul A");
+    expect(link?.regionId).toBe(results?.id);
+  });
+});
