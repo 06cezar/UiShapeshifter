@@ -80,16 +80,36 @@ describe("registrul și snapshot-ul", () => {
     expect(snap.recipe).toEqual({ revision: 3, css: "a { color: red }" });
   });
 
-  test("nu intră: interfața noastră, elementele ascunse de site, valorile câmpurilor", () => {
+  test("nu intră: interfața noastră și valorile câmpurilor; blocurile ascunse de site fără buton", () => {
     document.body.innerHTML = `
       <div id="${HOST}"><button>Al nostru</button></div>
       <button data-agent-id="gen.x">Generat</button>
-      <button style="display:none">Ascuns</button>
+      <section aria-label="Bloc ascuns" style="display:none">x</section>
       <label for="p">Parola</label><input id="p" type="password" value="secret123">`;
     const snap = registry().snapshot();
     const labels = snap.elements.map((e) => e.label);
     expect(labels).toEqual(["Parola"]);
     expect(JSON.stringify(snap)).not.toContain("secret123");
+  });
+
+  test("butoanele ascunse de site (meniul ⋯ închis) intră, cu hiddenBy site, ca agentul să le poată folosi", () => {
+    document.body.innerHTML = `
+      <button>Vizibil</button>
+      <details><summary aria-label="Mai multe acțiuni">⋯</summary>
+        <a href="/plata" id="plata" style="display:none">Plătește factura</a></details>`;
+    const snap = registry().snapshot();
+    const pay = snap.elements.find((e) => e.label === "Plătește factura");
+    expect(pay).toMatchObject({ visible: false, hiddenBy: "site", selector: "#plata" });
+  });
+
+  test("ascunsele de site au locuri rezervate (cel mult 15), chiar pe o pagină plină", () => {
+    document.body.innerHTML =
+      Array.from({ length: SNAPSHOT_LIMITS.maxElements + 20 }, (_, i) => `<a href="/v${i}">V${i}</a>`).join("") +
+      Array.from({ length: 30 }, (_, i) => `<button style="display:none">Ascuns ${i}</button>`).join("");
+    const snap = registry().snapshot();
+    expect(snap.elements).toHaveLength(SNAPSHOT_LIMITS.maxElements);
+    expect(snap.elements.filter((e) => e.hiddenBy === "site")).toHaveLength(15);
+    expect(snap.truncated).toBe(true);
   });
 
   test("pe o pagină plină, ce a ascuns rețeta intră totuși în rezumat (agentul își verifică munca)", () => {
