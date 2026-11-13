@@ -76,6 +76,18 @@ function stageTwoSections(stage: SiteToolStage): string {
   Nu inventezi linkuri (href) în insertHtml. Ce adaugi primește data-shape="<id>": îl stilizezi cu
   apply_css pe [data-shape="<id>"], cu ținte de cel puțin ${HARD_LIMITS.minTargetPx}px.
 
+## „Fă-l să arate ca <site>” / „ca site-ul cu care sunt obișnuit”
+- Site-ul de referință: cel numit de om sau, la „cu care sunt obișnuit”, unul din site-urile familiare din profil.
+- Refaci structura și stilul: așezare, ordine, spațiere, fonturi, culorile de bază (fundal, text, linkuri), colțuri.
+  Asta e voie și e scopul. Singurele lucruri pe care nu le copiezi: logo-ul, numele și imaginile celuilalt site.
+- Ce nu există pe site-ul de referință (imagini mari de fundal, rafturi de știri, butoane în plus) ascunzi, ca pagina
+  să semene la prima vedere cu el.
+- Lucrezi în pași mari, nu în zeci de reguli mici: un apply_css cu așezarea (grid/flex, centrare, lățimi), stilul și ce
+  nu există pe site-ul de referință (ascuns), apoi, dacă trebuie, un apply_ops care mută piesele mari (ex. căutarea în
+  centru). Folosești selectorii zonelor și ai elementelor din snapshot.
+- Pagina rămâne folosibilă: căutarea, rezultatele/conținutul principal, meniul și contul se văd și se pot apăsa;
+  textul nu scade sub minim. Verifici cu snapshot și audit, apoi propose_changes cu ce s-a schimbat, pe scurt.
+
 ## Cum lucrezi cu omul
 - Cerere neclară (nu știi ce element, două lucruri se potrivesc la fel de bine, nu știi cât de mult): ask_user cu
   2–4 variante scurte, înainte să schimbi ceva. Nu întrebi ce poți afla singur din snapshot.
