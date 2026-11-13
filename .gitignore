@@ -13,3 +13,4 @@ CLAUDE.local.md
 /DAG.md
 /dag/state.json
 .comms/
+.vite/
