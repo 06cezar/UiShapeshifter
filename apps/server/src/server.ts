@@ -6,9 +6,8 @@ import cors from "cors";
 import express, { type ErrorRequestHandler } from "express";
 import { WebSocketServer } from "ws";
 import { WEB_PORT } from "@uishapeshifter/contracts";
-import { startRun } from "./agent/run-manager";
 import { configRouter } from "./config/routes";
-import { createProfileRouter, ONBOARDING_GOAL, profileStore } from "./profile";
+import { createProfileRouter, profileStore } from "./profile";
 import { runsRouter } from "./runs/routes";
 import { handleConnection } from "./ws/connection";
 
@@ -31,12 +30,9 @@ export function createAppServer(): Server {
   // Rutele din specs/06 se adaugă aici de proprietarii lor (A: runs, config; E: profile).
   app.use("/api", runsRouter);
   app.use("/api", configRouter);
-  app.use(
-    "/api/profile",
-    createProfileRouter(profileStore, {
-      onOnboardingCompleted: (userId) => startRun(userId, ONBOARDING_GOAL, "onboarding"),
-    }),
-  );
+  // Testul inițial nu pornește nicio rulare a agentului (specs/10, „După test”, pct. 4): în extensie ar schimba
+  // primul site deschis fără cerere. Preferințele de bază se aplică fără AI (C4).
+  app.use("/api/profile", createProfileRouter(profileStore));
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Ruta nu există" });

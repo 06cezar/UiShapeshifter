@@ -28,6 +28,11 @@ export interface DomFacts {
   inline?: boolean;
   /** Link în mijlocul unei fraze: WCAG 2.5.5 îl scutește de mărimea țintei, iar mărit ar rupe rândul de text. */
   inSentence?: boolean;
+  /**
+   * Elementul e (sau stă într-un) `position: fixed` / `sticky`: antet lipit, banner de cookie-uri, buton de chat.
+   * Conținutul paginii trece pe sub el la derulare, deci o suprapunere cu el e felul site-ului, nu o greșeală.
+   */
+  overlay?: boolean;
 }
 export type DomFactsMap = Record<string, DomFacts>;
 
@@ -117,7 +122,7 @@ export function runRules(
       ...checkLineHeight(el, t, f),
     );
   }
-  issues.push(...checkOverlap(elements));
+  issues.push(...checkOverlap(elements, facts));
   return issues;
 }
 
@@ -238,8 +243,10 @@ export function checkLineHeight(el: ElementInfo, t: AuditThresholds, f: DomFacts
 }
 
 /** Perechi de elemente interactive care se acoperă (mai mult de 4px²). Un element din altul nu contează. */
-export function checkOverlap(elements: ElementInfo[]): AuditIssue[] {
-  const targets = elements.filter((e) => e.interactive && e.rect.width > 0 && e.rect.height > 0);
+export function checkOverlap(elements: ElementInfo[], facts: DomFactsMap = {}): AuditIssue[] {
+  const targets = elements.filter(
+    (e) => e.interactive && e.rect.width > 0 && e.rect.height > 0 && !facts[e.id]?.overlay,
+  );
   const issues: AuditIssue[] = [];
   for (let i = 0; i < targets.length; i++) {
     for (let j = i + 1; j < targets.length; j++) {
