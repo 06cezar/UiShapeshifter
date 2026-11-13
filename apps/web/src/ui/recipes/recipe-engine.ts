@@ -21,6 +21,15 @@ import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRec
 export const RECIPE_STYLE_ID = "uishapeshifter-recipe";
 /** Cel mult atâția selectori „care nu găsesc nimic” în răspunsul către agent (specs/02). */
 const MAX_UNMATCHED = 10;
+/** Cât așteptăm după ultima schimbare a paginii înainte să reaplicăm operațiile (site-urile schimbă în rafale). */
+export const REAPPLY_DEBOUNCE_MS = 150;
+/**
+ * Limita anti-buclă: cel mult atâtea REFACERI (operații deja aplicate, stricate de site) într-o fereastră. Peste ea,
+ * site-ul „se luptă” cu noi: lăsăm stricăciunea până la următoarea schimbare a rețetei. Operațiile care așteaptă
+ * doar să apară elementul nu intră la socoteală.
+ */
+export const MAX_REPAIRS_PER_WINDOW = 10;
+export const REPAIR_WINDOW_MS = 5000;
 
 export interface RecipeEngineOptions {
   host: string;
@@ -59,6 +68,8 @@ export interface RecipeEngine {
   /** Ce a scris alt tab sau popup-ul în stocare: aplicăm aici fără să salvăm din nou. */
   adopt(stored: StoredRecipe): void;
   view(): RecipeView;
+  /** Oprește urmărirea paginii (observer, reaplicarea în așteptare). Pagina rămâne cum e. */
+  dispose(): void;
 }
 
 /**
@@ -149,18 +160,58 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
   }
 
   const domOps = createDomOpsApplier({ doc });
+  let reapplyTimer: ReturnType<typeof setTimeout> | undefined;
+  let repairTimes: number[] = [];
+  let warnedLoop = false;
+
+  /** Ce schimbă motorul însuși nu e „pagina s-a schimbat”: scoatem din observer înregistrările noastre. */
+  function mutate(change: () => void) {
+    change();
+    observer.takeRecords();
+  }
 
   /** Pagina adusă exact la rețetă: foaia de stil, apoi operațiile (anulează tot ce era aplicat, aplică tot în ordine). */
   function render() {
-    renderCss();
-    domOps.sync(stored.recipe.ops ?? []);
+    clearTimeout(reapplyTimer);
+    repairTimes = []; // o schimbare a rețetei pornește o fereastră nouă pentru limita anti-buclă
+    warnedLoop = false;
+    mutate(() => {
+      renderCss();
+      domOps.sync(stored.recipe.ops ?? []);
+    });
   }
 
-  // Unele site-uri își rescriu <head>-ul: dacă ne scot foaia, o punem la loc (specs/02, „Reaplicarea fără AI”).
-  const keeper = new MutationObserver(() => {
-    if (stored.recipe.css && !doc.getElementById(RECIPE_STYLE_ID)) renderCss();
+  /** Doar ce lipsește, în ordinea din rețetă; refacerile sunt limitate. */
+  function reapply() {
+    const ops = stored.recipe.ops ?? [];
+    if (ops.length === 0) return;
+    const at = now().getTime();
+    repairTimes = repairTimes.filter((t) => at - t < REPAIR_WINDOW_MS);
+    const allowRepair = repairTimes.length < MAX_REPAIRS_PER_WINDOW;
+    let result = { added: 0, repaired: 0, brokenLeft: 0 };
+    mutate(() => (result = domOps.reconcile(ops, { allowRepair })));
+    for (let i = 0; i < result.repaired; i++) repairTimes.push(at);
+    if (result.brokenLeft > 0 && !warnedLoop) {
+      warnedLoop = true;
+      console.warn(
+        "[rețete] Site-ul strică mereu schimbările; nu le mai refac până la următoarea schimbare a rețetei.",
+      );
+    }
+  }
+
+  function scheduleReapply() {
+    clearTimeout(reapplyTimer);
+    reapplyTimer = setTimeout(reapply, REAPPLY_DEBOUNCE_MS);
+  }
+
+  // Pagina se schimbă singură: foaia scoasă din <head> se pune la loc imediat (specs/02), operațiile după debounce.
+  const observer = new MutationObserver(() => {
+    if (stored.recipe.css && !doc.getElementById(RECIPE_STYLE_ID)) mutate(renderCss);
+    if (stored.recipe.ops?.length) scheduleReapply();
   });
-  keeper.observe(doc.documentElement, { childList: true, subtree: true });
+  observer.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
+  // La document_start corpul paginii încă lipsește: când e gata, încercăm imediat ce n-a putut fi aplicat.
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", reapply, { once: true });
 
   function unmatched(css: string): string[] {
     const missing: string[] = [];
@@ -205,11 +256,11 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
           { revision, css: nextCss, ...opsField(previous.recipe.ops), reason, runId, at } satisfies RecipeRevision,
         ].slice(-RECIPE_LIMITS.maxRevisions),
       };
-      renderCss();
+      mutate(renderCss);
 
       if (options.isOurUiVisible && !options.isOurUiVisible()) {
         stored = previous;
-        renderCss();
+        mutate(renderCss);
         return invalid(
           "Regulile noi ascundeau interfața extensiei; revizia a fost anulată. Țintește doar elementele site-ului.",
           [
@@ -246,7 +297,8 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
       }
 
       // Aplicăm rețeta de acum plus operațiile noi; în rețetă rămân doar cele noi care chiar s-au aplicat.
-      const outcomes = domOps.sync([...current, ...accepted.map((a) => a.op)]);
+      let outcomes: ReturnType<typeof domOps.sync> = [];
+      mutate(() => (outcomes = domOps.sync([...current, ...accepted.map((a) => a.op)])));
       const added: DomOp[] = [];
       accepted.forEach(({ index, op }, i) => {
         const outcome = outcomes[current.length + i]!;
@@ -255,13 +307,13 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
       });
       skipped.sort((a, b) => a.index - b.index);
       const nextOps = [...current, ...added];
-      if (added.length !== accepted.length) domOps.sync(nextOps); // fără cele sărite, ca pozițiile să corespundă
+      if (added.length !== accepted.length) mutate(() => domOps.sync(nextOps)); // fără cele sărite, ca pozițiile să corespundă
 
       if (added.length === 0) {
         return { ok: true, data: { revision: stored.recipe.revision, applied: 0, skipped, htmlDropped: [] } };
       }
       if (options.isOurUiVisible && !options.isOurUiVisible()) {
-        domOps.sync(current);
+        mutate(() => domOps.sync(current));
         return opsInvalid(
           "Schimbarea ascundea interfața extensiei; am anulat-o. Țintește doar elementele site-ului.",
           skipped,
@@ -330,6 +382,11 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     adopt(next) {
       stored = next;
       render();
+    },
+
+    dispose() {
+      clearTimeout(reapplyTimer);
+      observer.disconnect();
     },
 
     view() {

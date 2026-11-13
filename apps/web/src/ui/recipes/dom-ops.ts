@@ -182,6 +182,21 @@ export interface DomOpsApplier {
   sync(ops: readonly DomOp[]): OpOutcome[];
   /** Anulează tot ce e aplicat, în ordine inversă. */
   undoAll(): void;
+  /**
+   * Pentru paginile care își schimbă singure conținutul: NU anulează tot. Aplică, în ordinea din rețetă, doar operațiile
+   * care lipsesc. Cele care n-au fost încă aplicate (elementul nu exista) se încearcă din nou; cele aplicate pe care
+   * site-ul le-a stricat se refac doar dacă `allowRepair` (limita anti-buclă o ține motorul).
+   */
+  reconcile(ops: readonly DomOp[], options: { allowRepair: boolean }): ReconcileResult;
+}
+
+export interface ReconcileResult {
+  /** Operații aplicate acum pentru prima dată (elementul a apărut între timp). */
+  added: number;
+  /** Operații aplicate pe care site-ul le-a stricat și pe care le-am refăcut. */
+  repaired: number;
+  /** Operații stricate de site lăsate așa, fiindcă refacerea nu era permisă. */
+  brokenLeft: number;
 }
 
 export interface DomOpsOptions {
@@ -208,6 +223,24 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
   return {
     applied,
     undoAll,
+    reconcile(ops, { allowRepair }) {
+      const result: ReconcileResult = { added: 0, repaired: 0, brokenLeft: 0 };
+      ops.forEach((op, index) => {
+        const current = applied.get(index);
+        if (current?.intact()) return;
+        if (current) {
+          if (!allowRepair) return void result.brokenLeft++;
+          current.undo(); // curăță ce a rămas (marcaje, container), fără să readucă noduri scoase de site
+          applied.delete(index);
+        }
+        const outcome = applyOne(op);
+        if (!outcome.ok) return;
+        applied.set(index, outcome.applied);
+        if (current) result.repaired++;
+        else result.added++;
+      });
+      return result;
+    },
     sync(ops) {
       undoAll();
       return ops.map((op, index) => {
@@ -353,9 +386,12 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
   }
 }
 
-/** Pune elementul înapoi pe locul marcajului; dacă site-ul a scos între timp marcajul, elementul rămâne unde e. */
+/**
+ * Pune elementul înapoi pe locul marcajului. Dacă site-ul a scos între timp marcajul sau elementul (l-a randat din
+ * nou), nu readucem un nod pe care site-ul l-a aruncat: doar curățăm marcajul.
+ */
 function restore(el: Element, marker: Comment) {
-  if (marker.isConnected) marker.replaceWith(el);
+  if (marker.isConnected && el.isConnected) marker.replaceWith(el);
   else marker.remove();
 }
 

@@ -1,9 +1,17 @@
 // Motorul de rețete v1 (B5): aplicare validată, revizii, limite, protecția interfeței noastre, salvare, reaplicare,
 // „Revino la original”.
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { DOM_OP_LIMITS, RECIPE_LIMITS } from "@uishapeshifter/contracts";
-import { createRecipeEngine, RECIPE_STYLE_ID, selectorsOf } from "./recipe-engine";
+import {
+  createRecipeEngine,
+  type RecipeEngine,
+  MAX_REPAIRS_PER_WINDOW,
+  REAPPLY_DEBOUNCE_MS,
+  RECIPE_STYLE_ID,
+  REPAIR_WINDOW_MS,
+  selectorsOf,
+} from "./recipe-engine";
 import { loadRecipe, recipeKey, type RecipeStorage } from "./recipe-store";
 
 function memoryStorage(): RecipeStorage & { data: Record<string, unknown> } {
@@ -18,7 +26,16 @@ function memoryStorage(): RecipeStorage & { data: Record<string, unknown> } {
 
 const style = () => document.getElementById(RECIPE_STYLE_ID)?.textContent ?? null;
 
+const engines: RecipeEngine[] = [];
+/** Ca createRecipeEngine, dar motorul e oprit după test (un singur motor pe pagină, ca în extensie). */
+function newEngine(options: Parameters<typeof createRecipeEngine>[0]): RecipeEngine {
+  const engine = createRecipeEngine(options);
+  engines.push(engine);
+  return engine;
+}
+
 afterEach(() => {
+  engines.splice(0).forEach((engine) => engine.dispose());
   document.getElementById(RECIPE_STYLE_ID)?.remove();
   document.body.innerHTML = "";
 });
@@ -27,7 +44,7 @@ describe("aplicarea CSS-ului", () => {
   test("append adaugă, replace înlocuiește; fiecare aplicare e o revizie salvată", async () => {
     document.body.innerHTML = `<nav id="shorts">x</nav><aside>y</aside>`;
     const storage = memoryStorage();
-    const engine = createRecipeEngine({ host: "video.ro", storage });
+    const engine = newEngine({ host: "video.ro", storage });
     await engine.load();
 
     const first = await engine.applyCss({ css: "#shorts { display: none }", reason: "fără Shorts", runId: "r1" });
@@ -48,7 +65,7 @@ describe("aplicarea CSS-ului", () => {
   });
 
   test("ce scoate validarea apare în dropped; dacă nu rămâne nimic, INVALID_ARGS și revizia nu crește", async () => {
-    const engine = createRecipeEngine({ host: "a.ro", storage: memoryStorage() });
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
     await engine.load();
     const partial = await engine.applyCss({ css: "a { color: red } b { background: url(x) }", reason: "x" });
     expect(partial.ok && partial.data.dropped.map((d) => d.reason)).toEqual(["url-function"]);
@@ -58,7 +75,7 @@ describe("aplicarea CSS-ului", () => {
   });
 
   test("peste maxCssBytes: INVALID_ARGS, rețeta rămâne cum era", async () => {
-    const engine = createRecipeEngine({ host: "a.ro", storage: memoryStorage() });
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
     await engine.load();
     const huge = `a { content: "${"x".repeat(RECIPE_LIMITS.maxCssBytes)}" }`;
     const result = await engine.applyCss({ css: huge, reason: "x" });
@@ -69,7 +86,7 @@ describe("aplicarea CSS-ului", () => {
   test("o regulă care ar ascunde interfața noastră e anulată (targets-our-ui) și nu se salvează", async () => {
     const storage = memoryStorage();
     let ourUiVisible = true;
-    const engine = createRecipeEngine({ host: "a.ro", storage, isOurUiVisible: () => ourUiVisible });
+    const engine = newEngine({ host: "a.ro", storage, isOurUiVisible: () => ourUiVisible });
     await engine.load();
     await engine.applyCss({ css: "aside { display: none }", reason: "ok" });
     ourUiVisible = false; // ca și cum `div { display: none }` ne-ar fi ascuns insigna
@@ -85,11 +102,11 @@ describe("aplicarea CSS-ului", () => {
 describe("reaplicarea și „Revino la original”", () => {
   test("rețeta salvată se pune în pagină la load, fără server", async () => {
     const storage = memoryStorage();
-    const first = createRecipeEngine({ host: "a.ro", storage });
+    const first = newEngine({ host: "a.ro", storage });
     await first.load();
     await first.applyCss({ css: "aside { display: none }", reason: "x" });
     document.getElementById(RECIPE_STYLE_ID)?.remove(); // „reîncărcare”
-    const second = createRecipeEngine({ host: "a.ro", storage });
+    const second = newEngine({ host: "a.ro", storage });
     await second.load();
     expect(style()).toBe("aside { display: none }");
     expect(second.view().revision).toBe(1);
@@ -97,7 +114,7 @@ describe("reaplicarea și „Revino la original”", () => {
 
   test("reset golește foaia și stocarea; o rețetă stricată în stocare = rețetă goală", async () => {
     const storage = memoryStorage();
-    const engine = createRecipeEngine({ host: "a.ro", storage });
+    const engine = newEngine({ host: "a.ro", storage });
     await engine.load();
     await engine.applyCss({ css: "aside { display: none }", reason: "x" });
     await engine.reset();
@@ -112,7 +129,7 @@ describe("reaplicarea și „Revino la original”", () => {
 describe("„Anulez”: revertTo", () => {
   async function threeRevisions() {
     const storage = memoryStorage();
-    const engine = createRecipeEngine({ host: "a.ro", storage });
+    const engine = newEngine({ host: "a.ro", storage });
     await engine.load();
     await engine.applyCss({ css: "aside { display: none }", reason: "unu", runId: "r1" });
     await engine.applyCss({ css: "nav { display: none }", reason: "doi", runId: "r2" });
@@ -165,7 +182,7 @@ describe("„Anulez”: revertTo", () => {
 
   test("o revizie aruncată din istoric (peste maxRevisions) nu se mai poate cere", async () => {
     const storage = memoryStorage();
-    const engine = createRecipeEngine({ host: "a.ro", storage });
+    const engine = newEngine({ host: "a.ro", storage });
     await engine.load();
     for (let i = 0; i < RECIPE_LIMITS.maxRevisions + 2; i++) {
       await engine.applyCss({ css: `.r${i} { display: none }`, reason: `r${i}` });
@@ -216,7 +233,7 @@ describe("ops în stocare", () => {
         { revision: 2, css: "", reason: "y", at: "t" },
       ],
     };
-    const engine = createRecipeEngine({ host: "a.ro", storage });
+    const engine = newEngine({ host: "a.ro", storage });
     await engine.load();
     await engine.revertTo(1);
     expect((await loadRecipe(storage, "a.ro", "now")).recipe.ops).toEqual(ops);
@@ -235,7 +252,7 @@ describe("operațiile de structură în motor (B6)", () => {
 
   async function engineOn(html = PAGE, storage = memoryStorage(), isOurUiVisible?: () => boolean) {
     document.body.innerHTML = html;
-    const engine = createRecipeEngine({ host: "test.ro", storage, isOurUiVisible });
+    const engine = newEngine({ host: "test.ro", storage, isOurUiVisible });
     await engine.load();
     return { engine, storage };
   }
@@ -369,6 +386,136 @@ describe("operațiile de structură în motor (B6)", () => {
     expect(document.body.firstElementChild?.getAttribute("role")).toBe("search");
     engine.adopt({ recipe: { host: "test.ro", revision: 0, css: "", updatedAt: "t" }, revisions: [] });
     expect(document.body.innerHTML).toBe(original);
+  });
+});
+
+describe("reaplicarea când pagina se schimbă singură (B6)", () => {
+  const moveSearch = {
+    op: "move",
+    selector: "[role='search']",
+    to: { selector: "body", position: "prepend" },
+  } as const;
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  /** Site-ul își randează din nou căutarea: scoate nodul vechi și pune unul nou în locul inițial. */
+  function rerenderSearch() {
+    document.querySelector("[role='search']")?.remove();
+    document.getElementById("main")!.insertAdjacentHTML("afterbegin", '<form role="search">nouă</form>');
+  }
+
+  async function engineWithSearchMoved() {
+    document.body.innerHTML = '<main id="main"><form role="search">căutare</form><p>conținut</p></main>';
+    const engine = newEngine({ host: "test.ro", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyOps({ ops: [moveSearch], reason: "sus" });
+    return engine;
+  }
+
+  const searchOnTop = () => document.body.firstElementChild?.getAttribute("role") === "search";
+
+  test("site-ul își randează din nou căutarea: după debounce e mutată iar, fără marcaje rămase", async () => {
+    await engineWithSearchMoved();
+    rerenderSearch();
+    expect(searchOnTop()).toBe(false);
+    await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    expect(searchOnTop()).toBe(true);
+    expect(document.body.firstElementChild?.textContent).toBe("nouă");
+    expect(document.querySelectorAll("[role='search']")).toHaveLength(1);
+    expect(document.body.innerHTML.match(/uishapeshifter:marcaj/g)).toHaveLength(1);
+  });
+
+  test("reaplicarea pune doar ce lipsește, nu anulează tot: o operație intactă nu e atinsă", async () => {
+    const engine = await engineWithSearchMoved();
+    await engine.applyOps({ ops: [{ op: "setAttr", selector: "p", name: "title", value: "t" }], reason: "x" });
+    const paragraph = document.querySelector("p")!;
+    paragraph.setAttribute("title", "stricat de site");
+    const search = document.querySelector("[role='search']");
+    await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    expect(paragraph.getAttribute("title")).toBe("t");
+    expect(document.querySelector("[role='search']")).toBe(search); // mutarea intactă n-a fost refăcută
+  });
+
+  test("un element care nu există încă (ex. căutarea pe plata.html) se reîncearcă la fiecare schimbare, fără să consume limita", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const storage = memoryStorage();
+    storage.data[recipeKey("test.ro")] = {
+      recipe: { host: "test.ro", revision: 1, css: "", ops: [moveSearch], updatedAt: "t" },
+      revisions: [],
+    };
+    document.body.innerHTML = '<main id="main"><p>plata</p></main>';
+    const engine = newEngine({ host: "test.ro", storage });
+    await engine.load();
+    for (let i = 0; i < MAX_REPAIRS_PER_WINDOW * 3; i++) {
+      document.getElementById("main")!.insertAdjacentHTML("beforeend", "<span>x</span>");
+      await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    }
+    expect(warn).not.toHaveBeenCalled();
+    // elementul apare în sfârșit: se aplică, iar refacerile au încă toată limita
+    document.getElementById("main")!.insertAdjacentHTML("afterbegin", '<form role="search">apare</form>');
+    await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    expect(searchOnTop()).toBe(true);
+    for (let i = 0; i < MAX_REPAIRS_PER_WINDOW; i++) {
+      rerenderSearch();
+      await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+      expect(searchOnTop()).toBe(true);
+    }
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test("un site care se „luptă” cu motorul: după MAX_REPAIRS_PER_WINDOW refaceri ne oprim, cu un singur avertisment", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await engineWithSearchMoved();
+    let repairs = 0;
+    for (let i = 0; i < MAX_REPAIRS_PER_WINDOW + 5; i++) {
+      rerenderSearch();
+      await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+      if (searchOnTop()) repairs++;
+    }
+    expect(repairs).toBe(MAX_REPAIRS_PER_WINDOW);
+    expect(searchOnTop()).toBe(false);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  test("după fereastra anti-buclă, refacerile pornesc din nou", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await engineWithSearchMoved();
+    for (let i = 0; i < MAX_REPAIRS_PER_WINDOW + 1; i++) {
+      rerenderSearch();
+      await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    }
+    expect(searchOnTop()).toBe(false);
+    await vi.advanceTimersByTimeAsync(REPAIR_WINDOW_MS);
+    rerenderSearch();
+    await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    expect(searchOnTop()).toBe(true);
+  });
+
+  test("o schimbare a rețetei (revertTo) pornește o fereastră nouă", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const engine = await engineWithSearchMoved();
+    for (let i = 0; i < MAX_REPAIRS_PER_WINDOW + 1; i++) {
+      rerenderSearch();
+      await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    }
+    await engine.revertTo(1); // sincronizare completă
+    expect(searchOnTop()).toBe(true);
+    rerenderSearch();
+    await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS);
+    expect(searchOnTop()).toBe(true);
+  });
+
+  test("schimbările făcute de motor nu pornesc reaplicarea (fără buclă cu noi înșine)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await engineWithSearchMoved();
+    const before = document.body.innerHTML;
+    await vi.advanceTimersByTimeAsync(REAPPLY_DEBOUNCE_MS * 20);
+    expect(document.body.innerHTML).toBe(before);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 
