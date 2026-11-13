@@ -130,11 +130,15 @@ describe("WebSocket cu agentul fals", () => {
     web.socket.close();
   });
 
-  it("refuză un user_message cu page stricat (host care ar ieși din folder)", async () => {
-    const web = await connect();
+  it("un page stricat nu oprește cererea: rularea pornește fără el (ordinea run_started rămâne aceeași)", async () => {
+    const web = await connect("page-stricat");
     web.hello();
     web.send({ type: "user_message", text: "ascunde x", source: "text", page: { ...PAGE, host: "../etc" } });
-    expect((await web.next("error")).message).toMatch(/nerecunoscut/);
+    const started = await web.next("run_started");
+    expect(started.goal).toBe("ascunde x");
+    expect(web.inbox.some((m) => m.type === "error")).toBe(false);
+    web.send({ type: "cancel_run", runId: started.runId });
+    await web.next("run_finished");
     web.socket.close();
   });
 

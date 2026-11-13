@@ -45,7 +45,11 @@ describe("parseClientMessage", () => {
     expect(parse({ type: "necunoscut" })).toBeNull();
     expect(parse({ type: "suggestion_decision", suggestionId: "s-1", decision: "poate" })).toBeNull();
     expect(parse({ type: "suggestion_decision", decision: "accept" })).toBeNull();
-    expect(parse({ type: "signals", signals: [], page: { url: "u", host: "..", title: "t" } })).toBeNull();
+    // page stricat: scos, mesajul merge mai departe (ordinea user_message → run_started rămâne aceeași)
+    expect(parse({ type: "signals", signals: [], page: { url: "u", host: "..", title: "t" } })).toEqual({
+      type: "signals",
+      signals: [],
+    });
     const page = (host: string) => ({
       type: "user_message",
       text: "x",
@@ -54,7 +58,7 @@ describe("parseClientMessage", () => {
     });
     expect(parse(page("video.example"))?.type).toBe("user_message");
     for (const bad of [".", "..", "a..b", ".video.example", "video.example.", "../etc", "Video.Example", "a/b"]) {
-      expect(parse(page(bad))).toBeNull();
+      expect(parse(page(bad))).toEqual({ type: "user_message", text: "x", source: "text" });
     }
   });
 });

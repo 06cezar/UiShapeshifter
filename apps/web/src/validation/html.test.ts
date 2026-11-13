@@ -1,25 +1,24 @@
 import { describe, expect, it } from "vitest";
+import { DOM_OP_LIMITS, type HtmlDropped } from "@uishapeshifter/contracts";
 import { validateHtml } from "./html";
-import type { HtmlDropReason } from "./result";
 
-function reasonsOf(html: string): HtmlDropReason[] {
+function reasonsOf(html: string): HtmlDropped["reason"][] {
   return validateHtml(html).dropped.map((d) => d.reason);
 }
 
-describe("validateHtml: ce trece", () => {
+describe("validateHtml: ce trece (lista din contract, dom-ops.ts)", () => {
   it("o placă obișnuită trece neschimbată", () => {
     const html =
       '<div class="placa" role="region" aria-label="Factura"><h2>Factura</h2>' +
-      '<p>Scadentă <time datetime="2026-11-20">pe 20</time></p>' +
-      '<a href="https://exemplu.test/plata" target="_blank" rel="noopener">Plătește</a>' +
-      '<button type="button" data-shortcut="plata">Plătește acum</button></div>';
-    expect(validateHtml(html)).toEqual({ html, dropped: [] });
+      "<p>Scadentă pe <strong>20 noiembrie</strong></p>" +
+      '<a href="/plata" title="Plătește">Plătește</a><button class="mare">Plătește acum</button></div>';
+    expect(validateHtml(html)).toEqual({ html, dropped: [], rejected: false });
   });
 
-  it("linkuri relative, ancore, mailto și tel sunt permise", () => {
-    expect(
-      reasonsOf('<a href="/cos">Coș</a><a href="#sus">Sus</a><a href="mailto:a@b.test">M</a><a href="tel:0700">T</a>'),
-    ).toEqual([]);
+  it("linkuri permise: cale din site, ancoră, https", () => {
+    expect(validateHtml('<a href="/cos">Coș</a><a href="#sus">Sus</a><a href="https://exemplu.test">E</a>')).toEqual(
+      expect.objectContaining({ dropped: [], rejected: false }),
+    );
   });
 
   it("întoarce forma normalizată de parser (pe ea s-a făcut verificarea)", () => {
@@ -27,7 +26,7 @@ describe("validateHtml: ce trece", () => {
   });
 });
 
-describe("validateHtml: etichete", () => {
+describe("validateHtml: etichete din afara listei se scot, cu tot conținutul", () => {
   it.each([
     ["script", "<script>alert(1)</script>"],
     ["script la început (DOMParser l-ar muta în head)", "<script>x</script><p>a</p>"],
@@ -36,74 +35,71 @@ describe("validateHtml: etichete", () => {
     ["form", '<form action="https://evil.example"><button>Trimite</button></form>'],
     ["svg", "<svg><script>alert(1)</script></svg>"],
     ["style", "<style>body { display: none }</style>"],
-    ["object", '<object data="x"></object>'],
-  ])("%s e scos", (_name, html) => {
+    ["table (nu e în lista din contract)", "<table><tr><td>x</td></tr></table>"],
+    ["h5", "<h5>titlu mic</h5>"],
+  ])("%s", (_name, html) => {
     const result = validateHtml(html);
     expect(result.dropped.map((d) => d.reason)).toEqual(["tag"]);
-    expect(result.html).not.toMatch(/<(script|iframe|img|form|svg|style|object)/);
+    expect(result.rejected).toBe(false);
+    expect(result.html).not.toMatch(/<(script|iframe|img|form|svg|style|table|h5)/);
   });
 
   it("scoate doar eticheta greșită, nu tot", () => {
-    const result = validateHtml("<div><p>rămâne</p><script>alert(1)</script></div>");
-    expect(result.html).toBe("<div><p>rămâne</p></div>");
-  });
-
-  it("un element scos ia cu el și ce e înăuntru, raportat o singură dată", () => {
-    expect(reasonsOf('<form><input name="x"><select></select></form>')).toEqual(["tag"]);
+    expect(validateHtml("<div><p>rămâne</p><script>alert(1)</script></div>").html).toBe("<div><p>rămâne</p></div>");
   });
 
   it("rădăcina interfeței noastre nu se poate imita", () => {
-    expect(reasonsOf("<uishapeshifter-root></uishapeshifter-root>")).toEqual(["targets-our-ui"]);
+    const [dropped] = validateHtml("<uishapeshifter-root></uishapeshifter-root>").dropped;
+    expect(dropped).toMatchObject({ reason: "tag", message: expect.stringContaining("interfața extensiei") });
   });
 });
 
-describe("validateHtml: atribute", () => {
+describe("validateHtml: atribute din afara listei se scot", () => {
   it.each([
-    ["onclick", '<button onclick="alert(1)">x</button>'],
-    ["onmouseover cu majuscule", '<div ONMOUSEOVER="alert(1)">x</div>'],
-    ["onerror", '<span onerror="x">x</span>'],
-  ])("%s → event-handler, iar elementul rămâne fără el", (_name, html) => {
+    ["onclick", '<button onclick="alert(1)">x</button>', /rulează cod/],
+    ["ONMOUSEOVER cu majuscule", '<div ONMOUSEOVER="alert(1)">x</div>', /rulează cod/],
+    ["style", '<div style="color: red">x</div>', /CSS-ul rețetei/],
+    ["id", '<div id="x">x</div>', /nu e permis/],
+    ["target", '<a href="/x" target="_blank">x</a>', /nu e permis/],
+    ["data-agent-id", '<button data-agent-id="mascot.close">x</button>', /nu e permis/],
+  ])("%s → attribute, iar elementul rămâne fără el", (_name, html, message) => {
     const result = validateHtml(html);
-    expect(result.dropped.map((d) => d.reason)).toEqual(["event-handler"]);
-    expect(result.html).not.toMatch(/on[a-z]+=/i);
+    expect(result.dropped).toEqual([
+      expect.objectContaining({ reason: "attribute", message: expect.stringMatching(message) }),
+    ]);
+    expect(result.rejected).toBe(false);
   });
 
+  it("o clasă care imită interfața noastră se scoate", () => {
+    expect(reasonsOf('<div class="uishapeshifter-panel">x</div>')).toEqual(["attribute"]);
+  });
+});
+
+describe("validateHtml: un link greșit respinge operația întreagă (specs/03)", () => {
   it.each([
     ["javascript:", '<a href="javascript:alert(1)">x</a>'],
     ["cu spații și tab", '<a href=" java\tscript:alert(1)">x</a>'],
     ["cu entități HTML", '<a href="&#106;avascript:alert(1)">x</a>'],
     ["data:", '<a href="data:text/html,<script>alert(1)</script>">x</a>'],
-    ["vbscript:", '<a href="vbscript:x">x</a>'],
-  ])("link %s → script-url", (_name, html) => {
+    ["http fără s", '<a href="http://exemplu.test">x</a>'],
+    ["// spre alt site", '<a href="//evil.example/x">x</a>'],
+  ])("%s → href, rejected, html gol", (_name, html) => {
     const result = validateHtml(html);
-    expect(result.dropped.map((d) => d.reason)).toEqual(["script-url"]);
-    expect(result.html).toBe("<a>x</a>");
-  });
-
-  it("link cu altă schemă (ftp:) → attribute", () => {
-    expect(reasonsOf('<a href="ftp://x.test/a">x</a>')).toEqual(["attribute"]);
-  });
-
-  it("atribute din afara listei: src, formaction, srcdoc", () => {
-    expect(reasonsOf('<button formaction="https://evil.example">x</button><div srcdoc="x"></div>')).toEqual([
-      "attribute",
-      "attribute",
-    ]);
-  });
-
-  it("data-agent-id e al nostru", () => {
-    expect(reasonsOf('<button data-agent-id="mascot.close">x</button>')).toEqual(["targets-our-ui"]);
-  });
-
-  it("style trece prin validateCss: fără url, fără să iasă din regulă spre interfața noastră", () => {
-    expect(reasonsOf('<div style="color: red; font-size: 20px">x</div>')).toEqual([]);
-    expect(reasonsOf('<div style="background: url(https://evil.example/x)">x</div>')).toEqual(["style"]);
-    expect(reasonsOf('<div style="color: red } [data-agent-id] { display: none">x</div>')).toEqual(["targets-our-ui"]);
+    expect(result.dropped.map((d) => d.reason)).toEqual(["href"]);
+    expect(result).toMatchObject({ rejected: true, html: "" });
   });
 
   it("motivul are mesaj în română și o bucată din element", () => {
-    const [dropped] = validateHtml('<button onclick="alert(1)">x</button>').dropped;
-    expect(dropped.message).toMatch(/rulează cod/);
-    expect(dropped.snippet).toContain("onclick");
+    const [dropped] = validateHtml('<a href="javascript:alert(1)">x</a>').dropped;
+    expect(dropped.message).toMatch(/începe cu \/, # sau https:\/\//);
+    expect(dropped.snippet).toContain("javascript:");
+  });
+});
+
+describe("validateHtml: mărimea", () => {
+  it(`peste ${DOM_OP_LIMITS.maxHtmlBytes} de octeți → size, rejected`, () => {
+    const result = validateHtml(`<p>${"x".repeat(DOM_OP_LIMITS.maxHtmlBytes)}</p>`);
+    expect(result.dropped.map((d) => d.reason)).toEqual(["size"]);
+    expect(result).toMatchObject({ rejected: true, html: "" });
   });
 });

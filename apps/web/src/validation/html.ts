@@ -1,112 +1,97 @@
-// Validarea bucăților de HTML scrise de agent (insertHtml, specs/01), înainte să ajungă în pagină.
-// Listă permisă, nu listă interzisă: rămâne doar ce știm că nu rulează și nu încarcă nimic. Ca la CSS, scoatem
-// elementul sau atributul greșit și spunem de ce (HtmlDropped); restul se inserează.
+// Validarea bucăților de HTML scrise de agent (insertHtml, specs/03 „HTML curățat”), înainte să ajungă în pagină.
+// Lista permisă e cea din contract (`ALLOWED_HTML_TAGS`, `ALLOWED_HTML_ATTRS`): rămâne doar ce știm că nu rulează și nu
+// încarcă nimic. O etichetă sau un atribut din afara listei se scoate, cu motivul (`HtmlDropped`); un link spre altă
+// adresă decât `/`, `#` sau `https://`, ori HTML prea mare, respinge operația întreagă (`rejected`).
 // Comportamentul elementelor adăugate vine din `bind` și din catalog, niciodată din HTML-ul modelului.
 
-import { OUR_INTERFACE_MARKERS, validateCss } from "./css";
-import { snippetOf, type HtmlDropped, type HtmlDropReason, type HtmlValidation } from "./result";
+import { ALLOWED_HTML_ATTRS, ALLOWED_HTML_TAGS, DOM_OP_LIMITS, type HtmlDropped } from "@uishapeshifter/contracts";
+import { OUR_INTERFACE_MARKERS } from "./css";
+import { snippetOf, type HtmlValidation } from "./result";
 
-/** Etichete de structură și text. Fără nimic care încarcă (img, iframe, video), rulează (script) sau trimite (form). */
-const ALLOWED_TAGS = new Set([
-  "div", "span", "p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "a", "button", "strong", "em", "b", "i",
-  "u", "small", "mark", "abbr", "time", "br", "hr", "section", "nav", "header", "footer", "main", "aside", "article",
-  "figure", "figcaption", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption", "label", "details", "summary",
-]); // prettier-ignore
-
-/** Atribute permise pe orice etichetă permisă; în plus `aria-*` și `data-*` (fără `data-agent-id`, al nostru). */
-const GLOBAL_ATTRIBUTES = new Set(["class", "id", "title", "role", "lang", "dir", "tabindex", "hidden", "style"]);
-const TAG_ATTRIBUTES: Record<string, ReadonlySet<string>> = {
-  a: new Set(["href", "target", "rel"]),
-  button: new Set(["type", "disabled"]),
-  th: new Set(["colspan", "rowspan", "scope"]),
-  td: new Set(["colspan", "rowspan"]),
-  time: new Set(["datetime"]),
-  details: new Set(["open"]),
-};
-
-/** Unde poate duce un link. Fără schemă (relativ sau `#ancoră`) rămâne în site. */
-const ALLOWED_LINK_SCHEMES = new Set(["http", "https", "mailto", "tel"]);
-const SCRIPT_SCHEMES = new Set(["javascript", "vbscript", "data"]);
+const ALLOWED_TAGS: ReadonlySet<string> = new Set(ALLOWED_HTML_TAGS);
+const ALLOWED_ATTRS: ReadonlySet<string> = new Set(ALLOWED_HTML_ATTRS);
+/** Începuturile permise pentru `href` (specs/03); `//` e tot altă adresă, deci nu intră la „/”. */
+const SAME_SITE_PREFIXES = ["#", "/"] as const;
+const SECURE_PREFIX = "https://";
 
 export function validateHtml(html: string): HtmlValidation {
+  const bytes = new TextEncoder().encode(html).length;
+  if (bytes > DOM_OP_LIMITS.maxHtmlBytes) {
+    return reject([
+      {
+        snippet: snippetOf(html),
+        reason: "size",
+        message: `HTML-ul are ${bytes} octeți; maximul e ${DOM_OP_LIMITS.maxHtmlBytes}. Adaugă doar elementul cerut.`,
+      },
+    ]);
+  }
+
   // În <template> parserul nu rulează nimic și nu mută <script>/<style> în <head>, cum ar face DOMParser.
   const template = document.createElement("template");
   template.innerHTML = html;
 
   const dropped: HtmlDropped[] = [];
+  let badLink = false;
   // Lista e făcută înainte de schimbări: un element scos ia cu el tot ce e înăuntru, iar copiii lui nu mai contează.
   for (const element of [...template.content.querySelectorAll("*")]) {
     if (!template.content.contains(element)) continue;
-    checkElement(element, dropped);
-  }
-  // Verificăm arborele, deci inserăm arborele: textul primit, reparsat altundeva, ar putea ieși altfel.
-  return { html: template.innerHTML, dropped };
-}
-
-function checkElement(element: Element, dropped: HtmlDropped[]): void {
-  const tag = element.localName;
-  if (!ALLOWED_TAGS.has(tag)) {
-    const ours = OUR_INTERFACE_MARKERS.some((marker) => tag.includes(marker));
-    drop(
-      dropped,
-      element.outerHTML,
-      ours ? "targets-our-ui" : "tag",
-      ours
-        ? `<${tag}> ține de interfața extensiei. Adaugă doar elemente pentru site.`
-        : `<${tag}> nu e permis. Folosește etichete de text și structură (div, p, a, button, ul…).`,
-    );
-    element.remove();
-    return;
-  }
-  for (const { name, value } of [...element.attributes]) {
-    const reason = attributeProblem(tag, name, value);
-    if (reason) {
-      drop(dropped, `<${tag} ${name}="${value}">`, reason.reason, reason.message);
+    if (!ALLOWED_TAGS.has(element.localName)) {
+      dropped.push({ snippet: snippetOf(element.outerHTML), reason: "tag", message: tagMessage(element.localName) });
+      element.remove();
+      continue;
+    }
+    for (const { name, value } of [...element.attributes]) {
+      const problem = attributeProblem(element.localName, name, value);
+      if (!problem) continue;
+      dropped.push({ snippet: snippetOf(`<${element.localName} ${name}="${value}">`), ...problem });
       element.removeAttribute(name);
+      if (problem.reason === "href") badLink = true;
     }
   }
+  // Verificăm arborele, deci inserăm arborele: textul primit, reparsat altundeva, ar putea ieși altfel.
+  return badLink ? reject(dropped) : { html: template.innerHTML, dropped, rejected: false };
+}
+
+function reject(dropped: HtmlDropped[]): HtmlValidation {
+  return { html: "", dropped, rejected: true };
+}
+
+function tagMessage(tag: string): string {
+  if (OUR_INTERFACE_MARKERS.some((marker) => tag.includes(marker))) {
+    return `<${tag}> ține de interfața extensiei. Adaugă doar elemente pentru site.`;
+  }
+  return `<${tag}> nu e permis. Folosește etichete de text și structură (div, p, a, button, ul, h1–h4…).`;
 }
 
 function attributeProblem(
   tag: string,
   name: string,
   value: string,
-): { reason: HtmlDropReason; message: string } | undefined {
+): Pick<HtmlDropped, "reason" | "message"> | undefined {
   if (name.startsWith("on")) {
-    return { reason: "event-handler", message: `${name} rulează cod. Comportamentul vine din bind, nu din HTML.` };
+    return { reason: "attribute", message: `${name} rulează cod. Comportamentul vine din bind, nu din HTML.` };
   }
-  if (name === "data-agent-id" || OUR_INTERFACE_MARKERS.some((marker) => value.toLowerCase().includes(marker))) {
-    return { reason: "targets-our-ui", message: `${name} imită interfața extensiei. Folosește alt nume.` };
+  if (name === "style") {
+    return { reason: "attribute", message: "style nu e permis: stilul vine din CSS-ul rețetei (apply_css)." };
   }
-  const allowed =
-    GLOBAL_ATTRIBUTES.has(name) ||
-    TAG_ATTRIBUTES[tag]?.has(name) === true ||
-    name.startsWith("aria-") ||
-    name.startsWith("data-");
-  if (!allowed) return { reason: "attribute", message: `Atributul ${name} nu e permis pe <${tag}>.` };
-  if (name === "href") return linkProblem(value);
-  if (name === "style") return styleProblem(value);
+  if (!ALLOWED_ATTRS.has(name)) {
+    return { reason: "attribute", message: `Atributul ${name} nu e permis pe <${tag}>.` };
+  }
+  if (OUR_INTERFACE_MARKERS.some((marker) => value.toLowerCase().includes(marker))) {
+    return { reason: "attribute", message: `${name} imită interfața extensiei. Folosește alt nume.` };
+  }
+  if (name === "href" && !isAllowedLink(value)) {
+    return {
+      reason: "href",
+      message: "Linkul duce în afara site-ului sau rulează cod. Folosește o cale care începe cu /, # sau https://.",
+    };
+  }
   return undefined;
 }
 
-function linkProblem(href: string): { reason: HtmlDropReason; message: string } | undefined {
-  // Browserul ignoră spațiile și caracterele de control din schemă: „ java\tscript:” e tot javascript:.
+function isAllowedLink(href: string): boolean {
+  // Browserul ignoră spațiile și caracterele de control: „ java\tscript:” e tot javascript:.
   const compact = href.replace(/[\u0000- ]+/g, "").toLowerCase();
-  const scheme = /^([a-z][a-z0-9+.-]*):/.exec(compact)?.[1];
-  if (scheme === undefined || ALLOWED_LINK_SCHEMES.has(scheme)) return undefined;
-  if (SCRIPT_SCHEMES.has(scheme)) {
-    return { reason: "script-url", message: `Linkul ${scheme}: rulează cod sau ascunde conținut. Folosește http(s).` };
-  }
-  return { reason: "attribute", message: `Linkul ${scheme}: nu e permis. Folosește http(s), mailto sau tel.` };
-}
-
-/** `style="…"` e tot CSS: trece prin aceeași validare, ca un `url()` să nu intre pe ușa din spate. */
-function styleProblem(style: string): { reason: HtmlDropReason; message: string } | undefined {
-  const { dropped } = validateCss(`x { ${style} }`);
-  if (dropped.length === 0) return undefined;
-  return { reason: "style", message: `style="…": ${dropped.map((d) => d.message).join(" ")}` };
-}
-
-function drop(dropped: HtmlDropped[], text: string, reason: HtmlDropReason, message: string): void {
-  dropped.push({ snippet: snippetOf(text), reason, message });
+  if (compact.startsWith("//")) return false; // „//alt-site.ro” e altă adresă, nu o cale a site-ului
+  return SAME_SITE_PREFIXES.some((prefix) => compact.startsWith(prefix)) || compact.startsWith(SECURE_PREFIX);
 }
