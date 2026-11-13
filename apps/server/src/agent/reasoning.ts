@@ -38,3 +38,27 @@ export function parseReasoning(content: string | null | undefined): Reasoning {
   });
   return reasoning;
 }
+
+const TOOL_VERBS: Partial<Record<string, string>> = {
+  get_page_snapshot: "Mă uit la pagină",
+  apply_css: "Schimb aspectul paginii",
+  apply_ops: "Schimb structura paginii",
+  point_at: "Arăt pe pagină",
+  wait_for_user_click: "Aștept să apeși",
+  ask_user: "Te întreb ceva",
+  propose_changes: "Îți arăt schimbările",
+  audit_ui: "Verific accesibilitatea",
+  say: "Îți spun ceva",
+  get_profile: "Citesc ce știu despre tine",
+  update_profile: "Notez ce am învățat",
+  finish: "Închei",
+};
+
+/** Când modelul sare peste rândul „Observ / Fac / Pentru că”, panoul primește măcar ce face pasul. */
+export function withToolFallback(reasoning: Reasoning, tool: string, args: unknown): Reasoning {
+  if (reasoning.decision) return reasoning;
+  const { reason, message, summary, regionId } = (args ?? {}) as Record<string, unknown>;
+  const detail = [reason, message, summary, regionId].find((value) => typeof value === "string");
+  const verb = TOOL_VERBS[tool] ?? `Folosesc ${tool}`;
+  return { ...reasoning, decision: detail ? `${verb}: ${clean(detail as string)}` : `${verb}.` };
+}

@@ -12,7 +12,7 @@ import {
   type ToolResult,
 } from "@uishapeshifter/contracts";
 import { OpenRouterError } from "./openrouter";
-import { parseReasoning } from "./reasoning";
+import { parseReasoning, withToolFallback } from "./reasoning";
 
 /** Ce vrea agentul să facă la pasul curent. */
 export type Decision =
@@ -100,7 +100,7 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
         runId: run.runId,
         index,
         ts: new Date(startedAt).toISOString(),
-        ...parseReasoning(decision.content),
+        ...withToolFallback(parseReasoning(decision.content), decision.name, decision.args),
         tool: decision.name,
         args: decision.args,
         result,
