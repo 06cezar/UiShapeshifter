@@ -7,8 +7,8 @@
       }
     }
   },
-  "last_comms_sha": "fcbda1a71086ea0a2fb036ae8da896d36c5bb936",
-  "last_run": "2026-11-13T18:47:19Z",
+  "last_comms_sha": "91f48710f5b4283c6986fb03f412d18cd6afba3d",
+  "last_run": "2026-11-13T18:47:35Z",
   "last_sha": "775065ced399288e299a9d6ad5732b7127aefdf1",
   "prs": {
     "1": {
@@ -159,7 +159,7 @@
     "36": {
       "head": "b6-domop",
       "merged_at": null,
-      "state": "OPEN"
+      "state": "CLOSED"
     },
     "37": {
       "head": "d-remove-ascunde",
