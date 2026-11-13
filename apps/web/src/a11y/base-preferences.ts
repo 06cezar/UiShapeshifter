@@ -40,6 +40,13 @@ export interface BasePreferences {
   adjustedCount(): number;
 }
 
+/** O schimbare de stil hotărâtă la măsurare și scrisă după, împreună cu celelalte. */
+interface StyleWrite {
+  element: HTMLElement;
+  property: string;
+  value: string;
+}
+
 /** Ce era în stilul inline al unui element înainte de noi, ca `stop()` să-l pună la loc exact. */
 type SavedInline = Map<string, { value: string; priority: string }>;
 
@@ -74,6 +81,11 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     saved.clear();
   }
 
+  /**
+   * Întâi măsurăm tot, apoi scriem tot. Dacă am scrie un stil și am citi apoi mărimea elementului următor, browserul
+   * ar reface layout-ul paginii la fiecare element: pe o pagină de 16 000 de elemente (Wikipedia) asta dura atât
+   * cât să blocheze tab-ul. Așa, layout-ul se reface o singură dată.
+   */
   function adjustSubtree(root: Element): void {
     const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
       acceptNode(node) {
@@ -82,29 +94,33 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
         return NodeFilter.FILTER_ACCEPT;
       },
     });
+    const writes: StyleWrite[] = [];
     let visited = 0;
     for (let node: Node | null = root; node && visited < MAX_BASE_ELEMENTS; node = walker.nextNode()) {
       visited += 1;
-      if (node instanceof HTMLElement && !isOurs(node)) adjustElement(node);
+      if (node instanceof HTMLElement && !isOurs(node)) planElement(node, writes);
     }
+    for (const { element, property, value } of writes) setImportant(element, property, value);
   }
 
   function isOurs(element: Element): boolean {
     return element.id === options.ourHostId || element.closest(`#${CSS.escape(options.ourHostId)}`) !== null;
   }
 
-  function adjustElement(element: HTMLElement): void {
+  /** Doar citește pagina și notează ce trebuie scris; scrierea vine după, toată odată. */
+  function planElement(element: HTMLElement, writes: StyleWrite[]): void {
     const rect = element.getBoundingClientRect();
     if (!isVisible(element, rect)) return;
     const style = getComputedStyle(element);
-    if (hasOwnText(element)) adjustText(element, style, thresholds);
-    if (isInteractive(element) && !isLinkInSentence(element, style)) adjustTarget(element, style, rect, thresholds);
+    if (hasOwnText(element)) planText(element, style, thresholds, writes);
+    if (isInteractive(element) && !isLinkInSentence(element, style))
+      planTarget(element, style, rect, thresholds, writes);
   }
 
-  function adjustText(element: HTMLElement, style: CSSStyleDeclaration, t: AuditThresholds): void {
+  function planText(element: HTMLElement, style: CSSStyleDeclaration, t: AuditThresholds, writes: StyleWrite[]): void {
     let fontPx = parseFloat(style.fontSize);
     if (fontPx < t.minFontPx) {
-      setImportant(element, "font-size", `${t.minFontPx}px`);
+      writes.push({ element, property: "font-size", value: `${t.minFontPx}px` });
       fontPx = t.minFontPx;
     }
     const color = parseColor(style.color);
@@ -113,16 +129,22 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     const text = toHex(composite(color, background));
     const required = requiredTextContrast(fontPx, parseInt(style.fontWeight, 10) || undefined, t);
     if (contrastRatio(text, background) < required) {
-      setImportant(element, "color", adjustToContrast(text, background, required));
+      writes.push({ element, property: "color", value: adjustToContrast(text, background, required) });
     }
   }
 
-  function adjustTarget(element: HTMLElement, style: CSSStyleDeclaration, rect: DOMRect, t: AuditThresholds): void {
+  function planTarget(
+    element: HTMLElement,
+    style: CSSStyleDeclaration,
+    rect: DOMRect,
+    t: AuditThresholds,
+    writes: StyleWrite[],
+  ): void {
     if (rect.width >= t.minTargetPx && rect.height >= t.minTargetPx) return;
     // Un element inline nu ia min-height; inline-block îl lasă în rând, dar cu mărimea cerută.
-    if (style.display === "inline") setImportant(element, "display", "inline-block");
-    setImportant(element, "min-height", `${t.minTargetPx}px`);
-    setImportant(element, "min-width", `${t.minTargetPx}px`);
+    if (style.display === "inline") writes.push({ element, property: "display", value: "inline-block" });
+    writes.push({ element, property: "min-height", value: `${t.minTargetPx}px` });
+    writes.push({ element, property: "min-width", value: `${t.minTargetPx}px` });
   }
 
   function applyMotion(): void {
