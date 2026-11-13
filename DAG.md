@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 5/21 · **În lucru:** 5 · **Poate începe:** 2 · **Așteaptă:** 9 · **Blocat:** 0
+**Gata:** 5/21 · **În lucru:** 6 · **Poate începe:** 1 · **Așteaptă:** 9 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -15,7 +15,7 @@ flowchart LR
   end
   subgraph t_owner_B["B"]
     t_B1["B1 · Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane<br/>✅ gata"]
-    t_B2["B2 · Registrul de elemente (data-agent-id), snapshot, rectOf/ensureVisible + executorul uneltelor web (agent-bridge)<br/>🟢 poate începe"]
+    t_B2["B2 · Registrul de elemente (data-agent-id), snapshot, rectOf/ensureVisible + executorul uneltelor web (agent-bridge)<br/>🔨 în lucru"]
     t_B3["B3 · Elemente generate la cerere - ComponentRenderer pe catalog, validare, generate_component/remove_component (specs/03)<br/>⏳ așteaptă"]
     t_B4["B4 · Aplicația demo - mesaje, conversație, poze, contacte, apeluri, setări, cu datele de test și id-urile din specs/04<br/>🟢 poate începe"]
   end
@@ -79,14 +79,13 @@ flowchart LR
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
   class t_D1,t_A1,t_B1,t_C1,t_E1 done
-  class t_D4,t_A2,t_A3,t_C2,t_C3 progress
-  class t_B2,t_B4 ready
+  class t_D4,t_A2,t_A3,t_B2,t_C2,t_C3 progress
+  class t_B4 ready
   class t_D2,t_D3,t_D5,t_D6,t_A4,t_B3,t_E2,t_E3,t_E4 wait
 ```
 
 ## Poate începe acum
 
-- **B2** (B) Registrul de elemente (data-agent-id), snapshot, rectOf/ensureVisible + executorul uneltelor web (agent-bridge) _(vin 21:00. Gata = registry.snapshot() întoarce UISnapshot corect; tool\_call patch\_config/navigate/get\_ui\_snapshot executat din WebSocket.)_
 - **B4** (B) Aplicația demo - mesaje, conversație, poze, contacte, apeluri, setări, cu datele de test și id-urile din specs/04 _(sâm 01:00. Gata = trimiterea unei poze Anei merge manual, cu meniul „Mai mult” care ascunde butonul de atașat.)_
 
 ## Blocat
@@ -98,6 +97,7 @@ _nimic_
 - **D4** (D) Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas: PR #11 deschis _(sâm 03:00. Gata = o rulare se vede pas cu pas live și se poate relua după terminare.)_
 - **A2** (A) Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get\_ui\_snapshot, patch\_config, point\_at: branch `a2-bucla` are commit-uri; încă așteaptă B2 _(vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point\_at, cu pașii în jurnal.)_
 - **A3** (A) Toate uneltele + promptul de sistem + profilul în context (specs/05): branch `a3-unelte` are commit-uri; încă așteaptă A2 _(sâm 02:00. Gata = ask\_user, propose\_changes, audit\_ui, generate\_component, navigate, wait\_for\_user\_click, say, update\_profile, finish.)_
+- **B2** (B) Registrul de elemente (data-agent-id), snapshot, rectOf/ensureVisible + executorul uneltelor web (agent-bridge): branch `b2-registru` are commit-uri _(vin 21:00. Gata = registry.snapshot() întoarce UISnapshot corect; tool\_call patch\_config/navigate/get\_ui\_snapshot executat din WebSocket.)_
 - **C2** (C) Reparațiile (fix) din audit + funcțiile de contrast folosite și de poarta din store; unealta audit\_ui: branch `c2-reparatii` are commit-uri; încă așteaptă B2 _(sâm 01:00. Gata = audit\_ui prin WebSocket întoarce AuditReport cu fix-uri aplicabile cu patch\_config.)_
 - **C3** (C) Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10): PR #9 deschis _(sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding.)_
 
