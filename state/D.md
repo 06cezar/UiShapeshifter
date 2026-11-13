@@ -1,3 +1,3 @@
-2026-11-14 00:51
+2026-11-14 00:57
 
-gata: review #9 (changes requested: deschiderea la instalare + profilul local după test), notă pe #49, răspuns lui C; urmează: re-review #9 după reparații, #51 bula, M3 (~03:30), perechea B4 (Bing → ca Google, de probat) în specs/12 după probă; blocat: nimic
+gata: review #9 (al meu: changes requested; o altă sesiune D a aprobat la 28 s după, aprobarea e cea în vigoare), notă pe #49, răspuns lui C; E a legat pagina pe e-onboarding-legat, A a scos rularea în #53; urmează: profilul local după test (#9 pct. 2, nereparat) înainte de M3, #51, M3; blocat: nimic
