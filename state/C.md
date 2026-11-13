@@ -1,3 +1,3 @@
-2026-11-13 14:58
+2026-11-13 15:09
 
-gata: C1 cod+teste pe c1-audit (PR #3), contrast.ts separat în PR #1 pentru B1; urmează: C2 după B2 (fix-uri + audit_ui); blocat: nimic. Testele rulează doar după ce D1 pune vitest+happy-dom
+gata: C1 pe c1-audit (PR #3), verificat peste D1 (#4); contrast.ts în PR #1 pentru B1; urmează: C2 după B2, C3 după B1+E1; blocat: nimic
