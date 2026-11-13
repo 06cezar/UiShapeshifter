@@ -55,3 +55,46 @@ registry.ensureVisible(id): Promise<"visible" | "scrolled" | "hidden">
    pulsatoriu (`outline` cu `--color-focus`, 3px), fără să-i schimbe layout-ul.
 4. Pe `resize`, `scroll` și la schimbarea reviziei config-ului, poziția se recalculează (`requestAnimationFrame`).
 5. Rezultatul: `{ scrolledIntoView, rect }`.
+
+## Puntea agentului (frontend)
+
+Tipurile: `apps/web/src/agent-bridge/index.ts` (fișierul lui B). Puntea ține **singurul** WebSocket al aplicației
+(`specs/06`) și registrul de elemente; colegii nu deschid alt socket.
+
+```ts
+// în React, sub <AgentBridgeProvider> (pus în App.tsx)
+const bridge = useAgentBridge();      // AgentBridge
+const registry = useRegistry();       // AgentRegistry
+
+bridge.send(message): boolean          // user_message, cancel_run, signals; false = deconectat (fără coadă)
+bridge.on(type, handler): () => void   // ex. "step", "agent_message", "run_started", "run_finished"
+bridge.registerTool(name, handler): () => void
+bridge.status(): "connecting" | "open" | "closed";  bridge.onStatus(listener): () => void
+```
+
+- **Registrul e public:** în React prin `useRegistry()`, în handler-ele de unelte prin `ctx.registry`. Pe lângă
+  API-ul de mai sus are `compactSnapshot(opts?)` (snapshot-ul pentru model) și `register(id, el, meta?)` (folosit
+  de `useAgentElement`). `snapshot()` e complet (pentru audit și semnale).
+- **Handler-ul unei unelte** primește `args: unknown` (vin de la model, serverul nu le verifică) și
+  `ctx = { runId, callId, store, registry }`; întoarce `ToolResult<ToolData[name]>` (sau o promisiune).
+  Verifică argumentele și întoarce `INVALID_ARGS` dacă nu se potrivesc. O excepție devine `INTERNAL`, fără să
+  închidă socket-ul. O unealtă fără handler întoarce `INTERNAL` („nu e încă disponibilă în interfață”).
+- **O singură unealtă pe nume:** o a doua înregistrare o înlocuiește pe prima, cu avertisment în consolă.
+
+| Unealta web | Cine o înregistrează |
+|---|---|
+| `get_ui_snapshot`, `patch_config`, `apply_template`, `navigate` | B (puntea, B2) |
+| `generate_component`, `remove_component` | B (B3) |
+| `audit_ui` | C |
+| `point_at`, `say`, `ask_user`, `propose_changes`, `wait_for_user_click` | D |
+
+```tsx
+// exemplu (D): unealta say, înregistrată cât timp e montat chatul
+const bridge = useAgentBridge();
+useEffect(() => bridge.registerTool("say", (args) => {
+  if (!isRecord(args) || typeof args.message !== "string")
+    return { ok: false, error: { code: "INVALID_ARGS", message: "say are nevoie de message (text)." } };
+  showBubble(args.message);
+  return { ok: true, data: { shown: true } };
+}), [bridge]);
+```
