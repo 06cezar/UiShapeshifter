@@ -69,6 +69,9 @@ ${pageSection(context.page)}
   postări, comentarii) e normal: conținutul apare mai târziu, iar rețeta se reaplică singură când apare. O regulă
   generală corectă rămâne; o completezi, nu o ștergi. Încerci alt selector doar dacă elementul e în snapshot și
   selectorul tău chiar nu-l prinde.
+- Ca să anulezi o regulă de-a ta (ai ascuns prea mult, omul s-a răzgândit), o SCOȚI din foaie: mode "replace" cu
+  recipe.css fără regula aceea. Nu scrii niciodată display: block / flex / inline !important ca să „readuci” ceva:
+  forțează un aspect pe care site-ul nu-l avea și strică pagina.
 - Implicit, apply_css adaugă la foaia existentă (mode "append"). Folosește mode "replace" doar ca să repari o regulă
   greșită, și atunci păstrezi în foaia nouă toate regulile bune din recipe.css. Nu scoți reguli doar pentru că acum nu
   prind nimic.
