@@ -13,6 +13,7 @@ import { createPageRegistry } from "../ui/page-registry/registry";
 import { buildSelector } from "../ui/page-registry/selector";
 import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
+import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStorage, ONBOARDING_KEY } from "./base-needs";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
@@ -66,15 +67,36 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+let signals: SignalCollector | null = null;
+
 function start() {
   let port: chrome.runtime.Port | null = null;
 
   function send(message: ToWorker) {
-    port?.postMessage(message);
+    try {
+      port?.postMessage(message);
+    } catch {
+      retire(); // extensia a fost reîncărcată: tab-ul ăsta mai are doar codul vechi
+    }
   }
 
+  /**
+   * După ↻ pe extensie, paginile deja deschise rămân cu codul vechi, care nu mai poate vorbi cu extensia
+   * („Extension context invalidated”). Ne oprim în liniște; pagina primește codul nou la reîncărcare.
+   */
+  function retire() {
+    port = null;
+    signals?.stop();
+    signals = null;
+  }
+  const extensionAlive = () => Boolean(chrome.runtime?.id);
+
   const chat = mountChat(mountOurRoot(), {
-    send: (message) => send({ type: "to_server", message }),
+    send: (message) => {
+      // „ajutor” în chat e și un semnal pentru adaptare (E2), pe lângă cererea către agent
+      if (message.type === "user_message" && isHelpRequest(message.text)) signals?.helpRequest(message.text);
+      send({ type: "to_server", message });
+    },
     page: () => pageInfo(location, document.title),
   });
 
@@ -86,6 +108,19 @@ function start() {
 
   // Registrul paginii (B2), motorul de rețete (B5) și bula chatului pentru `say`.
   const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
+
+  // Semnalele de utilizare (E2): loturi la cel mult 5 s, cu pagina pe care s-au întâmplat; serverul le dă adaptării (E3).
+  signals = startSignalCollector({
+    ourHostId: HOST_ID,
+    idOf: registry.idOf,
+    regionIdOf: registry.regionIdOf,
+    send: (batch) =>
+      send({
+        type: "to_server",
+        message: { type: "signals", signals: batch, page: pageInfo(location, document.title) },
+      }),
+  });
+  addEventListener("pagehide", () => signals?.flush());
   const tools: PageToolDeps = {
     registry,
     recipes: {
@@ -116,7 +151,12 @@ function start() {
   };
 
   function connect() {
-    port = chrome.runtime.connect({ name: PAGE_PORT });
+    if (!extensionAlive()) return retire();
+    try {
+      port = chrome.runtime.connect({ name: PAGE_PORT });
+    } catch {
+      return retire();
+    }
     port.onMessage.addListener((raw) => {
       const message = parseFromWorker(raw);
       if (!message) return;
@@ -135,6 +175,7 @@ function start() {
     });
     port.onDisconnect.addListener(() => {
       port = null;
+      if (!extensionAlive()) return retire();
       chat.setLinkStatus("connecting");
       setTimeout(connect, RECONNECT_PORT_MS);
     });
