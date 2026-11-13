@@ -1,7 +1,7 @@
 {
   "comms": {},
-  "last_comms_sha": "47caa17a36b432978552a84ce6b5ea490f864262",
-  "last_run": "2026-11-13T12:57:29Z",
+  "last_comms_sha": "2b713e7040ca1d34f64f4cab7fafd875c9320d2f",
+  "last_run": "2026-11-13T12:58:05Z",
   "last_sha": "4037fcb568a4efefbc35c0f6627dcdb4793166c5",
   "prs": {
     "1": {
@@ -11,6 +11,11 @@
     },
     "2": {
       "head": "d-stil-decizii",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "3": {
+      "head": "c1-audit",
       "merged_at": null,
       "state": "OPEN"
     }
