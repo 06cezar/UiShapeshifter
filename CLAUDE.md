@@ -23,6 +23,27 @@ interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmb�
 - Doar date de test. Fără persoane reale în poze sau nume.
 - **Calea cap-coadă care merge bate finisajele.** Întâi scenariul din `specs/12-demo.md`, apoi restul.
 
+## Stil de cod
+- **Simplu bate complex:** funcții și componente React ca funcții; fără ierarhii de clase sau abstracții „pentru mai târziu”.
+- **Ușor de citit bate deștept:** nume care spun ce e lucrul, o singură treabă pe funcție, comentariul spune *de ce*.
+- **Fără numere magice:** limitele vin din `HARD_LIMITS`, aspectul din temă; orice altă valoare fixă (timeout, `maxSteps`,
+  praguri de adaptare) e o constantă cu nume, sus în fișier.
+- **TypeScript `strict`, fără `any`** în codul care primește sau trimite tipuri din `@uishapeshifter/contracts`.
+  Datele care vin din afară (model, WebSocket, fișiere din `data/`) se verifică înainte de folosire.
+- **Nume:** identificatorii în engleză (`camelCase`, componente și tipuri `PascalCase`, fișiere `kebab-case.ts`,
+  componente `PascalCase.tsx`); comentariile și commit-urile în română, ca în `packages/contracts`.
+- **Formatare:** Prettier cu setările implicite (după D1, `npm run format`). Nu reformata fișierele altora.
+- **Atingi doar ce cere taskul.** Întâi ce oferă deja stack-ul; un pachet nou doar dacă economisește ore.
+- **Cu omul tău:** un task odată; pentru mai multe fișiere, întâi un plan în 3 rânduri (fișiere, test, cum știm că merge).
+  La final, cel mult 3 propoziții: ce s-a schimbat (`fișier:linie`) și de ce. Omul trebuie să poată explica juriului.
+- **Raportezi cinstit:** lipești output-ul care pică; nu spui „gata” fără să fi rulat verificările. Nu schimbi un test,
+  un contract sau o specificație ca să treacă ceva. Fără stub-uri lăsate în cod la îngheț.
+- **Commit-uri mici**, câte unul pe pas: `<zonă>: <ce s-a schimbat>` (ex. `a11y: auditul de contrast`).
+
+## Gata înseamnă
+- Merge din interfață (sau prin protocol, pentru server), nu doar compilează; `npm run check` trece.
+- Ce susține o afirmație din pitch sau din `specs/12-demo.md` are un scenariu de verificat scris în PR.
+
 ## Planul și graful
 - Planul: `dag/tasks.yaml` (pe `main`, schimbat prin PR). Fiecare task are `branch:`; lucrează pe el.
 - Graful îl scrie doar botul, pe branch-ul `dag`. Nu edita și nu comite `DAG.md` sau `dag/state.json`.
