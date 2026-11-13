@@ -111,6 +111,11 @@ const COLUMN_SEARCH_DEPTH = 3;
 /** Cu display inline sau contents, cutia elementului nu spune unde e conținutul: îl iau din copii. */
 const BOXLESS_DISPLAYS = new Set(["inline", "contents"]);
 
+/** De la atâția frați cu aceeași etichetă și clasă e o listă care se repetă (carusel, rezultate, meniu lung). */
+const REPEAT_MIN_SIBLINGS = 4;
+/** Din fiecare listă care se repetă, primii atâția au loc înaintea restului paginii; ceilalți vin după, pe rând. */
+const REPEAT_KEEP = 3;
+
 function isInteractive(element: Element): boolean {
   const tag = element.tagName.toLowerCase();
   if (INTERACTIVE_TAGS.has(tag)) return true;
@@ -176,6 +181,43 @@ function columnsOf(main: Element): Element[] {
     level = next;
   }
   return [];
+}
+
+/**
+ * Cât de adânc e elementul într-o listă care se repetă: 0 dacă e printre primii REPEAT_KEEP din fiecare listă care îl
+ * conține, altfel poziția cea mai mare. Pe Bing, un carusel de 45 de rețete umplea singur rezumatul și rezultatele
+ * (li.b_algo) nu mai intrau deloc.
+ */
+function createRepeatDepth(): (element: Element) => number {
+  const positions = new WeakMap<Element, { index: number; size: number }>();
+  const indexed = new WeakSet<Element>();
+  function positionOf(item: Element) {
+    const parent = item.parentElement;
+    if (parent && !indexed.has(parent)) {
+      indexed.add(parent);
+      const bySignature = new Map<string, Element[]>();
+      for (const child of parent.children) {
+        const signature = `${child.tagName}.${child.getAttribute("class") ?? ""}`;
+        const group = bySignature.get(signature);
+        if (group) group.push(child);
+        else bySignature.set(signature, [child]);
+      }
+      for (const group of bySignature.values()) {
+        group.forEach((child, index) => positions.set(child, { index, size: group.length }));
+      }
+    }
+    return positions.get(item);
+  }
+  return (element) => {
+    let depth = 0;
+    for (let item: Element | null = element; item?.parentElement; item = item.parentElement) {
+      const position = positionOf(item);
+      if (position && position.size >= REPEAT_MIN_SIBLINGS && position.index >= REPEAT_KEEP) {
+        depth = Math.max(depth, position.index);
+      }
+    }
+    return depth;
+  };
 }
 
 function byDocumentOrder(a: Element, b: Element): number {
@@ -430,11 +472,15 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
     // Ce a ascuns rețeta întâi: sunt puține și fără ele agentul nu-și poate verifica munca (pe o pagină aglomerată,
     // elementele vizibile ar umple singure limita). Apoi ce e în viewport, apoi restul, în ordinea paginii.
     // Ce a ascuns site-ul are locuri rezervate (cel mult MAX_SITE_HIDDEN), ca să nu fie împins afară de restul paginii.
-    const rank = (e: PageElement) => (e.hiddenBy === "recipe" ? 0 : e.inViewport ? 1 : 2);
-    const ordered = elements
-      .map((e, index) => ({ e, index }))
-      .sort((a, b) => rank(a.e) - rank(b.e) || a.index - b.index)
-      .map(({ e }) => e);
+    // Dintr-o listă care se repetă intră întâi primii REPEAT_KEEP; restul vin la urmă, pe rând din fiecare listă
+    // (al 4-lea din fiecare, apoi al 5-lea…), ca o listă lungă să nu le împingă afară pe celelalte.
+    const repeatDepth = createRepeatDepth();
+    const ranked = elements.map((e, index) => {
+      const depth = repeatDepth(listed[index]!);
+      const tier = e.hiddenBy === "recipe" ? 0 : depth > 0 ? 3 : e.inViewport ? 1 : 2;
+      return { e, index, tier, depth };
+    });
+    const ordered = ranked.sort((a, b) => a.tier - b.tier || a.depth - b.depth || a.index - b.index).map(({ e }) => e);
     const siteHidden = ordered.filter((e) => e.hiddenBy === "site").slice(0, MAX_SITE_HIDDEN);
     const others = ordered.filter((e) => e.hiddenBy !== "site");
     const kept = [...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length), ...siteHidden];

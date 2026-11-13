@@ -263,3 +263,24 @@ describe("coloanele unei pagini de rezultate (ca la Bing)", () => {
     expect(link?.regionId).toBe(results?.id);
   });
 });
+
+describe("listele care se repetă nu umplu singure rezumatul", () => {
+  test("dintr-un carusel lung intră primii, iar rezultatele de sub el intră toate", () => {
+    const slides = Array.from(
+      { length: 100 },
+      (_, i) => `<div class="slide"><a href="/reteta/${i}">Rețeta ${i}</a></div>`,
+    ).join("");
+    const results = Array.from(
+      { length: 10 },
+      (_, i) => `<li class="algo"><h2><a href="https://exemplu.test/${i}">Rezultat ${i}</a></h2></li>`,
+    ).join("");
+    document.body.innerHTML = `<div id="carusel">${slides}</div><ol id="rezultate">${results}</ol>`;
+    const snap = registry().snapshot();
+    expect(snap.elements).toHaveLength(SNAPSHOT_LIMITS.maxElements);
+    expect(snap.truncated).toBe(true);
+    const resultLinks = snap.elements.filter((e) => e.role === "link" && e.label.startsWith("Rezultat"));
+    expect(resultLinks).toHaveLength(10);
+    // primele 3 din carusel au locul lor înaintea celorlalte
+    expect(snap.elements.slice(0, 3).map((e) => e.label)).toEqual(["Rețeta 0", "Rețeta 1", "Rețeta 2"]);
+  });
+});
