@@ -5,9 +5,14 @@ import { App } from "./App";
 
 afterEach(() => vi.unstubAllGlobals());
 
-test("arată serverul pornit când /api/health răspunde ok", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ json: () => Promise.resolve({ ok: true }) }));
+test("randează meniul din config chiar dacă serverul nu are încă rutele (404)", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(JSON.stringify({ error: "Ruta nu există" }), { status: 404 })),
+  );
   const container = document.createElement("div");
   await act(async () => createRoot(container).render(<App />));
-  expect(container.textContent).toContain("Server: pornit");
+  // Încărcarea e asincronă: lăsăm promisiunile să se termine.
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  expect(container.querySelector("[data-agent-id='nav.messages']")).not.toBeNull();
 });

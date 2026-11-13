@@ -1,0 +1,185 @@
+/* Aspectul șabloanelor. Doar variabilele temei (specs/02, regula 6): nicio culoare sau mărime fixă aici.
+   Țintele de apăsat au cel puțin --min-target pe ambele dimensiuni (specs/07, target-size). */
+
+.ui-app {
+  min-height: 100vh;
+  display: flex;
+  font-family: var(--font-family);
+  font-size: var(--font-base);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+.ui-app[data-template="sidebar-feed"] {
+  flex-direction: row;
+}
+
+.ui-app[data-template="bottom-nav-stories"],
+.ui-app[data-template="simple-tiles"] {
+  flex-direction: column;
+}
+
+.ui-app button {
+  font: inherit;
+  color: inherit;
+  min-width: var(--min-target);
+  min-height: var(--min-target);
+  cursor: pointer;
+}
+
+.ui-app button:focus-visible {
+  outline: calc(var(--spacing) / 2) solid var(--color-focus);
+  outline-offset: calc(var(--spacing) / 4);
+}
+
+.ui-content {
+  flex: 1;
+  padding: calc(var(--spacing) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 2);
+}
+
+/* ---------- meniul ---------- */
+
+.ui-nav {
+  display: flex;
+  gap: var(--spacing);
+  padding: var(--spacing);
+  background: var(--color-surface);
+}
+
+.ui-app[data-template="sidebar-feed"] .ui-nav {
+  flex-direction: column;
+  padding: calc(var(--spacing) * 2) var(--spacing);
+}
+
+.ui-app[data-template="bottom-nav-stories"] .ui-nav {
+  position: sticky;
+  bottom: 0;
+  justify-content: space-around;
+}
+
+.ui-app[data-template="bottom-nav-stories"][data-nav-position="top"] .ui-nav {
+  order: -1;
+  top: 0;
+  bottom: auto;
+}
+
+.ui-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing);
+  padding: var(--spacing);
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+}
+
+.ui-app[data-template="bottom-nav-stories"] .ui-nav-item {
+  flex-direction: column;
+  flex: 1;
+}
+
+.ui-nav-item[aria-current="page"] {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.ui-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  width: var(--nav-icon);
+  height: var(--nav-icon);
+  border-radius: 50%;
+  border: calc(var(--spacing) / 4) solid currentColor;
+  font-size: var(--font-base);
+}
+
+.ui-nav-label {
+  font-size: var(--font-base);
+}
+
+/* ---------- plăcile ---------- */
+
+.ui-tile-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 2);
+}
+
+.ui-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--spacing) * 2);
+}
+
+.ui-tile {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: calc(var(--spacing) * 2);
+  border: calc(var(--spacing) / 4) solid var(--color-text-muted);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  text-align: start;
+}
+
+.ui-tile:hover {
+  border-color: var(--color-primary);
+}
+
+.ui-tile-title {
+  font-size: var(--font-step-1);
+  font-weight: 600;
+}
+
+.ui-size-s {
+  min-height: calc(var(--min-target) * 1.5);
+}
+
+.ui-size-m {
+  min-height: calc(var(--min-target) * 2);
+}
+
+.ui-size-l {
+  min-height: calc(var(--min-target) * 3);
+}
+
+.ui-app[data-template="simple-tiles"] .ui-tile {
+  min-height: calc(var(--min-target) * 3);
+  justify-content: center;
+  text-align: center;
+}
+
+.ui-app[data-template="simple-tiles"] .ui-tile-title {
+  font-size: var(--font-step-2);
+}
+
+.ui-stories .ui-tile {
+  width: 100%;
+}
+
+/* ---------- ecranul unui modul ---------- */
+
+.ui-module-title {
+  margin: 0;
+  font-size: var(--font-step-3);
+  line-height: var(--line-height);
+}
+
+.ui-module-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* .ui-app în față: altfel `.ui-app button { color: inherit }` ar câștiga și textul n-ar mai fi --color-on-primary. */
+.ui-app .ui-back {
+  align-self: flex-start;
+  padding: var(--spacing) calc(var(--spacing) * 2);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}

@@ -1,7 +1,8 @@
 # CLAUDE.md
 
-UI Shapeshifter: aplicație web de mesaje și poze pentru vârstnici, condusă de un agent AI (o vulpiță) care adaptează
-interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmbătă 14 nov. 14:00**.
+UI Shapeshifter: extensie de browser cu un agent AI care reface interfața site-urilor existente după ce vrea omul
+(scoate, ajustează, adaugă, reface), cu test inițial, profil și o mascotă care arată unde să apeși.
+Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmbătă 14 nov. 14:00**.
 Îngheț funcții sâmbătă 09:00, trimitere sâmbătă 13:30. Commit-urile de după 14:00 nu contează.
 
 ## Citește întâi
@@ -10,18 +11,37 @@ interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmb�
 3. Specificațiile din `specs/` pentru taskurile tale și tipurile din `packages/contracts/src/`.
 4. Graful: `git fetch origin dag && git show origin/dag:DAG.md`.
 
+## Din aproape în aproape
+Construim în **etape**; fiecare se termină cu un **punct de control** (M0–M4 în `dag/tasks.yaml`) la care echipa încarcă
+extensia și vede că merge cap-coadă. Tabelul etapelor: `specs/00-produs.md`.
+- Lucrezi la taskurile **etapei curente**. Etapa următoare începe după punctul de control: graful îți arată „poate începe”.
+- Faci **cel mai simplu lucru care face etapa să meargă**; ce ține de o etapă de mai târziu rămâne pentru atunci.
+- Ai terminat mai devreme: încarci extensia și încerci etapa curentă pe site-uri reale, repari ce găsești, sau pregătești
+  etapa următoare pe branch, fără să unești înainte de punctul de control.
+- La fiecare PR spui **cum se vede** schimbarea în extensie: pe ce site, ce scrii, ce se întâmplă.
+- Dacă o etapă întârzie, se taie din etapele de la coadă, nu din cea curentă.
+
 ## Reguli
 - **Contractele** (`packages/contracts/src/`) sunt sursa de adevăr pentru tot ce trece între web și server.
   Nu le schimbi fără să-i anunți pe cei afectați (`git comms send <cine> "…" --type contract`); vezi `specs/README.md`.
-- **Accesibilitatea are prioritate.** Fontul minim e 16px (mai mare din profil), țintele ≥ 44px, contrast WCAG.
-  Nicio schimbare, nici a agentului, nici a utilizatorului, nu trece sub limite (`HARD_LIMITS`, `specs/07`).
-- **Agentul nu scrie cod sau HTML.** Schimbă interfața doar prin unelte: patch-uri pe `UIConfig` și componente din catalog.
-- **Cheia OpenRouter doar pe server** (`apps/server/.env`), niciodată în browser, în loguri sau în git.
-- Orice element interactiv are `data-agent-id` după convenția din `specs/04`.
-- Nicio culoare sau mărime hardcodată: totul din temă (variabile CSS din `UIConfig.theme`).
-- Texte pentru utilizator în română, scurte. Fără nume, logo-uri sau culori ale aplicațiilor reale.
-- Doar date de test. Fără persoane reale în poze sau nume.
-- **Calea cap-coadă care merge bate finisajele.** Întâi scenariul din `specs/12-demo.md`, apoi restul.
+- **Ideea principală e schimbarea de UI pe site-uri existente.** Accesibilitatea e o parte din ea, cu limite tari:
+  fontul minim e 16px (mai mare din profil), țintele ≥ 44px, contrast WCAG (`HARD_LIMITS`, `specs/07`). Auditul rulează
+  după fiecare schimbare a agentului; ce cade sub limite se repară sau se anulează, iar fontul minim se aplică ultimul.
+- **Agentul schimbă pagina liber, dar nu rulează cod.** Scrie CSS și bucăți de HTML, mută, împachetează și scoate
+  elemente; totul trece prin validare (fără JavaScript, fără `url()`/`@import`, fără atribute `on*`) și se salvează ca
+  rețetă a site-ului (`specs/01`). JavaScript generat de model nu se execută niciodată.
+- **Rețeta salvată se reaplică fără AI.** Modelul e chemat doar când omul cere ceva sau când pornește o adaptare.
+- **Bucla agentului se vede, nu doar rezultatul.** Juriul trebuie să poată deosebi agentul de un filtru CSS. Fiecare pas
+  (observă, decide, acționează, verifică, repară) apare **pe ecran** în panou, cât rulează, și e **înregistrat** în jurnalul
+  rulării (`apps/server/src/runs/`, citit de `apps/web/src/journal/`), cu rezultatul intermediar care a schimbat pasul
+  următor (scorul de audit, elementul negăsit, operația refuzată). Orice funcție nouă a agentului scrie pași în jurnal.
+  La demo arătăm cel puțin un eșec reparat, nu doar căi fericite (`specs/00`, „De ce agent”).
+- **Cheia OpenRouter doar pe server** (`apps/server/.env`), niciodată în extensie, în loguri sau în git.
+- Elementele noastre interactive au `data-agent-id` (`specs/04`); elementele site-ului primesc id din registru.
+- În interfața noastră, nicio culoare sau mărime hardcodată: totul din temă (variabile CSS).
+- Texte pentru utilizator în română, scurte. Interfața noastră nu copiază nume, logo-uri sau culori ale altor produse.
+- Pe site-ul nostru de test și în capturi, doar date de test. Fără persoane reale în poze sau nume.
+- **Calea cap-coadă care merge bate finisajele.** Întâi punctul de control al etapei curente, apoi restul.
 
 ## Stil de cod
 - **Simplu bate complex:** funcții și componente React ca funcții; fără ierarhii de clase sau abstracții „pentru mai târziu”.
@@ -41,7 +61,7 @@ interfața la om. Hackathon UiPath, 24 de ore: **vineri 13 nov. 14:00 → sâmb�
 - **Commit-uri mici**, câte unul pe pas: `<zonă>: <ce s-a schimbat>` (ex. `a11y: auditul de contrast`).
 
 ## Gata înseamnă
-- Merge din interfață (sau prin protocol, pentru server), nu doar compilează; `npm run check` trece.
+- Merge în extensia încărcată, pe un site (sau prin protocol, pentru server), nu doar compilează; `npm run check` trece.
 - Ce susține o afirmație din pitch sau din `specs/12-demo.md` are un scenariu de verificat scris în PR.
 
 ## Planul și graful
