@@ -170,9 +170,17 @@ describe("checkOp și checkOps (înainte de aplicare)", () => {
   });
 
   test.each([
-    [{ op: "insertHtml", id: "x", html: "<p>", at: { selector: "main", position: "append" } }, "vine în B3"],
-    [{ op: "bind", from: "x", to: "a" }, "vine în B3"],
-    [{ op: "inject", id: "x", component: {}, at: { selector: "main", position: "append" } }, "vine în B3"],
+    [
+      {
+        op: "insertHtml",
+        id: "x",
+        html: '<a href="javascript:alert(1)">x</a>',
+        at: { selector: "main", position: "append" },
+      },
+      "Linkul",
+    ],
+    [{ op: "bind", from: "Mare X", to: "a" }, "litere mici"],
+    [{ op: "inject", id: "x", component: {}, at: { selector: "main", position: "append" } }, "id-ul componentei"],
     [{ op: "dance" }, "nu există"],
     [null, "obiect"],
     [{ op: "remove", selector: "[[nu" }, "nu e valid"],
