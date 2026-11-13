@@ -15,8 +15,13 @@
 #
 # Hackathon: vineri 14:00 → sâmbătă 14:00. Îngheț funcții: sâmbătă 09:00. Trimitere: sâmbătă 13:30.
 # Contractele: specs/ și packages/contracts/.
+#
+# SCHIMBAREA DE DIRECȚIE (vineri 17:00, DECISIONS.md): extensie care reface site-uri existente.
+# Taskurile deja unite (D1, A1, B1, C1, D4, E1) rămân cum sunt: codul lor se refolosește.
+# Taskurile în lucru își păstrează id-ul și branch-ul, cu titlul și „gata” adaptate.
+# Taskuri noi: D7, A5, B5, C4, E5, E6. Drumul critic: D7 + E5 → B2 + B5 → A2 → restul.
 
-# ---------- D: Cezar (lider) — schelet, mascotă, chat, panou, integrare, pitch ----------
+# ---------- D: Cezar (lider) — contracte, mascotă, chat, panou, integrare, pitch ----------
 
 - id: D1
   owner: D
@@ -24,23 +29,7 @@
   depends_on: []
   branch: d1-schelet
   status: auto
-  note: "vin 15:00. Gata = npm install && npm run dev pornește web pe 5173 și server pe 8787 cu /api/health; contracts importabile din ambele."
-
-- id: D2
-  owner: D
-  title: Mascota SVG + Framer Motion, cele 7 stări, pointAt cu lăbuța (specs/11, specs/04)
-  depends_on: [B2]
-  branch: d2-mascota
-  status: auto
-  note: "vin 21:00. Gata = mascot.pointAt('nav.messages') arată elementul și se recalculează la scroll/resize."
-
-- id: D3
-  owner: D
-  title: Chat text + voce (Web Speech ro-RO) + bula mascotei, conectate la WebSocket
-  depends_on: [A1, D2]
-  branch: d3-chat
-  status: auto
-  note: "vin 23:00. Gata = mesaj scris sau vorbit ajunge la server; agent_message apare în bulă și în chat."
+  note: "Unit (PR #4). Rămâne baza: serverul pe 8787, pagina de probă pe 5173."
 
 - id: D4
   owner: D
@@ -48,15 +37,39 @@
   depends_on: [A1, B1]
   branch: d4-panou
   status: auto
-  note: "sâm 03:00. Gata = o rulare se vede pas cu pas live și se poate relua după terminare."
+  note: "Unit (PR #11). Mutarea lui în interfața extensiei se face în D3."
+
+- id: D7
+  owner: D
+  title: Contractele noii direcții - SiteRecipe (CSS liber + DomOp), regulile de validare, snapshot-ul paginii, uneltele, protocolul + specs 02-06 și 12 rescrise
+  depends_on: [D1]
+  branch: d7-contracte-site
+  status: auto
+  note: "vin 19:00. Gata = tipurile din packages/contracts trec check; specs/02-06 descriu rețeta, registrul paginii, uneltele și mesajele; specs/12 are scenariul nou. Blochează aproape tot: primul de făcut."
+
+- id: D2
+  owner: D
+  title: Mascota - animal animat din asset-uri cu licență liberă, se plimbă prin pagină și arată elementul (specs/11)
+  depends_on: [E5, B2]
+  branch: d2-mascota
+  status: auto
+  note: "vin 23:30. Gata = pe un site real, mascot.pointAt(id) merge până la element și rămâne pe el la scroll/resize; licența asset-urilor e notată în repo."
+
+- id: D3
+  owner: D
+  title: Chat text + voce (Web Speech ro-RO) + bula mascotei + panoul de control, în interfața extensiei (shadow DOM)
+  depends_on: [E5, A1]
+  branch: d3-chat
+  status: auto
+  note: "sâm 00:30. Gata = pe orice site, mesajul scris sau vorbit ajunge la server; agent_message apare în bulă; pașii, Păstrez/Anulez și „Revino la original” se văd în panou."
 
 - id: D5
   owner: D
   title: Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție
-  depends_on: [A4, B3, B4, C2, C3, D3, D4, E3]
+  depends_on: [A4, B3, B4, C2, C3, C4, D2, D3, E3, E6]
   branch: d5-integrare
   status: auto
-  note: "sâm 09:00 (înghețul). Gata = cei 6 pași din demo merg de 3 ori la rând."
+  note: "sâm 09:00 (înghețul). Gata = pașii din demo merg de 3 ori la rând, pe site-urile reale alese și pe site-ul de test. Ce nu merge la 07:00 din B4/E6 se taie din demo."
 
 - id: D6
   owner: D
@@ -73,33 +86,41 @@
   depends_on: [D1]
   branch: a1-server
   status: auto
-  note: "vin 18:00. Gata = hello/user_message/tool_call/tool_result/step/run_finished merg cu agentul fals; GET /api/runs/:id; GET/PUT /api/config/:userId (data/configs)."
+  note: "Unit (PR #6). Rămâne baza serverului."
+
+- id: A5
+  owner: A
+  title: Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes)
+  depends_on: [D7]
+  branch: a5-retete
+  status: auto
+  note: "vin 21:00. Gata = o rețetă salvată pentru un site se citește înapoi; lista site-urilor unui utilizator; validată pe tipurile din D7."
 
 - id: A2
   owner: A
-  title: Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get_ui_snapshot, patch_config, point_at
-  depends_on: [A1, B2]
+  title: Bucla agentului cu OpenRouter cap-coadă pe o pagină reală, cu 4 unelte - get_page_snapshot, apply_css, apply_ops, point_at
+  depends_on: [A1, D7, B2]
   branch: a2-bucla
   status: auto
-  note: "vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point_at, cu pașii în jurnal."
+  note: "vin 23:00. Gata = „ascunde X” și „fă bara de sus albastră” pe o pagină: snapshot → apply_css/apply_ops → snapshot de verificare, cu pașii în jurnal."
 
 - id: A3
   owner: A
-  title: Toate uneltele + promptul de sistem + profilul în context (specs/05)
-  depends_on: [A2, E1]
+  title: Toate uneltele + promptul de sistem + profilul și rețeta site-ului în context (specs/05)
+  depends_on: [A2, E1, B5]
   branch: a3-unelte
   status: auto
-  note: "sâm 02:00. Gata = ask_user, propose_changes, audit_ui, generate_component, navigate, wait_for_user_click, say, update_profile, finish."
+  note: "sâm 02:00. Gata = ask_user, propose_changes, audit_ui, generate_component, wait_for_user_click, say, update_profile, finish; promptul cere verificare după fiecare schimbare."
 
 - id: A4
   owner: A
-  title: Tratarea eșecurilor - LIMIT_VIOLATION, NOT_VISIBLE, TIMEOUT, reîncercări, maxSteps, erori OpenRouter
+  title: Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter
   depends_on: [A3]
   branch: a4-esecuri
   status: auto
   note: "sâm 05:00. Gata = fiecare eroare din specs/05 are un test sau un scenariu manual care arată reacția agentului."
 
-# ---------- B: Ștefan R. — interfața dinamică (web) ----------
+# ---------- B: Ștefan R. — motorul care schimbă pagina ----------
 
 - id: B1
   owner: B
@@ -107,31 +128,39 @@
   depends_on: [D1]
   branch: b1-store-layout
   status: auto
-  note: "vin 19:00. Gata = applyPatch refuză baseFontPx 14 cu LIMIT_VIOLATION; cele 3 șabloane se randează din config."
+  note: "Unit (PR #7). Poarta de limite, undo-ul și LayoutRenderer se refolosesc în B5 și B4."
 
 - id: B2
   owner: B
-  title: Registrul de elemente (data-agent-id), snapshot, rectOf/ensureVisible + executorul uneltelor web (agent-bridge)
-  depends_on: [B1]
+  title: Registrul paginii - id-uri stabile și selectori pentru elementele unui site oarecare, snapshot rezumat, rectOf/ensureVisible + executorul uneltelor
+  depends_on: [B1, D7]
   branch: b2-registru
   status: auto
-  note: "vin 21:00. Gata = registry.snapshot() întoarce UISnapshot corect; tool_call patch_config/navigate/get_ui_snapshot executat din WebSocket."
+  note: "vin 22:00. Gata = pe o pagină reală mare, snapshot-ul are zonele, titlurile și elementele interactive vizibile, sub limita de mărime din D7; același element primește același id după reîncărcare."
+
+- id: B5
+  owner: B
+  title: Motorul de rețete - validează și aplică CSS-ul agentului și DomOp (remove, move, wrap, setText), undo, salvare locală pe site, reaplicare fără AI la încărcare
+  depends_on: [D7, E5]
+  branch: b5-retete
+  status: auto
+  note: "vin 23:30. Gata = o rețetă cu CSS + remove + move rezistă la reîncărcare fără apel la server și fără să clipească pagina; se reaplică și când pagina își schimbă singură conținutul; CSS cu url() sau @import e respins; „Revino la original” o golește."
 
 - id: B3
   owner: B
-  title: Elemente generate la cerere - ComponentRenderer pe catalog, validare, generate_component/remove_component (specs/03)
-  depends_on: [B2]
+  title: Elemente generate la cerere - HTML scris de agent și curățat (insertHtml) sau componente din catalog (inject), legate de elemente reale (bind, specs/03)
+  depends_on: [B2, B5]
   branch: b3-generate
   status: auto
-  note: "sâm 01:00. Gata = cele 2 exemple din specs/03 se randează, primesc data-agent-id și trec auditul."
+  note: "sâm 02:00. Gata = un element generat apare în pagină, apăsarea lui declanșează elementul real, rămâne după reîncărcare și trece auditul; HTML cu <script> sau atribute on* e respins."
 
 - id: B4
   owner: B
-  title: Aplicația demo - mesaje, conversație, poze, contacte, apeluri, setări, cu datele de test și id-urile din specs/04
-  depends_on: [B1]
-  branch: b4-demo-app
+  title: Refacerea liberă a unui site (nivelul 4) - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo
+  depends_on: [B3]
+  branch: b4-refacere
   status: auto
-  note: "sâm 01:00. Gata = trimiterea unei poze Anei merge manual, cu meniul „Mai mult” care ascunde butonul de atașat."
+  note: "sâm 05:00. P1, partea de „wow”. Gata = pe perechea de site-uri aleasă pentru demo, „fă-l să arate ca X” schimbă așezarea și stilul, pagina rămâne folosibilă și rețeta rezistă la reîncărcare; pe site-ul de test, „vreau doar să plătesc factura” lasă o pagină simplă. Dacă nu e stabil la 07:00, se taie din demo."
 
 # ---------- C: Adelin — accesibilitate și testul inițial ----------
 
@@ -141,53 +170,77 @@
   depends_on: [D1]
   branch: c1-audit
   status: auto
-  note: "vin 21:00. Gata = funcții pure pe UISnapshot + DOM, cu teste unitare (contrast #777 pe alb = 4.48)."
+  note: "Unit (PR #3). Măsoară deja DOM-ul; se refolosește pe pagini reale."
 
 - id: C2
   owner: C
-  title: Reparațiile (fix) din audit + funcțiile de contrast folosite și de poarta din store; unealta audit_ui
+  title: Auditul pe pagina unui site, rulat după fiecare schimbare a agentului + reparațiile ca CSS; unealta audit_ui
   depends_on: [C1, B2]
   branch: c2-reparatii
   status: auto
-  note: "sâm 01:00. Gata = audit_ui prin WebSocket întoarce AuditReport cu fix-uri aplicabile cu patch_config."
+  note: "sâm 00:00. Gata = audit_ui pe o pagină reală întoarce AuditReport într-un timp rezonabil, cu fix-uri aplicabile cu apply_css; un CSS al agentului care coboară textul sub limită apare în raport."
 
 - id: C3
   owner: C
-  title: Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10)
-  depends_on: [B1, E1]
+  title: Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10)
+  depends_on: [E5, E1]
   branch: c3-onboarding
   status: auto
-  note: "sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding."
+  note: "sâm 01:00. Gata = la instalare se deschide testul; profilul se salvează local și pe server; întrebările noi (familiaritate, AI, clipuri scurte, aglomerație) ajung în profil."
 
-# ---------- E: Iulia — profil, semnale, adaptare, demo ----------
+- id: C4
+  owner: C
+  title: Preferințele de bază fără AI - din profil, pe orice site - font minim, contrast, ținte mari (rețeta de bază)
+  depends_on: [B5, C2]
+  branch: c4-baza
+  status: auto
+  note: "sâm 03:00. Gata = cu profilul „20px, contrast mare”, un site nou are textul de cel puțin 20px de la prima încărcare, fără niciun apel la model; rețeta de bază se aplică ultima, peste CSS-ul agentului."
+
+# ---------- E: Iulia — extensia, profil, conturi, semnale, adaptare, demo ----------
 
 - id: E1
   owner: E
-  title: Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08)
+  title: Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt (specs/08)
   depends_on: [D1]
   branch: e1-profil
   status: auto
-  note: "vin 20:00. Gata = GET/PUT profil, PUT onboarding, profileSummary(profile) sub 150 de cuvinte."
+  note: "Unit (PR #8). Câmpurile noi (site-uri familiare, preferințe generale) intră prin D7 și E3."
+
+- id: E5
+  owner: E
+  title: Scheletul extensiei Chrome (MV3) - manifest, content script cu rădăcină shadow DOM, service worker cu WebSocket la server, popup, stocare locală
+  depends_on: [D1]
+  branch: e5-extensie
+  status: auto
+  note: "vin 20:00. Gata = extensia încărcată „unpacked” arată un element al nostru pe orice site, iar un mesaj de probă face drumul pagină → service worker → server și înapoi. Blochează B5, D2, D3, C3, E2: primul de făcut."
 
 - id: E2
   owner: E
-  title: Colectarea semnalelor în frontend - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)
-  depends_on: [B2]
+  title: Colectarea semnalelor în content script - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)
+  depends_on: [E5, B2]
   branch: e2-semnale
   status: auto
-  note: "vin 23:00. Gata = loturile de semnale ajung pe server și se văd în log."
+  note: "sâm 00:00. Gata = loturile de semnale de pe un site real ajung pe server și se văd în log."
+
+- id: E6
+  owner: E
+  title: Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv
+  depends_on: [E5, B5, A5]
+  branch: e6-conturi
+  status: auto
+  note: "sâm 03:00. Gata = fără cont, profilul și rețetele rezistă la repornirea browserului; după login pe alt profil de browser, apar aceleași preferințe. Parola doar ca hash."
 
 - id: E3
   owner: E
-  title: Regulile de adaptare automată + încrederea (autoApplyLowRisk) + pornirea agentului cu origin adaptation
+  title: Adaptarea automată - reguli pe semnale, încrederea (autoApplyLowRisk) și preferințele generale propuse pe site-uri noi
   depends_on: [E1, E2, A3]
   branch: e3-adaptare
   status: auto
-  note: "sâm 04:00. Gata = 3 ratări lângă Trimite pornesc singure propunerea „butoane mai mari”."
+  note: "sâm 05:00. Gata = 3 ratări lângă un buton pornesc singure propunerea „butoane mai mari”; cine a cerut „fără AI” pe un site primește propunerea și pe următorul."
 
 - id: E4
   owner: E
-  title: Datele de test, butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă
+  title: Site-ul de test (aglomerat, cu date de test), butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă
   depends_on: [D5]
   status: auto
-  note: "sâm 11:00. Datele de test se pot face din prima seară (fără dependențe); videoul după D5."
+  note: "sâm 11:00. Site-ul de test se poate face din prima seară (fără dependențe); videoul după D5."
