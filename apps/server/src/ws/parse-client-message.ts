@@ -61,10 +61,18 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return isNonEmptyString(message.callId) && isToolResult(message.result)
         ? { type: "tool_result", callId: message.callId, result: message.result }
         : null;
-    case "signals":
+    case "signals": {
       // conținutul fiecărui semnal îl verifică adaptarea (E); aici doar că e o listă de obiecte cu `kind`
-      return Array.isArray(message.signals) && message.signals.every((s) => isObject(s) && typeof s.kind === "string")
-        ? { type: "signals", signals: message.signals as UsageSignal[] }
+      const page = parsePage(message.page);
+      const valid =
+        Array.isArray(message.signals) &&
+        message.signals.every((s) => isObject(s) && typeof s.kind === "string") &&
+        page !== null;
+      return valid ? { type: "signals", signals: message.signals as UsageSignal[], ...(page && { page }) } : null;
+    }
+    case "suggestion_decision":
+      return isNonEmptyString(message.suggestionId) && (message.decision === "accept" || message.decision === "dismiss")
+        ? { type: "suggestion_decision", suggestionId: message.suggestionId, decision: message.decision }
         : null;
     case "cancel_run":
       return isNonEmptyString(message.runId) ? { type: "cancel_run", runId: message.runId } : null;

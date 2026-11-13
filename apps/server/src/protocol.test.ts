@@ -203,6 +203,26 @@ describe("WebSocket cu agentul fals", () => {
   });
 });
 
+describe("semnale și propuneri (pentru adaptarea lui E)", () => {
+  it("signals ajung cu page, iar suggestion_decision ajunge la handler-ul lui", async () => {
+    const { setSignalsHandler, setSuggestionDecisionHandler } = await import("./ws/connection");
+    const received: unknown[] = [];
+    setSignalsHandler((userId, signals, page) => received.push({ userId, kinds: signals.map((s) => s.kind), page }));
+    setSuggestionDecisionHandler((userId, suggestionId, decision) => received.push({ userId, suggestionId, decision }));
+
+    const web = await connect("semnale");
+    web.hello();
+    web.send({ type: "signals", signals: [{ kind: "zoom", ts: "t", scale: 2 }], page: PAGE });
+    web.send({ type: "suggestion_decision", suggestionId: "s-1", decision: "dismiss" });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(received).toEqual([
+      { userId: "semnale", kinds: ["zoom"], page: PAGE },
+      { userId: "semnale", suggestionId: "s-1", decision: "dismiss" },
+    ]);
+    web.socket.close();
+  });
+});
+
 describe("HTTP", () => {
   it("GET /api/runs/:runId necunoscut → 404, fără userId → 400", async () => {
     expect((await getJson("/api/runs/run-nu-exista")).status).toBe(404);
