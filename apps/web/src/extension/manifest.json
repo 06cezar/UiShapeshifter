@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "UI Shapeshifter",
+  "description": "Un agent care reface interfața oricărui site după cum vrei tu.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["<all_urls>", "http://localhost:8787/*"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "UI Shapeshifter",
+    "default_popup": "popup.html"
+  }
+}

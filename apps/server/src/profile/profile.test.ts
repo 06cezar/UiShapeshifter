@@ -1,7 +1,7 @@
 // Testele profilului (E1). Rulare: npm test -w @uishapeshifter/server
 
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -52,6 +52,17 @@ describe("stocarea", () => {
 
   test("userId care ar ieși din folder e refuzat", async () => {
     await assert.rejects(store.get("../secret"));
+  });
+
+  test("salvări simultane ale aceluiași profil nu se încurcă și nu lasă fișiere temporare", async () => {
+    const maria = await store.get("maria");
+    const names = Array.from({ length: 20 }, (_, i) => `Maria ${i}`);
+    await Promise.all(names.map((displayName) => store.save({ ...maria, displayName })));
+    assert.ok(names.includes((await store.get("maria")).displayName));
+    assert.deepEqual(
+      (await readdir(dir)).filter((file) => file.endsWith(".tmp")),
+      [],
+    );
   });
 });
 

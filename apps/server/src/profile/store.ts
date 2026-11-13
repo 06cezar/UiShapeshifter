@@ -1,6 +1,7 @@
 // Stocarea profilurilor: câte un fișier JSON pe utilizator, data/profiles/<userId>.json (git-ignored).
 // Fără bază de date (specs/01). Scrierea trece printr-un fișier temporar, ca un crash să nu lase JSON pe jumătate.
 
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,20 +34,41 @@ export function createProfileStore(
 ): ProfileStore {
   const fileOf = (userId: string) => join(dir, `${userId}.json`);
 
-  async function save(profile: UserProfile): Promise<UserProfile> {
-    assertUserId(profile.userId);
+  // Scrierile aceluiași profil merg pe rând: agentul (update_profile) și Setările (PUT) pot salva în același timp,
+  // iar pe Windows două redenumiri simultane peste același fișier dau EPERM.
+  const writesInFlight = new Map<string, Promise<unknown>>();
+  function oneAtATime<T>(userId: string, write: () => Promise<T>): Promise<T> {
+    const previous = writesInFlight.get(userId) ?? Promise.resolve();
+    const next = previous.catch(() => undefined).then(write);
+    writesInFlight.set(userId, next);
+    const forget = () => {
+      if (writesInFlight.get(userId) === next) writesInFlight.delete(userId);
+    };
+    next.then(forget, forget);
+    return next;
+  }
+
+  async function writeProfile(profile: UserProfile): Promise<UserProfile> {
     const saved = { ...profile, updatedAt: clock().toISOString() };
     await mkdir(dir, { recursive: true });
-    const tmp = `${fileOf(profile.userId)}.tmp`;
+    // Nume unic pe fiecare salvare, ca un fișier temporar rămas după un crash să nu încurce următoarea.
+    const tmp = `${fileOf(profile.userId)}.${randomUUID()}.tmp`;
     await writeFile(tmp, JSON.stringify(saved, null, 2) + "\n", "utf8");
     await rename(tmp, fileOf(profile.userId));
     return saved;
   }
 
-  async function reset(userId: string): Promise<UserProfile> {
+  function save(profile: UserProfile): Promise<UserProfile> {
+    assertUserId(profile.userId);
+    return oneAtATime(profile.userId, () => writeProfile(profile));
+  }
+
+  function reset(userId: string): Promise<UserProfile> {
     assertUserId(userId);
-    await rm(fileOf(userId), { force: true });
-    return save(createStartingProfile(userId, clock().toISOString()));
+    return oneAtATime(userId, async () => {
+      await rm(fileOf(userId), { force: true });
+      return writeProfile(createStartingProfile(userId, clock().toISOString()));
+    });
   }
 
   async function get(userId: string): Promise<UserProfile> {

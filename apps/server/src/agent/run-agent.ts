@@ -47,10 +47,11 @@ const CRASH_SUMMARY = "Am o problemă și m-am oprit. Încearcă din nou, te rog
 // după reîncercările din openrouter.ts (specs/05, „Eșecuri”)
 const CONNECTION_SUMMARY = "Am o problemă de conexiune, încerc din nou imediat.";
 
-function revisionOf(result: ToolResult): number | undefined {
+/** Revizia rețetei site-ului după pas: din apply_css / apply_ops (`revision`) sau din snapshot (`recipe.revision`). */
+function recipeRevisionOf(result: ToolResult): number | undefined {
   if (!result.ok) return undefined;
-  const data = result.data as { revision?: unknown; configRevision?: unknown } | null;
-  const revision = data?.revision ?? data?.configRevision;
+  const data = result.data as { revision?: unknown; recipe?: { revision?: unknown } } | null;
+  const revision = data?.revision ?? data?.recipe?.revision;
   return typeof revision === "number" ? revision : undefined;
 }
 
@@ -94,7 +95,7 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
           ? await io.callWebTool(decision.name, decision.args)
           : await io.callServerTool(decision.name, decision.args);
 
-      const revisionAfter = revisionOf(result) ?? lastRevision;
+      const revisionAfter = recipeRevisionOf(result) ?? lastRevision;
       const step: AgentStep = {
         runId: run.runId,
         index,
@@ -104,8 +105,8 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
         args: decision.args,
         result,
         durationMs: Date.now() - startedAt,
-        configRevisionBefore: lastRevision,
-        configRevisionAfter: revisionAfter,
+        recipeRevisionBefore: lastRevision,
+        recipeRevisionAfter: revisionAfter,
       };
       lastRevision = revisionAfter;
       run.steps.push(step);

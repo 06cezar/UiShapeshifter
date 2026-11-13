@@ -8,18 +8,25 @@
 
 - **Numele tău în comms și în graf:** `E` (același cu `git config comms.me` și cu `owner: E` din `dag/tasks.yaml`).
 - **Omul tău:** Iulia.
-- **Fluxul tău:** profilul (memoria tip ICP), semnalele de utilizare, adaptarea automată, datele și demo-ul.
-- **Fișierele tale:** `apps/server/src/profile/`, `apps/server/src/adaptation/`, `apps/web/src/signals/`, `data/` de test. În afara lor nu modifici nimic; ceri prin `git comms send`.
+- **Fluxul tău:** extensia și omul: scheletul extensiei, site-ul de test, profilul, semnalele, adaptarea automată, conturile și sincronizarea, demo-ul.
+- **Fișierele tale:** `apps/web/src/extension/`, `apps/web/src/signals/`, `apps/web/src/sync/`, `apps/server/src/profile/`, `apps/server/src/adaptation/`, `apps/server/src/accounts/`, `apps/test-site/`, `data/` de test. În afara lor nu modifici nimic; ceri prin `git comms send`.
 - **Cine îți ține locul:** `A` (poate continua codul tău, nu poate aproba contracte în numele tău).
 - **Cui îi ții tu locul:** `D`.
 - **Liderul echipei:** `D`. El aprobă schimbările din plan și decide în ultimele două ore.
 
 ## Proiectul: UI Shapeshifter (UiPath Future Forward Hackathon, tema „Agents in Action”)
 
-Aplicație de mesaje și poze pentru vârstnici, condusă de un agent (o vulpiță) care adaptează interfața la om:
-test inițial, accesibilitate pe primul loc (font minim, contrast, ținte mari), elemente generate la cerere,
-memorie despre utilizator (profil tip ICP) și adaptare automată din felul în care e folosită aplicația.
+Extensie de browser cu un agent AI care **reface interfața site-urilor existente** după ce vrea omul: scoate ce
+nu vrea, ajustează ce rămâne, adaugă elemente noi, reface structura („fă-l să arate ca site-ul cu care sunt obișnuit”).
+E pentru oricine: se mulează pe om din testul inițial, din cereri (scris sau vorbit), dintr-un profil tip ICP care îl
+urmează de la un site la altul și din felul în care folosește paginile. Schimbările se salvează ca **rețetă a site-ului**
+și se reaplică fără AI; merge fără cont (local) și cu cont (pe alt dispozitiv). O mascotă arată unde să apeși.
 
+- **Din aproape în aproape:** construim în etape; fiecare se termină cu un **punct de control** (M0–M4) la care echipa
+  încarcă extensia și vede că merge. Lucrezi la etapa curentă și faci cel mai simplu lucru care o face să meargă;
+  etapa următoare începe după punctul de control. Regulile: `CLAUDE.md`; tabelul etapelor: `specs/00-produs.md`.
+- **Agentul schimbă pagina liber, dar nu rulează cod:** scrie CSS și HTML validate, mută și scoate elemente.
+  JavaScript generat de model nu se execută niciodată (`specs/01-arhitectura.md`).
 - **Fereastra:** vineri 13 nov. 14:00 → sâmbătă 14 nov. 14:00. Commit-urile de după nu contează.
   Îngheț funcții sâmbătă 09:00; trimitere sâmbătă 13:30.
 - **Contractele** sunt în `specs/` (regulile) și `packages/contracts/src/` (tipurile, sursa de adevăr).
@@ -31,14 +38,22 @@ memorie despre utilizator (profil tip ICP) și adaptare automată din felul în 
 
 ## Taskurile tale (din `dag/tasks.yaml`)
 
-- **E1** Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt, profilul maria (specs/08)  
-  depinde de: D1 · branch: `e1-profil` · vin 20:00. Gata = GET/PUT profil, PUT onboarding, profileSummary(profile) sub 150 de cuvinte.
-- **E2** Colectarea semnalelor în frontend - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)  
-  depinde de: B2 · branch: `e2-semnale` · vin 23:00. Gata = loturile de semnale ajung pe server și se văd în log.
-- **E3** Regulile de adaptare automată + încrederea (autoApplyLowRisk) + pornirea agentului cu origin adaptation  
-  depinde de: E1, E2, A3 · branch: `e3-adaptare` · sâm 04:00. Gata = 3 ratări lângă Trimite pornesc singure propunerea „butoane mai mari”.
-- **E4** Datele de test, butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă  
-  depinde de: D5 · branch: `-` · sâm 11:00. Datele de test se pot face din prima seară (fără dependențe); videoul după D5.
+- **E1** Profilul (memoria tip ICP) - schema, stocare JSON, API, rezumatul pentru prompt (specs/08)  
+  depinde de: D1 · branch: `e1-profil` · Unit (PR #8). Câmpurile noi vin în E8.
+- **E5** Scheletul extensiei Chrome (MV3) - manifest, content script cu rădăcină shadow DOM, service worker cu WebSocket la server, popup, stocare locală  
+  depinde de: D1 · branch: `e5-extensie` · Etapa 0 · vin 19:30. Gata = extensia încărcată „unpacked” arată un element al nostru pe orice site, iar un mesaj de probă face drumul pagină → service worker → server și înapoi; pașii de încărcare sunt în README.
+- **E7** Site-ul de test - o pagină aglomerată intenționat (meniuri, bannere, un „plătește factura” greu de găsit), servită local, cu date de test  
+  depinde de: M0 · branch: `e7-site-test` · Etapa 1 · vin 21:00. Gata = site-ul pornește cu npm run dev și extensia rulează pe el; pe el verificăm fiecare punct de control, fără internet.
+- **E2** Colectarea semnalelor în content script - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)  
+  depinde de: M1, B2 · branch: `e2-semnale` · Etapa 2 · sâm 00:00. Gata = loturile de semnale de pe un site real ajung pe server și se văd în log. Se folosesc în etapa 4 (E3).
+- **E8** Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08)  
+  depinde de: E1, M2 · branch: `e8-profil-extins` · Etapa 3 · sâm 02:00. Gata = profilul rezistă la repornirea browserului fără cont; rezumatul pentru prompt include preferințele generale.
+- **E3** Adaptarea automată - reguli pe semnale, încrederea (autoApplyLowRisk) și preferințele generale propuse singure pe site-uri noi  
+  depinde de: E2, A6, M3 · branch: `e3-adaptare` · Etapa 4 · sâm 05:30. Gata = 3 ratări lângă un buton pornesc singure propunerea „butoane mai mari”; pe un site nou, mascota propune singură preferințele generale.
+- **E6** Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv  
+  depinde de: A5, E8, M3 · branch: `e6-conturi` · Etapa 4 · sâm 06:30. Gata = după login pe alt profil de browser apar același profil și aceleași rețete. Parola doar ca hash.
+- **E4** Butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă  
+  depinde de: D5 · branch: `-` · sâm 11:00. Cifrele măsurate, nu inventate; videoul înregistrat pe scenariul din specs/12.
 
 Lucrează pe branch-ul din `branch:`; după primul push, graful îl arată „în lucru”. Când PR-ul e unit, taskul e gata.
 
@@ -46,11 +61,11 @@ Lucrează pe branch-ul din `branch:`; după primul push, graful îl arată „î
 
 | Nume | Om | Flux | Fișiere |
 |---|---|---|---|
-| A | Mihnea | agentul (server): bucla, OpenRouter, uneltele, eșecurile, jurnalul | `apps/server/src/agent/`, `apps/server/src/runs/`, serverul WebSocket/HTTP |
-| B | Ștefan R. | interfața dinamică: store UIConfig, layout, registrul de elemente, elemente generate, aplicația demo | `apps/web/src/ui/`, `apps/web/src/generated/`, `apps/web/src/demo-app/`, `apps/web/src/agent-bridge/` |
-| C | Adelin | accesibilitatea: auditul, fontul minim, reparațiile, testul inițial | `apps/web/src/a11y/`, `apps/web/src/onboarding/` |
-| D | Cezar (lider) | liderul: scheletul, mascota, chat/voce, panoul de control, integrarea, pitch-ul | `apps/web/src/mascot/`, `apps/web/src/chat/`, `apps/web/src/journal/`, `packages/contracts/`, configurarea din rădăcină |
-| E (tu) | Iulia | profilul (memoria tip ICP), semnalele de utilizare, adaptarea automată, datele și demo-ul | `apps/server/src/profile/`, `apps/server/src/adaptation/`, `apps/web/src/signals/`, `data/` de test |
+| A | Mihnea | agentul (server): bucla, OpenRouter, uneltele, eșecurile, jurnalul, rețetele pe server | `apps/server/src/agent/`, `apps/server/src/runs/`, `apps/server/src/recipes/`, serverul WebSocket/HTTP |
+| B | Ștefan R. | motorul care schimbă pagina: registrul și snapshot-ul paginii, motorul de rețete (CSS + DomOp), elementele generate, refacerea liberă a unui site | `apps/web/src/ui/`, `apps/web/src/generated/`, `apps/web/src/agent-bridge/` |
+| C | Adelin | siguranța și accesibilitatea: validarea a ce scrie agentul, auditul pe pagini reale, preferințele de bază fără AI, testul inițial | `apps/web/src/validation/`, `apps/web/src/a11y/`, `apps/web/src/onboarding/` |
+| D | Cezar (lider) | liderul: contractele, chatul și vocea, mascota, panoul de control, punctele de control, integrarea, pitch-ul | `apps/web/src/mascot/`, `apps/web/src/chat/`, `apps/web/src/journal/`, `packages/contracts/`, configurarea din rădăcină |
+| E (tu) | Iulia | extensia și omul: scheletul extensiei, site-ul de test, profilul, semnalele, adaptarea automată, conturile și sincronizarea, demo-ul | `apps/web/src/extension/`, `apps/web/src/signals/`, `apps/web/src/sync/`, `apps/server/src/profile/`, `apps/server/src/adaptation/`, `apps/server/src/accounts/`, `apps/test-site/`, `data/` de test |
 | dag | botul din GitHub Actions | graful de taskuri | branch-ul `dag` |
 
 ## Cum lucrează echipa: trei branch-uri

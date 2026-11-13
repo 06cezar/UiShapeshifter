@@ -8,18 +8,25 @@
 
 - **Numele tău în comms și în graf:** `C` (același cu `git config comms.me` și cu `owner: C` din `dag/tasks.yaml`).
 - **Omul tău:** Adelin.
-- **Fluxul tău:** accesibilitatea: auditul, fontul minim, reparațiile, testul inițial.
-- **Fișierele tale:** `apps/web/src/a11y/`, `apps/web/src/onboarding/`. În afara lor nu modifici nimic; ceri prin `git comms send`.
+- **Fluxul tău:** siguranța și accesibilitatea: validarea a ce scrie agentul, auditul pe pagini reale, preferințele de bază fără AI, testul inițial.
+- **Fișierele tale:** `apps/web/src/validation/`, `apps/web/src/a11y/`, `apps/web/src/onboarding/`. În afara lor nu modifici nimic; ceri prin `git comms send`.
 - **Cine îți ține locul:** `D` (poate continua codul tău, nu poate aproba contracte în numele tău).
 - **Cui îi ții tu locul:** `B`.
 - **Liderul echipei:** `D`. El aprobă schimbările din plan și decide în ultimele două ore.
 
 ## Proiectul: UI Shapeshifter (UiPath Future Forward Hackathon, tema „Agents in Action”)
 
-Aplicație de mesaje și poze pentru vârstnici, condusă de un agent (o vulpiță) care adaptează interfața la om:
-test inițial, accesibilitate pe primul loc (font minim, contrast, ținte mari), elemente generate la cerere,
-memorie despre utilizator (profil tip ICP) și adaptare automată din felul în care e folosită aplicația.
+Extensie de browser cu un agent AI care **reface interfața site-urilor existente** după ce vrea omul: scoate ce
+nu vrea, ajustează ce rămâne, adaugă elemente noi, reface structura („fă-l să arate ca site-ul cu care sunt obișnuit”).
+E pentru oricine: se mulează pe om din testul inițial, din cereri (scris sau vorbit), dintr-un profil tip ICP care îl
+urmează de la un site la altul și din felul în care folosește paginile. Schimbările se salvează ca **rețetă a site-ului**
+și se reaplică fără AI; merge fără cont (local) și cu cont (pe alt dispozitiv). O mascotă arată unde să apeși.
 
+- **Din aproape în aproape:** construim în etape; fiecare se termină cu un **punct de control** (M0–M4) la care echipa
+  încarcă extensia și vede că merge. Lucrezi la etapa curentă și faci cel mai simplu lucru care o face să meargă;
+  etapa următoare începe după punctul de control. Regulile: `CLAUDE.md`; tabelul etapelor: `specs/00-produs.md`.
+- **Agentul schimbă pagina liber, dar nu rulează cod:** scrie CSS și HTML validate, mută și scoate elemente.
+  JavaScript generat de model nu se execută niciodată (`specs/01-arhitectura.md`).
 - **Fereastra:** vineri 13 nov. 14:00 → sâmbătă 14 nov. 14:00. Commit-urile de după nu contează.
   Îngheț funcții sâmbătă 09:00; trimitere sâmbătă 13:30.
 - **Contractele** sunt în `specs/` (regulile) și `packages/contracts/src/` (tipurile, sursa de adevăr).
@@ -32,11 +39,15 @@ memorie despre utilizator (profil tip ICP) și adaptare automată din felul în 
 ## Taskurile tale (din `dag/tasks.yaml`)
 
 - **C1** Motorul de audit - min-font, contrast, target-size, overlap, clipped, offscreen, line-height + scor (specs/07)  
-  depinde de: D1 · branch: `c1-audit` · vin 21:00. Gata = funcții pure pe UISnapshot + DOM, cu teste unitare (contrast #777 pe alb = 4.48).
-- **C2** Reparațiile (fix) din audit + funcțiile de contrast folosite și de poarta din store; unealta audit_ui  
-  depinde de: C1, B2 · branch: `c2-reparatii` · sâm 01:00. Gata = audit_ui prin WebSocket întoarce AuditReport cu fix-uri aplicabile cu patch_config.
-- **C3** Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10)  
-  depinde de: B1, E1 · branch: `c3-onboarding` · sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding.
+  depinde de: D1 · branch: `c1-audit` · Unit (PR #3). Măsoară deja DOM-ul; se refolosește pe pagini reale (C2).
+- **C5** Validarea a ce scrie agentul - CSS (fără url, @import, selectori spre interfața noastră) și HTML (fără script, iframe, atribute on*), funcții pure cu teste  
+  depinde de: M0 · branch: `c5-validare` · Etapa 1 · vin 20:30 pentru CSS (îl folosește B5), HTML până la sfârșitul etapei (îl folosește B3 în etapa 3). Gata = validateCss/validateHtml întorc ce e respins și de ce, cu teste pe cazurile periculoase.
+- **C2** Auditul pe pagina unui site, rulat după fiecare schimbare a agentului + reparațiile ca CSS; unealta audit_ui  
+  depinde de: C1, M1, D8 · branch: `c2-reparatii` · Etapa 2 · sâm 00:30. Gata = audit_ui pe o pagină reală întoarce AuditReport într-un timp rezonabil, cu fix-uri aplicabile cu apply_css; un CSS al agentului care coboară textul sub limită apare în raport.
+- **C3** Testul inițial ca pagină a extensiei - lizibilitate, atingere, site-uri cunoscute, ce te deranjează, „Omite” pe fiecare ecran (specs/10)  
+  depinde de: E1, M2 · branch: `c3-onboarding` · Etapa 3 · sâm 02:30. Gata = la instalare se deschide testul; răspunsurile (inclusiv familiaritate, AI, clipuri scurte, aglomerație) ajung în profil.
+- **C4** Preferințele de bază fără AI - din profil, pe orice site - font minim, contrast, ținte mari, aplicate peste CSS-ul agentului  
+  depinde de: C2, C3, B6 · branch: `c4-baza` · Etapa 3 · sâm 03:30. Gata = cu profilul „20px, contrast mare”, un site nou are textul de cel puțin 20px de la prima încărcare, fără niciun apel la model.
 
 Lucrează pe branch-ul din `branch:`; după primul push, graful îl arată „în lucru”. Când PR-ul e unit, taskul e gata.
 
@@ -44,11 +55,11 @@ Lucrează pe branch-ul din `branch:`; după primul push, graful îl arată „î
 
 | Nume | Om | Flux | Fișiere |
 |---|---|---|---|
-| A | Mihnea | agentul (server): bucla, OpenRouter, uneltele, eșecurile, jurnalul | `apps/server/src/agent/`, `apps/server/src/runs/`, serverul WebSocket/HTTP |
-| B | Ștefan R. | interfața dinamică: store UIConfig, layout, registrul de elemente, elemente generate, aplicația demo | `apps/web/src/ui/`, `apps/web/src/generated/`, `apps/web/src/demo-app/`, `apps/web/src/agent-bridge/` |
-| C (tu) | Adelin | accesibilitatea: auditul, fontul minim, reparațiile, testul inițial | `apps/web/src/a11y/`, `apps/web/src/onboarding/` |
-| D | Cezar (lider) | liderul: scheletul, mascota, chat/voce, panoul de control, integrarea, pitch-ul | `apps/web/src/mascot/`, `apps/web/src/chat/`, `apps/web/src/journal/`, `packages/contracts/`, configurarea din rădăcină |
-| E | Iulia | profilul (memoria tip ICP), semnalele de utilizare, adaptarea automată, datele și demo-ul | `apps/server/src/profile/`, `apps/server/src/adaptation/`, `apps/web/src/signals/`, `data/` de test |
+| A | Mihnea | agentul (server): bucla, OpenRouter, uneltele, eșecurile, jurnalul, rețetele pe server | `apps/server/src/agent/`, `apps/server/src/runs/`, `apps/server/src/recipes/`, serverul WebSocket/HTTP |
+| B | Ștefan R. | motorul care schimbă pagina: registrul și snapshot-ul paginii, motorul de rețete (CSS + DomOp), elementele generate, refacerea liberă a unui site | `apps/web/src/ui/`, `apps/web/src/generated/`, `apps/web/src/agent-bridge/` |
+| C (tu) | Adelin | siguranța și accesibilitatea: validarea a ce scrie agentul, auditul pe pagini reale, preferințele de bază fără AI, testul inițial | `apps/web/src/validation/`, `apps/web/src/a11y/`, `apps/web/src/onboarding/` |
+| D | Cezar (lider) | liderul: contractele, chatul și vocea, mascota, panoul de control, punctele de control, integrarea, pitch-ul | `apps/web/src/mascot/`, `apps/web/src/chat/`, `apps/web/src/journal/`, `packages/contracts/`, configurarea din rădăcină |
+| E | Iulia | extensia și omul: scheletul extensiei, site-ul de test, profilul, semnalele, adaptarea automată, conturile și sincronizarea, demo-ul | `apps/web/src/extension/`, `apps/web/src/signals/`, `apps/web/src/sync/`, `apps/server/src/profile/`, `apps/server/src/adaptation/`, `apps/server/src/accounts/`, `apps/test-site/`, `data/` de test |
 | dag | botul din GitHub Actions | graful de taskuri | branch-ul `dag` |
 
 ## Cum lucrează echipa: trei branch-uri

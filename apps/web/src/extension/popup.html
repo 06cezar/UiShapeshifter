@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <title>UI Shapeshifter</title>
+    <style>
+      :root {
+        --uis-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+        --uis-bg: #1f2430;
+        --uis-fg: #ffffff;
+        --uis-muted: #c8ccd6;
+        --uis-accent: #ff8a3d;
+        --uis-ok: #4cc38a;
+        --uis-warn: #f2c94c;
+        --uis-error: #ff6b6b;
+        --uis-space: 8px;
+      }
+      body {
+        margin: 0;
+        width: 280px;
+        padding: calc(var(--uis-space) * 2);
+        font: 16px/1.5 var(--uis-font);
+        background: var(--uis-bg);
+        color: var(--uis-fg);
+      }
+      h1 {
+        margin: 0 0 var(--uis-space);
+        font-size: 18px;
+      }
+      p {
+        margin: 0 0 var(--uis-space);
+      }
+      .muted {
+        color: var(--uis-muted);
+      }
+      .dot {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-right: var(--uis-space);
+        border-radius: 50%;
+        background: var(--uis-warn);
+      }
+      .dot[data-status="open"] {
+        background: var(--uis-ok);
+      }
+      button {
+        min-height: 44px;
+        width: 100%;
+        margin: var(--uis-space) 0;
+        font: inherit;
+        color: var(--uis-bg);
+        background: var(--uis-accent);
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .dot[data-status="closed"] {
+        background: var(--uis-error);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>UI Shapeshifter</h1>
+    <p role="status"><span class="dot" id="dot" aria-hidden="true"></span><span id="status">Se conectează…</span></p>
+    <p class="muted">Utilizator anonim: <span id="user">–</span></p>
+    <p class="muted">Pe fiecare site apare jos, în dreapta, semnul extensiei.</p>
+    <p id="site" class="muted"></p>
+    <button type="button" id="reset" data-agent-id="popup.reset">Revino la original</button>
+    <p id="reset-status" role="status" class="muted"></p>
+    <script src="popup.js"></script>
+  </body>
+</html>

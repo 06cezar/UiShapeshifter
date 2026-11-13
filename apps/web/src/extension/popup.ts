@@ -1,0 +1,62 @@
+// Popup-ul extensiei (butonul din bara browserului): legătura cu serverul, userId-ul anonim și „Revino la original”
+// pentru site-ul din tab-ul curent (B5). Contul vine cu E6.
+
+import { clearRecipe, loadRecipe } from "../ui/recipes/recipe-store";
+import { POPUP_PORT, parseFromWorker, type LinkStatus } from "./messages";
+import { normalizeHost } from "./page-info";
+
+const STATUS_TEXT: Record<LinkStatus, string> = {
+  connecting: "Se conectează la server…",
+  open: "Conectat la server",
+  closed: "Serverul nu răspunde (pornește-l cu npm run dev)",
+};
+
+const dot = document.getElementById("dot")!;
+const statusText = document.getElementById("status")!;
+const userText = document.getElementById("user")!;
+
+const port = chrome.runtime.connect({ name: POPUP_PORT });
+port.onMessage.addListener((raw) => {
+  const message = parseFromWorker(raw);
+  if (message?.type !== "status") return;
+  dot.dataset.status = message.status;
+  statusText.textContent = STATUS_TEXT[message.status];
+  userText.textContent = message.userId ?? "–";
+});
+port.postMessage({ type: "get_status" });
+
+// ---------- „Revino la original” pentru site-ul din tab-ul curent ----------
+
+const siteText = document.getElementById("site")!;
+const resetButton = document.getElementById("reset") as HTMLButtonElement;
+const resetStatus = document.getElementById("reset-status")!;
+
+async function currentHost(): Promise<string | null> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.url?.startsWith("http")) return null;
+  return normalizeHost(new URL(tab.url).hostname);
+}
+
+async function showSite() {
+  const host = await currentHost();
+  if (!host) {
+    siteText.textContent = "Pagina asta nu e un site obișnuit.";
+    resetButton.disabled = true;
+    return;
+  }
+  const { recipe } = await loadRecipe(chrome.storage.local, host, new Date().toISOString());
+  siteText.textContent =
+    recipe.revision > 0 ? `${host}: ${recipe.revision} schimbări salvate.` : `${host}: nicio schimbare salvată.`;
+  resetButton.disabled = recipe.revision === 0;
+}
+
+resetButton.addEventListener("click", async () => {
+  const host = await currentHost();
+  if (!host) return;
+  // Tab-urile site-ului aud ștergerea (storage.onChanged) și scot foaia pe loc.
+  await clearRecipe(chrome.storage.local, host);
+  resetStatus.textContent = "Gata: site-ul arată din nou ca la început.";
+  await showSite();
+});
+
+void showSite();

@@ -1,19 +1,22 @@
 // Cine decide în bucla reală: modelul din OpenRouter, cu tool calling (specs/05).
 // Ține istoricul conversației cu modelul; bucla din run-agent.ts îi dă rezultatul fiecărui pas.
 
-import { TOOL_DEFINITIONS, TOOL_RUNS_ON, type ToolName } from "@uishapeshifter/contracts";
+import { SITE_TOOL_DEFINITIONS, TOOL_RUNS_ON, type PageInfo, type ToolName } from "@uishapeshifter/contracts";
 import { compactResult } from "./compact-result";
 import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
-import { buildSystemPrompt, type PromptContext } from "./system-prompt";
+import { buildSystemPrompt, userMessage } from "./system-prompt";
 
 const TEMPERATURE = 0.2; // mică, pentru un demo previzibil (specs/05)
 const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
 // de câte ori îi cerem modelului să repare un tool call stricat (nume necunoscut, JSON invalid) în același pas
 const MAX_MALFORMED_CALLS = 2;
 
-// toate uneltele din contracte (specs/05)
-export const ALL_TOOLS = Object.keys(TOOL_RUNS_ON) as ToolName[];
+/** O definiție de unealtă în formatul OpenAI / OpenRouter. */
+export interface ToolDefinition {
+  type: "function";
+  function: { name: string; description: string; parameters: unknown };
+}
 
 function isToolName(name: string): name is ToolName {
   return Object.hasOwn(TOOL_RUNS_ON, name);
@@ -31,18 +34,23 @@ function parseArgs(raw: string): Record<string, unknown> | null {
 }
 
 export interface OpenRouterDeciderOptions {
-  tools?: readonly ToolName[];
+  /** Uneltele etapei la care e extensia; etapa 1: get_page_snapshot, apply_css, say, finish (specs/05). */
+  definitions?: readonly ToolDefinition[];
+  /** Site-ul de pe care a scris omul; lipsește pe pagina de probă. */
+  page?: PageInfo;
   retryDelaysMs?: readonly number[]; // testele le pun pe 0
   /** Profilul și config-ul pentru prompt; se încarcă la primul pas, ca rularea să pornească imediat. */
   loadContext?: () => Promise<PromptContext>;
 }
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
-  const { tools = ALL_TOOLS, retryDelaysMs = RETRY_DELAYS_MS, loadContext = async () => ({}) } = options;
+  const { definitions = SITE_TOOL_DEFINITIONS, page, retryDelaysMs = RETRY_DELAYS_MS } = options;
   const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
-  const allowed = new Set<ToolName>(tools);
-  const definitions = TOOL_DEFINITIONS.filter((definition) => allowed.has(definition.function.name));
-  const messages: ChatMessage[] = [];
+  const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
+  const messages: ChatMessage[] = [
+    { role: "system", content: buildSystemPrompt({ page }) },
+    { role: "user", content: userMessage(goal, page) },
+  ];
   let pendingCallId: string | null = null;
 
   return {

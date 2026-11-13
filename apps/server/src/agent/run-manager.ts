@@ -2,9 +2,7 @@
 // adaptare (E3) nu întrerupe omul: așteaptă la coadă până se termină rularea curentă (specs/05).
 
 import { randomUUID } from "node:crypto";
-import type { AgentRun, RunOrigin } from "@uishapeshifter/contracts";
-import { loadConfig } from "../config/config-store";
-import { profileSummary } from "../profile";
+import type { AgentRun, PageInfo, RunOrigin } from "@uishapeshifter/contracts";
 import { saveRun } from "../runs/run-store";
 import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Session } from "../ws/sessions";
 import { createFakeDecider } from "./fake-decider";
@@ -25,22 +23,18 @@ interface ActiveRun {
 const activeByUser = new Map<string, ActiveRun>();
 const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 
-function createDecider(userId: string, goal: string): Decider {
-  if (process.env.AGENT_FAKE === "1") return createFakeDecider(goal, FAKE_STEP_DELAY_MS);
-  return createOpenRouterDecider(goal, {
-    loadContext: async () => ({
-      config: await loadConfig(userId),
-      profileSummary: profileSummary(await profiles.get(userId)),
-    }),
-  });
+function createDecider(goal: string, page: PageInfo | undefined): Decider {
+  return process.env.AGENT_FAKE === "1"
+    ? createFakeDecider(goal, FAKE_STEP_DELAY_MS)
+    : createOpenRouterDecider(goal, { page });
 }
 
 function newRunId(): string {
   return `run-${Date.now()}-${randomUUID().slice(0, 8)}`;
 }
 
-function launch(session: Session, goal: string, origin: RunOrigin): ActiveRun {
-  const decider = createDecider(session.userId, goal);
+function launch(session: Session, goal: string, origin: RunOrigin, page?: PageInfo): ActiveRun {
+  const decider = createDecider(goal, page);
   const run: AgentRun = {
     runId: newRunId(),
     userId: session.userId,
@@ -85,13 +79,14 @@ function stop(active: ActiveRun): void {
 }
 
 /** Rularea cerută din sesiunea în care a scris omul. */
-export function startRunInSession(session: Session, goal: string, origin: RunOrigin = "user"): string {
+/** `page`: site-ul de pe care a scris omul (extensia); lipsește pe pagina de probă și la rulările pornite de server. */
+export function startRunInSession(session: Session, goal: string, origin: RunOrigin = "user", page?: PageInfo): string {
   const current = activeByUser.get(session.userId);
   if (current) {
     current.replaced = true;
     stop(current);
   }
-  return launch(session, goal, origin).runId;
+  return launch(session, goal, origin, page).runId;
 }
 
 /**

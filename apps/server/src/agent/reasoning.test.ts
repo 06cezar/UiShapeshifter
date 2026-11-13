@@ -33,10 +33,10 @@ describe("withToolFallback", () => {
   const empty = { observation: "", decision: "", reason: "" };
 
   it("descrie pasul din unealtă când modelul n-a scris rândul", () => {
-    expect(withToolFallback(empty, "point_at", { elementId: "gen.call-ana", message: "Apasă aici." }).decision).toBe(
-      "Arăt cu lăbuța: Apasă aici.",
+    expect(withToolFallback(empty, "say", { message: "Nu găsesc bara de sus." }).decision).toBe(
+      "Îți spun ceva: Nu găsesc bara de sus.",
     );
-    expect(withToolFallback(empty, "audit_ui", {}).decision).toBe("Verific accesibilitatea.");
+    expect(withToolFallback(empty, "get_page_snapshot", {}).decision).toBe("Mă uit la pagină.");
   });
 
   it("nu atinge un raționament scris de model", () => {

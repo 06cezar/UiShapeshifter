@@ -8,7 +8,7 @@ import { WebSocketServer } from "ws";
 import { WEB_PORT } from "@uishapeshifter/contracts";
 import { startRun } from "./agent/run-manager";
 import { configRouter } from "./config/routes";
-import { createProfileRouter, createProfileStore, ONBOARDING_GOAL } from "./profile";
+import { createProfileRouter, ONBOARDING_GOAL, profileStore } from "./profile";
 import { runsRouter } from "./runs/routes";
 import { handleConnection } from "./ws/connection";
 
@@ -33,7 +33,7 @@ export function createAppServer(): Server {
   app.use("/api", configRouter);
   app.use(
     "/api/profile",
-    createProfileRouter(createProfileStore(), {
+    createProfileRouter(profileStore, {
       onOnboardingCompleted: (userId) => startRun(userId, ONBOARDING_GOAL, "onboarding"),
     }),
   );
