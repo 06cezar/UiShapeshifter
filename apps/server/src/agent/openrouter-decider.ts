@@ -1,7 +1,13 @@
 // Cine decide în bucla reală: modelul din OpenRouter, cu tool calling (specs/05).
 // Ține istoricul conversației cu modelul; bucla din run-agent.ts îi dă rezultatul fiecărui pas.
 
-import { SITE_TOOL_DEFINITIONS, TOOL_RUNS_ON, type PageInfo, type ToolName } from "@uishapeshifter/contracts";
+import {
+  siteToolDefinitions,
+  TOOL_RUNS_ON,
+  type PageInfo,
+  type SiteToolStage,
+  type ToolName,
+} from "@uishapeshifter/contracts";
 import { compactResult } from "./compact-result";
 import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
@@ -34,6 +40,8 @@ function parseArgs(raw: string): Record<string, unknown> | null {
 }
 
 export interface OpenRouterDeciderOptions {
+  /** Etapa extensiei: alege uneltele (siteToolDefinitions) și secțiunile promptului. Implicit 1. */
+  stage?: SiteToolStage;
   /** Uneltele etapei la care e extensia; etapa 1: get_page_snapshot, apply_css, say, finish (specs/05). */
   definitions?: readonly ToolDefinition[];
   /** Site-ul de pe care a scris omul; lipsește pe pagina de probă. */
@@ -42,11 +50,12 @@ export interface OpenRouterDeciderOptions {
 }
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
-  const { definitions = SITE_TOOL_DEFINITIONS, page, retryDelaysMs = RETRY_DELAYS_MS } = options;
+  const { stage = 1, page, retryDelaysMs = RETRY_DELAYS_MS } = options;
+  const definitions = options.definitions ?? siteToolDefinitions(stage);
   const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ page }) },
+    { role: "system", content: buildSystemPrompt({ page, stage }) },
     { role: "user", content: userMessage(goal, page) },
   ];
   let pendingCallId: string | null = null;

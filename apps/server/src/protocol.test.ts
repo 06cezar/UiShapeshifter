@@ -77,7 +77,8 @@ async function getJson<T>(path: string): Promise<{ status: number; body: T }> {
 }
 
 describe("WebSocket cu agentul fals", () => {
-  it("„ascunde Shorts”: snapshot → apply_css → snapshot de verificare → finish, cu pașii în jurnal", async () => {
+  it("etapa 1, „ascunde Shorts”: snapshot → apply_css → snapshot de verificare → finish, cu pașii în jurnal", async () => {
+    process.env.AGENT_STAGE = "1";
     const web = await connect();
     web.hello();
     web.send({ type: "user_message", text: "Ascunde Shorts", source: "text", page: PAGE });
@@ -128,6 +129,78 @@ describe("WebSocket cu agentul fals", () => {
     const list = await getJson<RunListItem[]>("/api/runs?userId=maria");
     expect(list.body.map((item) => item.runId)).toContain(started.runId);
     web.socket.close();
+    delete process.env.AGENT_STAGE;
+  });
+
+  it("etapa 2, „mută căutarea sus”: apply_ops → snapshot → audit_ui → propose_changes (Păstrez) → finish", async () => {
+    process.env.AGENT_STAGE = "2";
+    const web = await connect("etapa2");
+    web.hello();
+    web.send({ type: "user_message", text: "Mută căutarea sus.", source: "text", page: PAGE });
+    const started = await web.next("run_started");
+
+    const page = pageSnapshot({
+      regions: [
+        {
+          id: "r.top",
+          selector: "header",
+          role: "banner",
+          label: "Antet",
+          rect: { x: 0, y: 0, width: 1280, height: 60 },
+          visible: true,
+          elementCount: 1,
+        },
+        {
+          id: "r.main",
+          selector: "main",
+          role: "main",
+          label: "Recomandări",
+          rect: { x: 0, y: 80, width: 1280, height: 2000 },
+          visible: true,
+          elementCount: 2,
+        },
+      ],
+    });
+    const answers: Record<string, ToolResult> = {
+      get_page_snapshot: { ok: true, data: page },
+      apply_ops: { ok: true, data: { revision: 1, applied: 1, skipped: [], htmlDropped: [] } },
+      audit_ui: {
+        ok: true,
+        data: {
+          ok: true,
+          score: 96,
+          issues: [],
+          thresholds: {},
+          checkedElements: 10,
+          configRevision: 1,
+          checkedAt: "",
+        },
+      },
+      propose_changes: { ok: true, data: { proposalId: "p-1", decision: "keep", revision: 1 } },
+    };
+    const expected = ["get_page_snapshot", "apply_ops", "get_page_snapshot", "audit_ui", "propose_changes"];
+    const calls: string[] = [];
+    for (let i = 0; i < expected.length; i++) {
+      const call = await web.next("tool_call");
+      calls.push(call.name);
+      if (call.name === "apply_ops") {
+        expect(call.args).toMatchObject({
+          ops: [{ op: "move", selector: "form[role='search']", to: { selector: "header", position: "prepend" } }],
+        });
+      }
+      if (call.name === "propose_changes") expect(call.args).toMatchObject({ title: "Mut „Căutare” sus" });
+      web.send({ type: "tool_result", callId: call.callId, result: answers[call.name] });
+    }
+    expect(calls).toEqual(expected);
+    expect(await web.next("run_finished")).toMatchObject({
+      success: true,
+      summary: "Am mutat „Căutare” sus în pagină.",
+    });
+    const { body: run } = await getJson<AgentRun>(`/api/runs/${started.runId}`);
+    expect(run.steps.map((step) => step.tool)).toEqual([...calls, "finish"]);
+    expect(run.steps[1]).toMatchObject({ recipeRevisionBefore: 0, recipeRevisionAfter: 1 });
+    web.socket.close();
+    delete process.env.AGENT_STAGE;
   });
 
   it("un page stricat nu oprește cererea: rularea pornește fără el (ordinea run_started rămâne aceeași)", async () => {

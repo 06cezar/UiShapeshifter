@@ -94,3 +94,37 @@ describe("createFakeDecider", () => {
     expect(await decider.decide(snapshotStep(pageSnapshot()))).toMatchObject({ name: "say" });
   });
 });
+
+describe("createFakeDecider, etapa 2", () => {
+  it("după verificare: audit_ui → propose_changes; „undo” → spune că a lăsat pagina cum era", async () => {
+    const decider = createFakeDecider("ascunde Shorts", 0, 2);
+    await decider.decide(null);
+    await decider.decide(snapshotStep(pageSnapshot()));
+    await decider.decide({
+      name: "apply_css",
+      args: {},
+      result: { ok: true, data: { revision: 1, cssBytes: 10, dropped: [], unmatchedSelectors: [] } },
+    });
+    const hidden = pageSnapshot({
+      elements: [pageElement({ id: "e.2", label: "Shorts", selector: "x", visible: false, hiddenBy: "recipe" })],
+    });
+    expect(await decider.decide(snapshotStep(hidden))).toMatchObject({ name: "audit_ui" });
+    expect(
+      await decider.decide({
+        name: "audit_ui",
+        args: {},
+        result: { ok: true, data: { ok: true, score: 96, issues: [] } },
+      }),
+    ).toMatchObject({
+      name: "propose_changes",
+      args: { summary: "Am ascuns „Shorts”. Rămân ascunse și data viitoare." },
+    });
+    expect(
+      await decider.decide({
+        name: "propose_changes",
+        args: {},
+        result: { ok: true, data: { proposalId: "p", decision: "undo", revision: 0 } },
+      }),
+    ).toMatchObject({ name: "finish", args: { summary: "Am lăsat pagina cum era, cum ai ales." } });
+  });
+});
