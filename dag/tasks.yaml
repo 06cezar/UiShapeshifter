@@ -73,7 +73,7 @@
   depends_on: [D1]
   branch: a1-server
   status: auto
-  note: "vin 18:00. Gata = hello/user_message/tool_call/tool_result/step/run_finished merg cu agentul fals; GET /api/runs/:id."
+  note: "vin 18:00. Gata = hello/user_message/tool_call/tool_result/step/run_finished merg cu agentul fals; GET /api/runs/:id; GET/PUT /api/config/:userId (data/configs)."
 
 - id: A2
   owner: A

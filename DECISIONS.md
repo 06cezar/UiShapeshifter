@@ -18,6 +18,11 @@ Afectează: specs/0X, fluxurile …
 
 ---
 
+## 2026-11-13 15:10 · /api/config e al lui A · decis de: D (la întrebarea lui A)
+Decizia: `GET/PUT /api/config/:userId` (specs/06, stocare `data/configs/`) îl face A în A1, lângă serverul WebSocket.
+De ce: ruta n-avea proprietar în plan; serverul HTTP e al lui A, iar B rămâne pe store-ul din browser.
+Afectează: A1 (nota din `dag/tasks.yaml`), B (store-ul încarcă și salvează prin ruta asta). `/api/profile` rămâne la E (E1).
+
 ## 2026-11-13 · Stilul de cod comun · decis de: D
 Decizia: regulile din `CLAUDE.md` („Stil de cod”, „Gata înseamnă”) se aplică tuturor fluxurilor.
 De ce: cinci agenți scriu cod în paralel; fără reguli comune, fiecare își face stilul lui și integrarea costă ore.
