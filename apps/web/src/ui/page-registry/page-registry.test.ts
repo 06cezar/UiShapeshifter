@@ -1,0 +1,114 @@
+// Registrul paginii (B2): selectori stabili, id-uri stabile, zone, ce nu intră în snapshot, limita de elemente.
+// happy-dom nu face layout: dăm fiecărui element o mărime, ca „vizibil” să se poată calcula.
+
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { SNAPSHOT_LIMITS } from "@uishapeshifter/contracts";
+import { runPageTool } from "../../agent-bridge/page-tools";
+import { createPageRegistry } from "./registry";
+import { buildSelector, looksHumanId } from "./selector";
+
+const HOST = "uishapeshifter-root";
+
+beforeEach(() => {
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    const hidden = getComputedStyle(this).display === "none" || this.closest("[hidden]") !== null;
+    return {
+      x: 10,
+      y: 10,
+      width: hidden ? 0 : 100,
+      height: hidden ? 0 : 20,
+      top: 10,
+      left: 10,
+      right: 110,
+      bottom: 30,
+      toJSON() {},
+    } as DOMRect;
+  });
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  document.body.innerHTML = "";
+});
+
+function registry() {
+  return createPageRegistry({ ourHostId: HOST, recipe: () => ({ revision: 3, css: "a { color: red }" }) });
+}
+
+describe("selectorul", () => {
+  test("id scris de om, nu unul generat", () => {
+    expect(looksHumanId("search-box")).toBe(true);
+    expect(looksHumanId("ember1234")).toBe(false);
+    expect(looksHumanId("a8f3k2")).toBe(false);
+  });
+
+  test("ordinea: #id → aria-label → href → cale structurală, fără clase", () => {
+    document.body.innerHTML = `
+      <button id="cauta">Caută</button>
+      <button class="css-1x2y3z" aria-label="Meniu">≡</button>
+      <nav><a class="sc-abc" href="/shorts/123">Shorts</a></nav>
+      <ul><li><span>a</span></li><li><span class="x9">b</span></li></ul>`;
+    expect(buildSelector(document.querySelector("#cauta")!)).toBe("#cauta");
+    expect(buildSelector(document.querySelector("[aria-label]")!)).toBe('[aria-label="Meniu"]');
+    expect(buildSelector(document.querySelector("a")!)).toBe('a[href^="/shorts"]');
+    const second = document.querySelectorAll("span")[1]!;
+    const structural = buildSelector(second);
+    expect(structural).toBe("body > ul > li:nth-of-type(2) > span");
+    expect(document.querySelector(structural)).toBe(second);
+    expect(structural).not.toContain(".");
+  });
+});
+
+describe("registrul și snapshot-ul", () => {
+  test("zone cu id după rol, elemente cu id stabil, rețeta curentă", () => {
+    document.body.innerHTML = `
+      <header><a href="/">Acasă</a></header>
+      <nav aria-label="Principal"><a href="/a">A</a><a href="/b">B</a></nav>
+      <main><h1>Titlu</h1><article><header><h2>Articol</h2></header></article><button>Plătește</button></main>
+      <aside><a href="/c">C</a></aside><aside><a href="/d">D</a></aside>`;
+    const reg = registry();
+    const snap = reg.snapshot();
+    expect(snap.regions.map((r) => r.id)).toEqual(["r.header", "r.nav", "r.main", "r.aside", "r.aside-2"]);
+    const pay = snap.elements.find((e) => e.label === "Plătește")!;
+    expect(pay).toMatchObject({ role: "button", regionId: "r.main", visible: true, interactive: true });
+    expect(reg.snapshot().elements.find((e) => e.label === "Plătește")!.id).toBe(pay.id);
+    expect(reg.elementOf(pay.id)).toBe(document.querySelector("main > button"));
+    expect(snap.recipe).toEqual({ revision: 3, css: "a { color: red }" });
+  });
+
+  test("nu intră: interfața noastră, elementele ascunse de site, valorile câmpurilor", () => {
+    document.body.innerHTML = `
+      <div id="${HOST}"><button>Al nostru</button></div>
+      <button data-agent-id="gen.x">Generat</button>
+      <button style="display:none">Ascuns</button>
+      <label for="p">Parola</label><input id="p" type="password" value="secret123">`;
+    const snap = registry().snapshot();
+    const labels = snap.elements.map((e) => e.label);
+    expect(labels).toEqual(["Parola"]);
+    expect(JSON.stringify(snap)).not.toContain("secret123");
+  });
+
+  test("cel mult maxElements, cu truncated", () => {
+    document.body.innerHTML = Array.from(
+      { length: SNAPSHOT_LIMITS.maxElements + 15 },
+      (_, i) => `<a href="/p${i}">L${i}</a>`,
+    ).join("");
+    const snap = registry().snapshot();
+    expect(snap.elements).toHaveLength(SNAPSHOT_LIMITS.maxElements);
+    expect(snap.truncated).toBe(true);
+  });
+});
+
+describe("executorul uneltelor în pagină", () => {
+  test("get_page_snapshot pe o zonă; zonă inexistentă = ELEMENT_NOT_FOUND; apply_css fără motor = INTERNAL", async () => {
+    document.body.innerHTML = `<nav><a href="/a">A</a></nav><main><button>B</button></main>`;
+    const deps = { registry: registry() };
+    const nav = await runPageTool("get_page_snapshot", { regionId: "r.nav" }, deps);
+    expect(nav.ok && nav.data).toMatchObject({ elements: [{ label: "A" }] });
+    const missing = await runPageTool("get_page_snapshot", { regionId: "r.nimic" }, deps);
+    expect(missing.ok ? null : missing.error.code).toBe("ELEMENT_NOT_FOUND");
+    const css = await runPageTool("apply_css", { css: "a{}", reason: "x" }, deps);
+    expect(css.ok ? null : css.error.code).toBe("INTERNAL");
+    const bad = await runPageTool("apply_css", { css: 1 }, deps);
+    expect(bad.ok ? null : bad.error.code).toBe("INVALID_ARGS");
+  });
+});

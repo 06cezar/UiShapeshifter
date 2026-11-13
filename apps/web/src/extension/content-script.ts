@@ -3,9 +3,11 @@
 // Etapele următoare adaugă aici rețeta (B5), registrul și uneltele (B2), semnalele (E2), chatul și mascota (D).
 
 import type { ServerMessage } from "@uishapeshifter/contracts";
+import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
+import { createPageRegistry } from "../ui/page-registry/registry";
 import { PAGE_PORT, parseFromWorker, type LinkStatus, type ToWorker } from "./messages";
 import { pageInfo } from "./page-info";
-import { mountOurRoot } from "./shadow-root";
+import { HOST_ID, mountOurRoot } from "./shadow-root";
 
 const PROBE_TEXT = "Probă de la extensie";
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
@@ -48,7 +50,7 @@ function describeReply(message: ServerMessage): string | null {
     case "agent_message":
       return `Agentul: ${message.text}`;
     case "run_finished":
-      return message.success ? "Rularea s-a terminat ✓" : "Rularea s-a terminat (fără unelte în pagină încă)";
+      return message.success ? `Gata ✓ ${message.summary}` : `Nu a mers: ${message.summary}`;
     case "error":
       return `Eroare de la server: ${message.message}`;
     default:
@@ -77,6 +79,12 @@ function startBadge() {
 
   let port: chrome.runtime.Port | null = null;
 
+  // Registrul paginii (B2) și uneltele din pagină. Motorul de rețete (B5) se adaugă ca `recipes`.
+  const tools: PageToolDeps = {
+    registry: createPageRegistry({ ourHostId: HOST_ID, recipe: () => ({ revision: 0, css: "" }) }),
+    say: (text) => (replyText.textContent = `Agentul: ${text}`),
+  };
+
   function send(message: ToWorker) {
     port?.postMessage(message);
   }
@@ -92,16 +100,10 @@ function startBadge() {
         return;
       }
       const server = message.message;
-      // Uneltele în pagină vin în B2 (registrul și executorul); până atunci răspundem clar, ca rularea să nu aștepte.
       if (server.type === "tool_call") {
-        send({
-          type: "to_server",
-          message: {
-            type: "tool_result",
-            callId: server.callId,
-            result: { ok: false, error: { code: "INTERNAL", message: "Extensia nu execută încă unelte în pagină." } },
-          },
-        });
+        void runPageTool(server.name, server.args, tools, server.runId).then((result) =>
+          send({ type: "to_server", message: { type: "tool_result", callId: server.callId, result } }),
+        );
         return;
       }
       const reply = describeReply(server);
