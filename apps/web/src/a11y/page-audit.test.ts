@@ -65,6 +65,12 @@ describe("auditPage pe un site", () => {
     expect(Object.keys(elements)).not.toContain("sr-only");
   });
 
+  it("sare ce browserul spune că nu se vede (ex. conținutul unui <details> închis)", () => {
+    const hidden = document.querySelector<HTMLElement>('[data-t="buton"]')!;
+    hidden.checkVisibility = () => false;
+    expect(Object.keys(auditPage(THRESHOLDS, OPTIONS).elements)).not.toContain("buton");
+  });
+
   it("un link din mijlocul unei fraze nu e țintă mică (WCAG 2.5.5); unul de sine stătător, da", () => {
     expect(issuesOf("target-size")).not.toContain("in-fraza");
     expect(issuesOf("target-size")).toContain("link");
