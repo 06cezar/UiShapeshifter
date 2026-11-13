@@ -49,11 +49,14 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
 
     targetsFor(message, openPorts) {
       const runId = runIdOf(message);
-      /** Unde lucrează o rulare fără tab al ei: ultimul tab care a cerut ceva, altfel tab-ul activ. */
+      /**
+       * Unde lucrează o rulare fără tab al ei: tab-ul activ (adaptarea vine din click-urile ratate de acolo), altfel
+       * ultimul tab care a cerut ceva (nota lui A pe #39).
+       */
       const fallback = () => {
-        if (lastRequester !== null && openPorts.has(lastRequester)) return lastRequester;
         const active = options.activePort?.();
-        return active !== undefined && openPorts.has(active) ? active : undefined;
+        if (active !== undefined && openPorts.has(active)) return active;
+        return lastRequester !== null && openPorts.has(lastRequester) ? lastRequester : undefined;
       };
       if (message.type === "run_started") {
         if (message.origin === "user") {

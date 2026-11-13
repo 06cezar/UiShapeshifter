@@ -174,8 +174,17 @@ describe("rulările pornite de server (adaptare, test inițial)", () => {
   const toolCall = (runId: string) =>
     ({ type: "tool_call", runId, callId: "c", name: "say", args: { message: "x" } }) as unknown as ServerMessage;
 
-  test("uneltele lor merg la ultimul tab care a cerut ceva", () => {
+  test("uneltele lor merg la tab-ul activ, chiar dacă alt tab a cerut ceva înainte", () => {
     const router = createRunRouter<string>({ activePort: () => "tab-b" });
+    const open = new Set(["tab-a", "tab-b"]);
+    router.requestedBy("tab-a");
+    router.targetsFor(started("r-user", "user"), open);
+    router.targetsFor(started("r-adapt", "adaptation"), open);
+    expect(router.targetsFor(toolCall("r-adapt"), open)).toEqual(["tab-b"]);
+  });
+
+  test("fără tab activ cunoscut, merg la ultimul tab care a cerut ceva", () => {
+    const router = createRunRouter<string>();
     const open = new Set(["tab-a", "tab-b"]);
     router.requestedBy("tab-a");
     router.targetsFor(started("r-user", "user"), open);
@@ -183,7 +192,7 @@ describe("rulările pornite de server (adaptare, test inițial)", () => {
     expect(router.targetsFor(toolCall("r-adapt"), open)).toEqual(["tab-a"]);
   });
 
-  test("fără nicio cerere înainte, merg la tab-ul activ; fără tab activ, nicăieri", () => {
+  test("fără nicio cerere și fără tab activ, nicăieri", () => {
     const open = new Set(["tab-a", "tab-b"]);
     const withActive = createRunRouter<string>({ activePort: () => "tab-b" });
     withActive.targetsFor(started("r-onb", "onboarding"), open);
