@@ -53,8 +53,12 @@ function verifySection(stage: SiteToolStage): string {
   return `- Verifică după FIECARE schimbare (apply_css sau apply_ops), în ordinea asta:
   1. get_page_snapshot: s-a schimbat ce voiai? (elementele ascunse au visible: false, hiddenBy: "recipe"; ce ai mutat
      e unde trebuie) N-ai stricat altceva? Dacă nu, repari și verifici din nou.
-  2. audit_ui: repari DOAR problemele cu introduced: true (le-ai adus tu): dai fixCss lui apply_css, sau, fără fixCss,
-     îți scoți regula care a stricat. siteIssues = câte probleme avea deja site-ul; nu le atingi.
+  2. audit_ui: te uiți DOAR la problemele cu introduced: true (le-ai adus tu); siteIssues = câte avea deja site-ul.
+     - min-font, target-size, contrast, line-height (limitele tari): le repari cu fixCss prin apply_css; fără fixCss,
+       îți scoți regula care a stricat.
+     - overlap, clipped, offscreen: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și o spui în
+       propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
+       Nu anulezi ce a cerut omul pentru ele.
   3. propose_changes, o singură dată la final, cu un titlu scurt și ce s-a schimbat, pe înțeles. „keep” → finish;
      „undo” → rețeta a revenit deja, spui că ai înțeles și închei, fără să insiști.`;
 }
@@ -104,6 +108,9 @@ ${verifySection(stage)}
   generate automat (ex. #r1a2b3, .x9f3k2, .css-1q2w3e): se schimbă la fiecare încărcare. Preferă rol, atribute
   (aria-label, href, data-*) și structură; pentru „tot ce ține de X” sunt bune regulile generale, ex.
   article:has(a[href*="X"]).
+- Nu potrivești pe bucăți scurte de text în clase sau atribute ([class*="ai"], [aria-label*="AI"]): prind și alte
+  cuvinte (container, details, mail) și pot ascunde jumătate din pagină. Folosește cuvinte întregi și distinctive
+  ([aria-label*="Copilot" i], [href*="/shorts"]) sau selectorii din snapshot.
 - Fără JavaScript, fără url() și fără @import: ce nu e voie se scoate și apare în dropped.
 - unmatchedSelectors nu e gol → selectorul n-a găsit nimic ACUM. Pe paginile care se încarcă pe parcurs (fluxuri,
   postări, comentarii) e normal: conținutul apare mai târziu, iar rețeta se reaplică singură când apare. O regulă
@@ -128,6 +135,14 @@ ${stageTwoSections(stage)}
 - La plural sau la o categorie („toate reclamele”, „tot ce e AI”) iei toate elementele care se potrivesc, nu doar primul.
 - Snapshot-ul are cel mult 80 de elemente: dacă nu vezi ce caută omul, ceri zona potrivită cu
   get_page_snapshot({ regionId }) înainte să spui că nu există.
+- „Vreau doar să <X>”, „fă-l simplu”, „păstrează doar <X>”: omul vrea pagina redusă la ce-i trebuie pentru X.
+  Găsești ce ține de X (secțiunea, butoanele, datele) și ascunzi, în aceeași regulă, ce nu ajută la X: bannere și benzi
+  promoționale, reclame, carusele, chestionare, coloane laterale de recomandări, meniuri mari cu multe intrări.
+  Păstrezi antetul (numele site-ului, contul), căutarea și tot ce ține de X. În rezumat spui ce ai ascuns și unde
+  e acum X; dacă acțiunea pentru X e ascunsă într-un meniu (ex. „⋯”), spui exact unde.
+- Elementele cu visible: false și hiddenBy: "site" sunt ascunse de site (într-un meniu închis, un „⋯”), dar există.
+  Nu le poți arăta cu point_at. Le poți face ușor de găsit: din etapa 2, un buton nou sus (insertHtml sau inject)
+  legat cu bind de selectorul lor, iar apăsarea lui apasă elementul real. În etapa 1 spui unde sunt.
 - Alegi tu potrivirea cea mai probabilă și spui în rezumat ce ai ales („Am ascuns raftul «Sponsorizate» din dreapta”),
   ca omul să poată anula. Întrebi doar când două lucruri diferite se potrivesc la fel de bine.
 

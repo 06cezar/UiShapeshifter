@@ -51,6 +51,12 @@ export const CHAT_CSS = `
   min-height: var(--uis-target); min-width: var(--uis-target); padding: 0 calc(var(--uis-space) * 2);
   color: var(--uis-bg); background: var(--uis-accent); border: none; border-radius: var(--uis-radius); cursor: pointer;
 }
+.chat-voice {
+  min-height: var(--uis-target); min-width: var(--uis-target); padding: 0 var(--uis-space);
+  color: var(--uis-fg); background: color-mix(in srgb, var(--uis-fg) 10%, var(--uis-bg));
+  border: 2px solid var(--uis-muted); border-radius: var(--uis-radius); cursor: pointer;
+}
+.chat-voice[aria-pressed="true"] { color: var(--uis-bg); background: var(--uis-accent); border-color: var(--uis-accent); }
 .chat-hint { margin: 0; color: var(--uis-warn); }
 .chat button:focus-visible, .chat input:focus-visible { outline: 3px solid var(--uis-fg); outline-offset: 2px; }
 .visually-hidden {

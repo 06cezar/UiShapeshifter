@@ -71,6 +71,18 @@ describe("auditPage pe un site", () => {
     expect(Object.keys(auditPage(THRESHOLDS, OPTIONS).elements)).not.toContain("buton");
   });
 
+  it("suprapunerea cu un element fixed/sticky al site-ului (bannerul de cookie-uri) nu e problemă (găsit de A pe YouTube)", () => {
+    page(`
+      <div style="position: fixed"><button data-t="cookie" style="font-size: 18px" data-rect="0,0,300,60">Accept</button></div>
+      <a data-t="video" href="/v" style="display: block; font-size: 18px" data-rect="0,30,300,60">Un video</a>
+      <button data-t="a1" style="font-size: 18px" data-rect="0,100,120,60">Unu</button>
+      <button data-t="a2" style="font-size: 18px" data-rect="60,100,120,60">Doi</button>`);
+    const overlaps = issuesOf("overlap");
+    expect(overlaps).not.toContain("video");
+    expect(overlaps).not.toContain("cookie");
+    expect(overlaps).toContain("a2"); // două butoane obișnuite una peste alta rămân o problemă
+  });
+
   it("textul pe gradient sau imagine nu e judecat la contrast: fundalul nu se poate măsura", () => {
     page(`<div style="background-color: #ffffff; background-image: linear-gradient(#0b3d91, #1e88e5)">
       <p data-t="pe-gradient" style="color: #ffffff; font-size: 20px; line-height: 1.6">Doar azi</p></div>`);

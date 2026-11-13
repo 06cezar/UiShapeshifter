@@ -18,6 +18,8 @@ export function createEmptyProfile(userId: string, now: string): UserProfile {
     persona: { techComfort: "medium", goals: [], frequentTasks: [], keyContacts: [], painPoints: [] },
     facts: [],
     trust: { accepted: 0, undone: 0, autoApplyLowRisk: false },
+    generalPreferences: [],
+    familiarSites: [],
   };
 }
 
@@ -46,6 +48,8 @@ export function createMariaProfile(now: string): UserProfile {
     },
     facts: [],
     trust: { accepted: 0, undone: 0, autoApplyLowRisk: false },
+    generalPreferences: [],
+    familiarSites: [],
   };
 }
 
