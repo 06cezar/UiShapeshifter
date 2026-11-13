@@ -2,7 +2,14 @@
 // mai puțini tokeni = răspuns mai rapid și mai ieftin, iar modelul vede doar ce îi trebuie ca să decidă.
 // PageSnapshot e deja un rezumat (SNAPSHOT_LIMITS); aici scoatem ce nu ajută la decizie (coordonate exacte, ora).
 
-import type { PageElement, PageRegion, PageSnapshot, ToolName, ToolResult } from "@uishapeshifter/contracts";
+import type {
+  AuditReport,
+  PageElement,
+  PageRegion,
+  PageSnapshot,
+  ToolName,
+  ToolResult,
+} from "@uishapeshifter/contracts";
 import { pageAddress, pageText } from "./system-prompt";
 
 // textele scrise de site (etichete, titluri) ajung la model pe un singur rând și scurte
@@ -56,8 +63,33 @@ function compactPageSnapshot(snapshot: PageSnapshot): Record<string, unknown> {
   };
 }
 
+/**
+ * Auditul: modelul repară doar ce a adus el (introduced, cu fixCss). Problemele site-ului (pe o pagină reală pot fi
+ * sute) nu are voie să le atingă, deci primește doar câte sunt: mai puțini tokeni la fiecare pas de după audit.
+ */
+function compactAudit(report: AuditReport): Record<string, unknown> {
+  const issues = report.issues ?? [];
+  const introduced = issues.filter((issue) => issue.introduced);
+  return {
+    ok: report.ok,
+    score: report.score,
+    siteIssues: issues.length - introduced.length,
+    issues: introduced.map(({ rule, severity, elementId, message, fixCss }) => ({
+      rule,
+      severity,
+      elementId,
+      message: label(message),
+      introduced: true,
+      ...(fixCss && { fixCss }),
+    })),
+  };
+}
+
 /** Textul rezultatului, așa cum îl vede modelul în mesajul `tool`. */
 export function compactResult(name: ToolName, result: ToolResult): string {
+  if (result.ok && name === "audit_ui" && result.data && typeof result.data === "object") {
+    return JSON.stringify({ ok: true, data: compactAudit(result.data as AuditReport) });
+  }
   if (result.ok && name === "get_page_snapshot" && result.data && typeof result.data === "object") {
     return JSON.stringify({ ok: true, data: compactPageSnapshot(result.data as PageSnapshot) });
   }

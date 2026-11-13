@@ -70,6 +70,8 @@ export interface RecipeEngine {
   view(): RecipeView;
   /** Oprește urmărirea paginii (observer, reaplicarea în așteptare). Pagina rămâne cum e. */
   dispose(): void;
+  /** Oprește foaia rețetei și întoarce funcția care o repornește (auditul „cum era înainte de agent”, C2). */
+  pause(): () => void;
 }
 
 /**
@@ -387,6 +389,15 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     dispose() {
       clearTimeout(reapplyTimer);
       observer.disconnect();
+    },
+
+    pause() {
+      const sheet = (doc.getElementById(RECIPE_STYLE_ID) as HTMLStyleElement | null)?.sheet;
+      if (!sheet) return () => {};
+      sheet.disabled = true;
+      return () => {
+        sheet.disabled = false;
+      };
     },
 
     view() {

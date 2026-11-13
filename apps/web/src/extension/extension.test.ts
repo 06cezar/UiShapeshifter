@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from "vitest";
 import type { ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
+import { needsFromStorage } from "./base-needs";
 import { parseServerMessage, parseToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { createRunRouter } from "./run-router";
@@ -164,6 +165,57 @@ describe("rutarea runId → tab", () => {
     expect(router.targetsFor(started("r1"), open)).toEqual(["tab-a"]);
     router.forget("tab-a");
     expect(router.targetsFor(toolCall("r1"), new Set())).toEqual([]);
+  });
+});
+
+describe("rulările pornite de server (adaptare, test inițial)", () => {
+  const started = (runId: string, origin: "user" | "adaptation" | "onboarding") =>
+    ({ type: "run_started", runId, goal: "g", origin }) as const;
+  const toolCall = (runId: string) =>
+    ({ type: "tool_call", runId, callId: "c", name: "say", args: { message: "x" } }) as unknown as ServerMessage;
+
+  test("uneltele lor merg la tab-ul activ, chiar dacă alt tab a cerut ceva înainte", () => {
+    const router = createRunRouter<string>({ activePort: () => "tab-b" });
+    const open = new Set(["tab-a", "tab-b"]);
+    router.requestedBy("tab-a");
+    router.targetsFor(started("r-user", "user"), open);
+    router.targetsFor(started("r-adapt", "adaptation"), open);
+    expect(router.targetsFor(toolCall("r-adapt"), open)).toEqual(["tab-b"]);
+  });
+
+  test("fără tab activ cunoscut, merg la ultimul tab care a cerut ceva", () => {
+    const router = createRunRouter<string>();
+    const open = new Set(["tab-a", "tab-b"]);
+    router.requestedBy("tab-a");
+    router.targetsFor(started("r-user", "user"), open);
+    router.targetsFor(started("r-adapt", "adaptation"), open);
+    expect(router.targetsFor(toolCall("r-adapt"), open)).toEqual(["tab-a"]);
+  });
+
+  test("fără nicio cerere și fără tab activ, nicăieri", () => {
+    const open = new Set(["tab-a", "tab-b"]);
+    const withActive = createRunRouter<string>({ activePort: () => "tab-b" });
+    withActive.targetsFor(started("r-onb", "onboarding"), open);
+    expect(withActive.targetsFor(toolCall("r-onb"), open)).toEqual(["tab-b"]);
+    const noActive = createRunRouter<string>();
+    noActive.targetsFor(started("r-onb", "onboarding"), open);
+    expect(noActive.targetsFor(toolCall("r-onb"), open)).toEqual([]);
+  });
+
+  test("o rulare necunoscută (service worker repornit) nu se pierde: tab-ul activ", () => {
+    const router = createRunRouter<string>({ activePort: () => "tab-a" });
+    expect(router.targetsFor(toolCall("r-necunoscut"), new Set(["tab-a"]))).toEqual(["tab-a"]);
+  });
+});
+
+describe("nevoile pentru preferințele de bază", () => {
+  test("din ce a salvat testul inițial păstrăm doar câmpurile cunoscute; lipsă sau stricat = implicite", () => {
+    expect(needsFromStorage({ skipped: false, needs: { minFontPx: 20, contrast: "high", minTargetPx: "x" } })).toEqual({
+      minFontPx: 20,
+      contrast: "high",
+    });
+    expect(needsFromStorage(undefined)).toEqual({});
+    expect(needsFromStorage({ needs: "stricat" })).toEqual({});
   });
 });
 

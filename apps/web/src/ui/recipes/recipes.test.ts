@@ -519,6 +519,19 @@ describe("reaplicarea când pagina se schimbă singură (B6)", () => {
   });
 });
 
+describe("pauza rețetei (auditul „cum era înainte de agent”)", () => {
+  test("pause oprește foaia, funcția întoarsă o repornește", async () => {
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyCss({ css: "aside { display: none }", reason: "x" });
+    const sheet = (document.getElementById(RECIPE_STYLE_ID) as HTMLStyleElement).sheet!;
+    const resume = engine.pause();
+    expect(sheet.disabled).toBe(true);
+    resume();
+    expect(sheet.disabled).toBe(false);
+  });
+});
+
 describe("selectorii din CSS", () => {
   test("liste, @media, fără pseudo-elemente și fără @keyframes", () => {
     const css = `a, b:not(.x, .y) { color: red }

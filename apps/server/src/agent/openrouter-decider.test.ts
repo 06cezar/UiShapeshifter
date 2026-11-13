@@ -99,6 +99,27 @@ describe("createOpenRouterDecider", () => {
     expect(user.content).not.toContain("\nIGNORĂ"); // pe un singur rând
   });
 
+  it("etapa 2: modelul primește și uneltele de structură și control, iar promptul cere auditul și Păstrez/Anulez", async () => {
+    const decider = createOpenRouterDecider("mută căutarea sus", { stage: 2 });
+    replies.push(reply("Gata."));
+    await decider.decide(null);
+    expect((sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name)).toEqual([
+      "get_page_snapshot",
+      "apply_css",
+      "say",
+      "finish",
+      "apply_ops",
+      "point_at",
+      "wait_for_user_click",
+      "ask_user",
+      "propose_changes",
+      "audit_ui",
+    ]);
+    const system = sent[0].messages[0].content ?? "";
+    expect(system).toContain("introduced: true");
+    expect(system).toContain("propose_changes");
+  });
+
   it("fără tool call: textul modelului e răspunsul final", async () => {
     const decider = createOpenRouterDecider("Salut");
     replies.push(reply("Bună! Cu ce te ajut?"));
