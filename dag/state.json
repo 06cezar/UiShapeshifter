@@ -1,8 +1,8 @@
 {
   "comms": {},
-  "last_comms_sha": "431b9e4ad09937f3850388da24875d4ba8c76756",
-  "last_run": "2026-11-13T14:06:56Z",
-  "last_sha": "54d2bb635de18a78b229d8a63fca35f24f0af25d",
+  "last_comms_sha": "34005dc57b88108f9e0645527b4fa4229e0f4086",
+  "last_run": "2026-11-13T14:12:47Z",
+  "last_sha": "3b79bb796e0a35b76353230a261fbcc53f7c3fc1",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -46,8 +46,8 @@
     },
     "8": {
       "head": "e1-profil",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-13T14:12:38Z",
+      "state": "MERGED"
     },
     "9": {
       "head": "c3-onboarding",
@@ -73,7 +73,7 @@
     "D4": "ready",
     "D5": "wait",
     "D6": "wait",
-    "E1": "progress",
+    "E1": "done",
     "E2": "wait",
     "E3": "wait",
     "E4": "wait"
