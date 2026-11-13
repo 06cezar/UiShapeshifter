@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import cors from "cors";
 import express from "express";
 import { SERVER_PORT, WEB_PORT } from "@uishapeshifter/contracts";
+import { createProfileRouter, createProfileStore } from "./profile";
 
 // .env e opțional: fără el, serverul pornește (agentul fals nu are nevoie de cheie).
 try {
@@ -22,6 +23,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Rutele din specs/06 se adaugă aici de proprietarii lor (A: runs, config; E: profile).
+app.use("/api/profile", createProfileRouter(createProfileStore()));
 
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "Ruta nu există" });
