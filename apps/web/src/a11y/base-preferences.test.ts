@@ -100,6 +100,30 @@ describe("rândurile și marginile", () => {
   });
 });
 
+describe("ce găsise E pe site-ul de test", () => {
+  it("textul alb pe un banner cu gradient nu e „reparat” după fundalul de rezervă", () => {
+    page(`<div style="background-color: #ffffff; background-image: linear-gradient(90deg, #0b3d91, #1e88e5)">
+      <p id="banner" style="color: #ffffff; font-size: 20px; line-height: 1.6">Doar azi: -15%</p></div>`);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(el("banner").style.getPropertyValue("color")).toBe("#ffffff");
+  });
+
+  it("conținutul unui <details> deschis mai târziu primește și el limitele", async () => {
+    page(`<details id="meniu"><summary>Mai multe</summary>
+      <a id="plata" href="/plata" style="font-size: 10px">Plătește factura</a></details>`);
+    const plata = el("plata");
+    plata.checkVisibility = () => false; // închis: browserul nu-l desenează
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("plata")).toBe(10);
+
+    plata.checkVisibility = () => true;
+    (el("meniu") as HTMLDetailsElement).open = true;
+    await Promise.resolve(); // observatorul
+    await Promise.resolve(); // ajustarea
+    expect(fontOf("plata")).toBe(20);
+  });
+});
+
 describe("peste CSS-ul agentului", () => {
   it("o regulă !important a rețetei, cu selector specific, nu coboară textul sub minim", () => {
     const recipe = document.createElement("style");

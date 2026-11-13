@@ -10,7 +10,7 @@
 
 import { HARD_LIMITS, type AuditThresholds, type UserNeeds } from "@uishapeshifter/contracts";
 import { adjustToContrast, composite, contrastRatio, parseColor, requiredTextContrast, toHex } from "./contrast";
-import { effectiveBackground, factsOf } from "./dom";
+import { effectiveBackground, factsOf, hasImageBackground } from "./dom";
 import { hasOwnText, isInteractive, isLinkInSentence, isVisible, SKIPPED_TAGS } from "./page-audit";
 import { thresholdsFor } from "./thresholds";
 
@@ -18,6 +18,8 @@ import { thresholdsFor } from "./thresholds";
 export const BASE_STYLE_ID = "uishapeshifter-base";
 /** Câte elemente verificăm cel mult la o trecere; o pagină mai mare primește restul pe măsură ce se schimbă. */
 export const MAX_BASE_ELEMENTS = 20_000;
+/** Atributele care arată conținut ascuns până atunci. Nu `style`/`class`: le scriem chiar noi și s-ar schimba în buclă. */
+const REVEALING_ATTRIBUTES = ["open", "hidden"];
 /** `line-height: normal` în browsere e ~1.2 din mărimea fontului (la fel ca în dom.ts). */
 const NORMAL_LINE_HEIGHT = 1.2;
 
@@ -137,7 +139,8 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
       }
     }
     const color = parseColor(style.color);
-    if (!color) return;
+    // Pe gradient sau imagine nu știm fundalul: o culoare „reparată” după rezerva albă ar strica textul (alb pe albastru).
+    if (!color || hasImageBackground(element)) return;
     const background = effectiveBackground(element);
     const text = toHex(composite(color, background));
     const required = requiredTextContrast(fontPx, parseInt(style.fontWeight, 10) || undefined, t);
@@ -193,9 +196,11 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
   // Ce adaugă site-ul după încărcare (liste care se încarcă pe parcurs, aplicații de o pagină) primește aceleași limite.
   // Le strângem și le ajustăm o dată, după ce site-ul a terminat schimbarea curentă.
   let pending: Element[] = [];
+  // Și ce devine vizibil fără elemente noi: un <details> deschis („Plătește factura” din meniul „⋯”), un `hidden` scos.
   const observer = new MutationObserver((records) => {
     const first = pending.length === 0;
     for (const record of records) {
+      if (record.type === "attributes" && record.target instanceof Element) pending.push(record.target);
       for (const node of record.addedNodes) if (node instanceof Element) pending.push(node);
     }
     if (first && pending.length > 0) {
@@ -208,7 +213,12 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
   });
 
   applyAll();
-  observer.observe(doc.body ?? doc.documentElement, { childList: true, subtree: true });
+  observer.observe(doc.body ?? doc.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: REVEALING_ATTRIBUTES,
+  });
 
   return {
     update(next) {
