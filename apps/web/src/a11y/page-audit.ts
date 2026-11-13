@@ -44,7 +44,7 @@ export const MAX_SCANNED_ELEMENTS = 5000;
 const LABEL_MAX_CHARS = 80;
 
 /** Ce se poate apăsa: ținta de atingere și suprapunerile se judecă doar pe acestea. */
-const INTERACTIVE_SELECTOR = [
+export const INTERACTIVE_SELECTOR = [
   "a[href]",
   "button",
   "input:not([type=hidden])",
@@ -59,7 +59,17 @@ const INTERACTIVE_SELECTOR = [
   '[role="switch"]',
 ].join(",");
 /** Etichete al căror conținut nu se vede sau nu e al paginii. */
-const SKIPPED_TAGS = new Set(["script", "style", "noscript", "template", "iframe", "svg", "canvas", "video", "head"]);
+export const SKIPPED_TAGS = new Set([
+  "script",
+  "style",
+  "noscript",
+  "template",
+  "iframe",
+  "svg",
+  "canvas",
+  "video",
+  "head",
+]);
 const IMPLICIT_ROLES: Record<string, string> = {
   a: "link",
   button: "button",
@@ -164,18 +174,18 @@ function pageFactsOf(element: HTMLElement): DomFacts {
   return facts;
 }
 
-function isInteractive(element: Element): boolean {
+export function isInteractive(element: Element): boolean {
   return element.matches(INTERACTIVE_SELECTOR);
 }
 
-function hasOwnText(element: Element): boolean {
+export function hasOwnText(element: Element): boolean {
   for (const node of element.childNodes) {
     if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) return true;
   }
   return false;
 }
 
-function isVisible(element: Element, rect: DOMRect): boolean {
+export function isVisible(element: Element, rect: DOMRect): boolean {
   if (rect.width <= 0 || rect.height <= 0) return false;
   const style = getComputedStyle(element);
   // `opacity` gol înseamnă valoarea implicită, 1.
