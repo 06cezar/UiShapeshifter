@@ -4,12 +4,20 @@
 
 import type { AuditReport } from "./audit";
 import type { ComponentSpec } from "./components";
+import type { DomOp, HtmlDropped, SkippedOp } from "./dom-ops";
+import type { PageSnapshot } from "./page-snapshot";
 import type { MascotState } from "./protocol";
 import type { ProfileFact, UserProfile } from "./profile";
+import type { CssDropped } from "./site-recipe";
 import type { UISnapshot } from "./snapshot";
 import type { JsonPatchOp, LayoutTemplate } from "./ui-config";
 
+// Etapa 1 (site-uri reale) folosește doar uneltele din `SITE_TOOL_NAMES`. Restul sunt ale aplicației vechi
+// și rămân cât timp o folosește cineva; vor fi înlocuite de D8 (DomOp, point_at pe elemente de pagină, audit).
 export type ToolName =
+  | "get_page_snapshot"
+  | "apply_css"
+  | "apply_ops"
   | "get_ui_snapshot"
   | "patch_config"
   | "apply_template"
@@ -26,7 +34,13 @@ export type ToolName =
   | "update_profile"
   | "finish";
 
+/** Uneltele etapei 1, în ordinea în care le folosește de obicei agentul. */
+export const SITE_TOOL_NAMES = ["get_page_snapshot", "apply_css", "say", "finish"] as const satisfies readonly ToolName[];
+
 export const TOOL_RUNS_ON: Record<ToolName, "web" | "server"> = {
+  get_page_snapshot: "web",
+  apply_css: "web",
+  apply_ops: "web",
   get_ui_snapshot: "web",
   patch_config: "web",
   apply_template: "web",
@@ -47,6 +61,15 @@ export const TOOL_RUNS_ON: Record<ToolName, "web" | "server"> = {
 // ---------- argumente ----------
 
 export interface ToolArgs {
+  /** `regionId`: detalii pentru o zonă (id din `PageSnapshot.regions`); fără, rezumatul întregii pagini. */
+  get_page_snapshot: { regionId?: string };
+  /**
+   * `append` (implicit) adaugă regulile la foaia rețetei; `replace` o înlocuiește cu totul (pentru reparații).
+   * `reason`: o propoziție, intră în jurnal și în istoricul reviziilor.
+   */
+  apply_css: { css: string; mode?: "append" | "replace"; reason: string };
+  /** Schimbări de structură (etapa 2+); cel mult `DOM_OP_LIMITS.maxOpsPerCall` pe apel. Se aplică în ordine. */
+  apply_ops: { ops: DomOp[]; reason: string };
   get_ui_snapshot: { moduleId?: string };
   patch_config: { ops: JsonPatchOp[]; reason: string };
   apply_template: { template: LayoutTemplate; reason: string };
@@ -57,13 +80,19 @@ export interface ToolArgs {
   };
   remove_component: { componentId: string; reason: string };
   navigate: { moduleId: string };
+  /** Pe site-uri: `elementId` e id-ul din registru (`PageElement.id`, ex. „e.17”). */
   point_at: { elementId: string; message: string };
   wait_for_user_click: { elementId: string; timeoutMs?: number };
   ask_user: { question: string; options?: string[] };
+  /**
+   * Pe site-uri: schimbările rulării sunt deja aplicate (apply_css / apply_ops); `propose_changes` le arată ca
+   * previzualizare cu Păstrez / Anulez. `ops` și `component` se omit. „Anulez” readuce rețeta la revizia
+   * de dinaintea primei schimbări a rulării (`ToolData.propose_changes.revision` = revizia rămasă).
+   */
   propose_changes: {
     title: string;           // ex. „Butoane mai mari”
     summary: string;         // ce se schimbă și de ce, pe înțeles
-    ops?: JsonPatchOp[];
+    ops?: JsonPatchOp[];     // doar aplicația veche
     component?: ToolArgs["generate_component"];
     risk: "low" | "high";
   };
@@ -93,7 +122,31 @@ export interface ToolError {
 
 export type ToolResult<T = unknown> = { ok: true; data: T } | { ok: false; error: ToolError };
 
+export interface ApplyCssData {
+  /** Revizia rețetei după aplicare; neschimbată dacă nu a rămas nimic de aplicat. */
+  revision: number;
+  /** Mărimea foii de stil a rețetei după aplicare. */
+  cssBytes: number;
+  /** Ce a scos validarea din ce a trimis agentul; restul s-a aplicat. */
+  dropped: CssDropped[];
+  /** Selectori din ce a aplicat agentul care nu se potrivesc cu niciun element acum (cel mult 10). */
+  unmatchedSelectors: string[];
+}
+
+export interface ApplyOpsData {
+  revision: number;
+  /** Câte operații s-au aplicat. */
+  applied: number;
+  /** Ce n-a putut fi aplicat, cu motiv; agentul le repară sau le spune omului. */
+  skipped: SkippedOp[];
+  /** Ce a scos validarea din HTML-ul trimis (restul s-a aplicat). */
+  htmlDropped: HtmlDropped[];
+}
+
 export interface ToolData {
+  get_page_snapshot: PageSnapshot;
+  apply_css: ApplyCssData;
+  apply_ops: ApplyOpsData;
   get_ui_snapshot: UISnapshot;
   patch_config: { revision: number; applied: number };
   apply_template: { revision: number };
@@ -142,6 +195,69 @@ const COMPONENT_SPEC = {
   required: ["id", "type"],
 } as const;
 
+/** Ce primește modelul în etapa 1: doar uneltele care ating un site real. Definițiile lui `say` și `finish` sunt aceleași. */
+export const SITE_TOOL_DEFINITIONS = [
+  {
+    type: "function",
+    function: {
+      name: "get_page_snapshot",
+      description:
+        "Rezumatul paginii: zone, elemente cu id, selector, rol, text și dacă se văd, plus foaia de stil pe care ai aplicat-o deja. " +
+        "Cheamă-l înainte să schimbi ceva și după, ca să verifici că s-a schimbat ce voiai și nimic altceva.",
+      parameters: {
+        type: "object",
+        properties: { regionId: { type: "string", description: "Doar zona asta, cu mai multe detalii." } },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "apply_css",
+      description:
+        "Adaugă CSS rețetei acestui site (sau îi înlocuiește foaia). Fără JavaScript, fără url() și @import: ce nu e voie se scoate " +
+        "și vezi în `dropped`. `unmatchedSelectors` arată selectorii care nu au găsit nimic. Schimbarea rămâne salvată pe site.",
+      parameters: {
+        type: "object",
+        properties: {
+          css: { type: "string" },
+          mode: { type: "string", enum: ["append", "replace"] },
+          reason: { type: "string" },
+        },
+        required: ["css", "reason"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "say",
+      description: "Mascota spune ceva utilizatorului (fără să aștepte răspuns).",
+      parameters: {
+        type: "object",
+        properties: {
+          message: { type: "string" },
+          mascot: { type: "string", enum: ["idle", "listening", "thinking", "speaking", "pointing", "happy", "confused"] },
+        },
+        required: ["message"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "finish",
+      description: "Încheie rularea cu un rezumat pentru utilizator.",
+      parameters: {
+        type: "object",
+        properties: { summary: { type: "string" }, success: { type: "boolean" } },
+        required: ["summary", "success"],
+      },
+    },
+  },
+] as const;
+
+/** @deprecated Uneltele aplicației vechi. Pentru site-uri reale folosește `SITE_TOOL_DEFINITIONS`. */
 export const TOOL_DEFINITIONS = [
   {
     type: "function",
