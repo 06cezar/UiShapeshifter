@@ -1,44 +1,43 @@
-// Ce întoarce validarea: totul sau nimic. Dacă ceva e respins, nimic nu se aplică, iar agentul primește lista
-// cu motivele (în tool_result) ca să-și repare singur CSS-ul sau HTML-ul. Nu „curățăm” pe tăcute: agentul trebuie
-// să afle ce a greșit, altfel crede că pagina arată cum a cerut.
+// Ce întoarce validarea: ce a rămas de aplicat și ce s-a scos, cu motivul. Nu aruncă niciodată: agentul primește
+// lista `dropped` în tool_result și își repară singur CSS-ul sau HTML-ul (specs/02, „Validarea CSS”).
 
-/** De ce a fost respins ceva. Codul e pentru teste și jurnal; mesajul, pentru model. */
-export interface Rejection {
-  rule: RejectionRule;
-  message: string;
-  /** Bucata care a declanșat refuzul, scurtată, ca agentul s-o găsească. */
-  excerpt?: string;
+import type { CssDropped } from "@uishapeshifter/contracts";
+
+export interface CssValidation {
+  /** Regulile care au trecut, fără comentarii. Gol dacă nu a rămas nimic. */
+  css: string;
+  dropped: CssDropped[];
 }
 
-export type RejectionRule =
-  // CSS
-  | "css-too-long"
-  | "css-url"
-  | "css-import"
-  | "css-expression"
-  | "css-script-url"
-  | "css-legacy-binding"
-  | "css-our-interface"
-  | "css-unbalanced"
-  | "css-html-tag"
-  // HTML
-  | "html-too-long"
-  | "html-tag"
-  | "html-event-handler"
-  | "html-attribute"
-  | "html-script-url"
-  | "html-our-interface"
-  | "html-style";
+/**
+ * De ce a scos validarea o parte din HTML. Local până vin tipurile pentru insertHtml în D8 (contracte);
+ * atunci se mută în `packages/contracts`, cu aceleași valori.
+ */
+export type HtmlDropReason =
+  | "tag" // etichetă din afara listei permise (script, iframe, img, form…); se scoate cu tot ce e în ea
+  | "event-handler" // atribut on*
+  | "attribute" // atribut din afara listei permise, sau link cu schemă nepermisă
+  | "script-url" // javascript:, vbscript:, data: într-un link
+  | "targets-our-ui" // imită interfața noastră (data-agent-id, rădăcina shadow)
+  | "style"; // style="…" cu CSS care n-ar trece de validateCss
 
-export type CssValidation = { ok: true; css: string } | { ok: false; rejected: Rejection[] };
+export interface HtmlDropped {
+  /** Începutul elementului scos (cel mult SNIPPET_CHARS caractere), ca modelul să știe care. */
+  snippet: string;
+  reason: HtmlDropReason;
+  message: string;
+}
 
-/** `html` e forma normalizată de parser: pe ea s-a făcut verificarea, deci pe ea o inserezi, nu textul primit. */
-export type HtmlValidation = { ok: true; html: string } | { ok: false; rejected: Rejection[] };
+export interface HtmlValidation {
+  /** Forma normalizată de parser: pe ea s-a făcut verificarea, deci pe ea o inserezi, nu textul primit. */
+  html: string;
+  dropped: HtmlDropped[];
+}
 
-/** Cât din bucata problematică arătăm agentului. */
-const EXCERPT_CHARS = 60;
+/** Cât din bucata scoasă arătăm agentului (CssDropped.snippet: „cel mult 120 de caractere”). */
+export const SNIPPET_CHARS = 120;
 
-export function excerptOf(text: string): string {
+export function snippetOf(text: string): string {
   const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > EXCERPT_CHARS ? `${flat.slice(0, EXCERPT_CHARS)}…` : flat;
+  return flat.length > SNIPPET_CHARS ? `${flat.slice(0, SNIPPET_CHARS - 1)}…` : flat;
 }
