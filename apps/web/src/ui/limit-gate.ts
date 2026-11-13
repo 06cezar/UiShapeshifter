@@ -37,7 +37,11 @@ export function applyPatchWithLimits(
   return violations.length > 0 ? { ok: false, violations } : { ok: true, config: candidate };
 }
 
-export function checkLimits(config: UIConfig, thresholds: AuditThresholds, contrastRatio: ContrastFn): ConfigViolation[] {
+export function checkLimits(
+  config: UIConfig,
+  thresholds: AuditThresholds,
+  contrastRatio: ContrastFn,
+): ConfigViolation[] {
   return [
     ...checkFontSize(config, thresholds),
     ...checkLineHeight(config, thresholds),

@@ -19,7 +19,11 @@ import type { ConfigViolation } from "./config-violation";
 const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 // Enumerările ca Record, ca TypeScript să ne spună dacă în contracte apare o valoare nouă.
-const TEMPLATES: Record<LayoutTemplate, true> = { "sidebar-feed": true, "bottom-nav-stories": true, "simple-tiles": true };
+const TEMPLATES: Record<LayoutTemplate, true> = {
+  "sidebar-feed": true,
+  "bottom-nav-stories": true,
+  "simple-tiles": true,
+};
 const NAV_POSITIONS: Record<NavPosition, true> = { left: true, top: true, bottom: true };
 const MODULE_TYPES: Record<ModuleType, true> = {
   messages: true,
@@ -72,7 +76,8 @@ const isPlainObject: Check = (v, path, out) => {
 function oneOf(allowed: Record<string, true>): Check {
   const names = Object.keys(allowed);
   return (v, path, out) => {
-    if (typeof v !== "string" || !Object.hasOwn(allowed, v)) out.push(wrongType(path, v, `una din: ${names.join(", ")}`));
+    if (typeof v !== "string" || !Object.hasOwn(allowed, v))
+      out.push(wrongType(path, v, `una din: ${names.join(", ")}`));
   };
 }
 
@@ -89,7 +94,8 @@ function objectOf(fields: Record<string, Field>): Check {
     for (const [key, field] of Object.entries(fields)) {
       const fieldPath = `${path}/${key}`;
       if (!Object.hasOwn(v, key)) {
-        if (!field.optional) out.push({ rule: "invalid-type", path: fieldPath, received: undefined, message: `Lipsește ${fieldPath}.` });
+        if (!field.optional)
+          out.push({ rule: "invalid-type", path: fieldPath, received: undefined, message: `Lipsește ${fieldPath}.` });
         continue;
       }
       field.check(v[key], fieldPath, out);

@@ -126,7 +126,10 @@ describe("checkLimits", () => {
   });
 
   it("onPrimary pe primary sub prag întoarce contrast", () => {
-    const v = violationsOf([replace("/theme/palette/primary", "#777777"), replace("/theme/palette/onPrimary", "#FFFFFF")]);
+    const v = violationsOf([
+      replace("/theme/palette/primary", "#777777"),
+      replace("/theme/palette/onPrimary", "#FFFFFF"),
+    ]);
     expect(v).toMatchObject([{ rule: "contrast", path: "/theme/palette/onPrimary", received: 4.47, limit: 4.5 }]);
   });
 

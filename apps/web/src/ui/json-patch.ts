@@ -24,7 +24,12 @@ type Container = Record<string, unknown> | unknown[];
  */
 export function applyJsonPatch(config: UIConfig, ops: readonly JsonPatchOp[]): GateResult<unknown> {
   if (!Array.isArray(ops)) {
-    return fail({ rule: "invalid-op", path: "", received: ops, message: "Patch-ul trebuie să fie o listă de operații." });
+    return fail({
+      rule: "invalid-op",
+      path: "",
+      received: ops,
+      message: "Patch-ul trebuie să fie o listă de operații.",
+    });
   }
   const draft: unknown = structuredClone(config);
   for (const op of ops) {
@@ -62,7 +67,8 @@ function applyOne(document: unknown, op: unknown): ConfigViolation | null {
   let parent: unknown = document;
   for (let i = 0; i < segments.length - 1; i++) {
     const key = resolveSegment(parent, segments[i], segments.slice(0, i));
-    if (key === null || !hasChild(parent, key)) return invalidPath(path, `Nu există ${pointerOf(segments.slice(0, i + 1))}.`);
+    if (key === null || !hasChild(parent, key))
+      return invalidPath(path, `Nu există ${pointerOf(segments.slice(0, i + 1))}.`);
     parent = childOf(parent as Container, key);
   }
   if (!isContainer(parent)) return invalidPath(path, `${pointerOf(segments.slice(0, -1))} nu are câmpuri.`);
@@ -71,7 +77,12 @@ function applyOne(document: unknown, op: unknown): ConfigViolation | null {
   const parentSegments = segments.slice(0, -1);
   const cloned = op.op === "remove" ? { ok: true as const, value: undefined } : cloneValue(op.value);
   if (!cloned.ok) {
-    return { rule: "invalid-type", path, received: op.value, message: "Valoarea nu e JSON (are funcții sau referințe)." };
+    return {
+      rule: "invalid-type",
+      path,
+      received: op.value,
+      message: "Valoarea nu e JSON (are funcții sau referințe).",
+    };
   }
   const value = cloned.value;
 
@@ -140,7 +151,9 @@ function cloneValue(value: unknown): { ok: true; value: unknown } | { ok: false 
 }
 
 function pointerOf(segments: string[]): string {
-  return segments.length === 0 ? "rădăcina" : "/" + segments.map((s) => s.replace(/~/g, "~0").replace(/\//g, "~1")).join("/");
+  return segments.length === 0
+    ? "rădăcina"
+    : "/" + segments.map((s) => s.replace(/~/g, "~0").replace(/\//g, "~1")).join("/");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

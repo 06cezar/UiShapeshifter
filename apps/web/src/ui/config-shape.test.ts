@@ -86,7 +86,9 @@ describe("validateConfigShape", () => {
   });
 
   it("id-urile de modul sunt unice", () => {
-    expect(violationsAt(withChange((c) => (c.modules[2].id = "messages")))).toEqual([["duplicate-id", "/modules/2/id"]]);
+    expect(violationsAt(withChange((c) => (c.modules[2].id = "messages")))).toEqual([
+      ["duplicate-id", "/modules/2/id"],
+    ]);
   });
 
   it("nu verifică încă conținutul din components (B3)", () => {
