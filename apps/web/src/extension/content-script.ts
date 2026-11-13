@@ -12,6 +12,9 @@ import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
 
+/** Pus de build.mjs: true în build-ul de dezvoltare, false cu --prod. */
+declare const __UIS_DEV__: boolean;
+
 const host = normalizeHost(location.hostname);
 /** Din chat se vede mereu una dintre ele: butonul (chat închis) sau panoul (chat deschis). */
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
@@ -31,6 +34,9 @@ function isOurUiVisible(): boolean {
 }
 
 const recipes = createRecipeEngine({ host, storage: chrome.storage.local, isOurUiVisible });
+// Doar în build-ul de dezvoltare: motorul în consolă, pentru probe manuale (cererea lui B). În DevTools alege contextul
+// „UI Shapeshifter” din lista de sus a consolei, apoi: uiRecipes.view(), uiRecipes.applyCss({ css, reason }).
+if (__UIS_DEV__) (globalThis as { uiRecipes?: typeof recipes }).uiRecipes = recipes;
 void recipes.load();
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 chrome.storage.onChanged.addListener((changes, area) => {
