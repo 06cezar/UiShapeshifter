@@ -7,6 +7,13 @@ const HUMAN_ID = /^[a-zA-Z][a-zA-Z0-9_-]{0,40}$/;
 const LONG_DIGITS = /\d{4,}/;
 /** Ex. „:r1a:”, „ember123”, „a8f3k2”: amestec des de litere și cifre = generat. */
 const RANDOMISH = /([a-z]\d){3,}|(\d[a-z]){3,}/i;
+/** Prefixele puse de framework-uri, numerotate la fiecare randare: „ember123”, „react-select-2-input”. */
+const FRAMEWORK_PREFIX = /^(ember\d|react-|radix-|headlessui-)/i;
+/** Segmente doar din cifre, ca la Instagram („mount_0_0_R4”): indici de montare, nu nume. */
+const NUMERIC_SEGMENTS = /(^|_)\d+_\d+(_|$)/;
+/** Sufixul lui useId din React pus după „_”: „x_1_R3k”. Cere o cifră, ca „nav_Right” să rămână. */
+const REACT_USE_ID = /_R[a-z]*\d[0-9a-z]*_?$/;
+// „:r1:”, „«r1»”, „__next” cad deja la HUMAN_ID (nu încep cu o literă).
 
 const STABLE_ATTRIBUTES = ["aria-label", "data-testid", "data-test-id", "name", "title"] as const;
 /** Peste atâtea caractere, o valoare de atribut nu mai e un nume, e conținut (și s-ar schimba). */
@@ -17,7 +24,14 @@ function cssString(value: string): string {
 }
 
 export function looksHumanId(id: string): boolean {
-  return HUMAN_ID.test(id) && !LONG_DIGITS.test(id) && !RANDOMISH.test(id);
+  return (
+    HUMAN_ID.test(id) &&
+    !LONG_DIGITS.test(id) &&
+    !RANDOMISH.test(id) &&
+    !FRAMEWORK_PREFIX.test(id) &&
+    !NUMERIC_SEGMENTS.test(id) &&
+    !REACT_USE_ID.test(id)
+  );
 }
 
 function isUnique(doc: Document, selector: string, element: Element): boolean {
