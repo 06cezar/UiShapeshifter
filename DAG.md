@@ -3,13 +3,13 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 2/21 · **În lucru:** 6 · **Poate începe:** 0 · **Așteaptă:** 13 · **Blocat:** 0
+**Gata:** 3/21 · **În lucru:** 5 · **Poate începe:** 0 · **Așteaptă:** 13 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
   subgraph t_owner_A["A"]
-    t_A1["A1 · Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT_FAKE=1) și jurnalul rulărilor<br/>🔨 în lucru"]
-    t_A2["A2 · Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get_ui_snapshot, patch_config, point_at<br/>🔨 în lucru · încă așteaptă A1, B2"]
+    t_A1["A1 · Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT_FAKE=1) și jurnalul rulărilor<br/>✅ gata"]
+    t_A2["A2 · Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get_ui_snapshot, patch_config, point_at<br/>🔨 în lucru · încă așteaptă B2"]
     t_A3["A3 · Toate uneltele + promptul de sistem + profilul în context (specs/05)<br/>🔨 în lucru · încă așteaptă A2, E1"]
     t_A4["A4 · Tratarea eșecurilor - LIMIT_VIOLATION, NOT_VISIBLE, TIMEOUT, reîncercări, maxSteps, erori OpenRouter<br/>⏳ așteaptă"]
   end
@@ -78,8 +78,8 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_C1 done
-  class t_A1,t_A2,t_A3,t_B1,t_C3,t_E1 progress
+  class t_D1,t_A1,t_C1 done
+  class t_A2,t_A3,t_B1,t_C3,t_E1 progress
   class t_D2,t_D3,t_D4,t_D5,t_D6,t_A4,t_B2,t_B3,t_B4,t_C2,t_E2,t_E3,t_E4 wait
 ```
 
@@ -93,8 +93,7 @@ _nimic_
 
 ## În lucru
 
-- **A1** (A) Serverul WebSocket + HTTP după specs/06, cu agent fals (AGENT\_FAKE=1) și jurnalul rulărilor: PR #6 deschis _(vin 18:00. Gata = hello/user\_message/tool\_call/tool\_result/step/run\_finished merg cu agentul fals; GET /api/runs/:id; GET/PUT /api/config/:userId (data/configs).)_
-- **A2** (A) Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get\_ui\_snapshot, patch\_config, point\_at: branch `a2-bucla` are commit-uri; încă așteaptă A1, B2 _(vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point\_at, cu pașii în jurnal.)_
+- **A2** (A) Bucla agentului cu OpenRouter (tool calling) cap-coadă cu 3 unelte - get\_ui\_snapshot, patch\_config, point\_at: branch `a2-bucla` are commit-uri; încă așteaptă B2 _(vin 22:00. Gata = „fă textul mai mare” face snapshot → patch → point\_at, cu pașii în jurnal.)_
 - **A3** (A) Toate uneltele + promptul de sistem + profilul în context (specs/05): branch `a3-unelte` are commit-uri; încă așteaptă A2, E1 _(sâm 02:00. Gata = ask\_user, propose\_changes, audit\_ui, generate\_component, navigate, wait\_for\_user\_click, say, update\_profile, finish.)_
 - **B1** (B) Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane: PR #7 deschis _(vin 19:00. Gata = applyPatch refuză baseFontPx 14 cu LIMIT\_VIOLATION; cele 3 șabloane se randează din config.)_
 - **C3** (C) Testul inițial - lizibilitate, contrast, atingere, ce folosești, structuri, meniu, „Omite” pe fiecare ecran (specs/10): PR #9 deschis; încă așteaptă B1, E1 _(sâm 03:00. Gata = demo-fresh trece testul, profilul se salvează, pornește rularea cu origin onboarding.)_
@@ -103,8 +102,8 @@ _nimic_
 ## Așteaptă
 
 - **D2** (D) Mascota SVG + Framer Motion, cele 7 stări, pointAt cu lăbuța (specs/11, specs/04): așteaptă B2 _(vin 21:00. Gata = mascot.pointAt('nav.messages') arată elementul și se recalculează la scroll/resize.)_
-- **D3** (D) Chat text + voce (Web Speech ro-RO) + bula mascotei, conectate la WebSocket: așteaptă A1, D2 _(vin 23:00. Gata = mesaj scris sau vorbit ajunge la server; agent\_message apare în bulă și în chat.)_
-- **D4** (D) Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas: așteaptă A1, B1 _(sâm 03:00. Gata = o rulare se vede pas cu pas live și se poate relua după terminare.)_
+- **D3** (D) Chat text + voce (Web Speech ro-RO) + bula mascotei, conectate la WebSocket: așteaptă D2 _(vin 23:00. Gata = mesaj scris sau vorbit ajunge la server; agent\_message apare în bulă și în chat.)_
+- **D4** (D) Panoul de control - pași live, scor audit, Oprește, Păstrez/Anulez, istoric, reluare pas cu pas: așteaptă B1 _(sâm 03:00. Gata = o rulare se vede pas cu pas live și se poate relua după terminare.)_
 - **D5** (D) Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție: așteaptă A4, B3, B4, C2, C3, D3, D4, E3 _(sâm 09:00 (înghețul). Gata = cei 6 pași din demo merg de 3 ori la rând.)_
 - **D6** (D) Pitch de 5 minute, descrierea de o pagină, screenshot-uri, README final, trimiterea pe Slack: așteaptă D5 _(sâm 13:30. Se marchează cu \[gata D6\] după trimitere.)_
 - **A4** (A) Tratarea eșecurilor - LIMIT\_VIOLATION, NOT\_VISIBLE, TIMEOUT, reîncercări, maxSteps, erori OpenRouter: așteaptă A3 _(sâm 05:00. Gata = fiecare eroare din specs/05 are un test sau un scenariu manual care arată reacția agentului.)_
