@@ -7,6 +7,7 @@ import type { MascotState, ToolData, ToolResult } from "@uishapeshifter/contract
 import type { OurRoot } from "../extension/shadow-root";
 import { POSE_ANIMATIONS, type MascotPose } from "./animations";
 import {
+  bubblePlacement,
   homePosition,
   needsScroll,
   pointPlacement,
@@ -14,6 +15,7 @@ import {
   type Box,
   type Placement,
   type Point,
+  type Size,
 } from "./geometry";
 import { MASCOT_CSS } from "./mascot-styles";
 import { createSpriteRenderer, type CreateRenderer, type MascotRenderer } from "./renderer-sprite";
@@ -121,18 +123,29 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   let pointed: Element | null = null;
   let destroyed = false;
   let danceTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Mărimea bulei, măsurată când apare un mesaj (o dată pe mesaj, nu la fiecare pas de mers); null = încă nemăsurată. */
+  let bubbleSize: Size | null = null;
 
   function size() {
     const rect = container.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0 ? { width: rect.width, height: rect.height } : FALLBACK_SIZE;
   }
 
+  /**
+   * Ține bula în ecran: lângă marginea de sus (ex. câmpul de căutare al unui site) trece sub mascotă, iar lângă
+   * marginea din stânga se întinde spre dreapta. Până apare primul mesaj o socotim cât mascota (câteva rânduri).
+   */
+  function placeBubble() {
+    const mascotSize = size();
+    const place = bubblePlacement({ ...position, ...mascotSize }, bubbleSize ?? mascotSize, viewport(), EDGE_MARGIN_PX);
+    container.dataset.bubbleBelow = String(place.below);
+    container.dataset.bubbleAlign = place.alignLeft ? "left" : "right";
+  }
+
   function moveTo(point: Point) {
     position = point;
     container.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y)}px)`;
-    // Lângă marginea de sus (ex. câmpul de căutare al unui site), bula de deasupra ar ieși din ecran: o punem dedesubt.
-    // Bula are câteva rânduri, deci încape în înălțimea mascotei.
-    container.dataset.bubbleBelow = String(point.y < size().height);
+    placeBubble();
   }
 
   function showPose(pose: MascotPose) {
@@ -218,6 +231,9 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     clearTimeout(bubbleTimer);
     bubble.textContent = text;
     bubble.hidden = false;
+    const rect = bubble.getBoundingClientRect();
+    bubbleSize = rect.width > 0 && rect.height > 0 ? { width: rect.width, height: rect.height } : null;
+    placeBubble();
     const words = text.trim().split(/\s+/).length;
     bubbleTimer = setTimeout(() => (bubble.hidden = true), ms ?? Math.max(BUBBLE_MIN_MS, words * BUBBLE_MS_PER_WORD));
   }

@@ -39,7 +39,8 @@ export const MASCOT_CSS = `
 .mascot[data-no-model="true"] .mascot-canvas { display: none; }
 .mascot-bubble {
   position: absolute; bottom: calc(100% - var(--uis-space)); right: 0;
-  width: max-content; max-width: calc(var(--uis-target) * 6);
+  /* pe un ecran îngust, nu mai lată decât ecranul */
+  width: max-content; max-width: min(calc(var(--uis-target) * 6), calc(100vw - var(--uis-space) * 4));
   margin: 0; padding: var(--uis-space) calc(var(--uis-space) * 1.5);
   background: var(--uis-bg); border: 2px solid var(--uis-accent);
   border-radius: calc(var(--uis-space) * 2); box-shadow: var(--uis-shadow);
@@ -47,6 +48,7 @@ export const MASCOT_CSS = `
 }
 .mascot-bubble[hidden] { display: none; }
 .mascot[data-bubble-below="true"] .mascot-bubble { bottom: auto; top: calc(100% - var(--uis-space)); }
+.mascot[data-bubble-align="left"] .mascot-bubble { right: auto; left: 0; }
 .mascot[data-state="thinking"] .mascot-canvas { animation: mascot-think 1.2s ease-in-out infinite alternate; }
 .mascot-highlight {
   position: fixed; left: 0; top: 0;
