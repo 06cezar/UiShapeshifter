@@ -73,3 +73,12 @@ au teste cu valori cunoscute (ex. `#777777` pe alb = 4.48:1).
   citește deloc. Fontul ei rămâne cum e (contrastul se repară în continuare), iar auditul o raportează ca problemă a
   site-ului. Meniurile și antetele late își primesc fontul minim ca orice text. Constantele: `CLIPPED_LABEL_MAX_CHARS`,
   `CLIPPED_LABEL_MAX_BOX_PX` în `base-preferences.ts` (#100).
+- **Verificarea de după scriere:** C4 măsoară o dată pagina după ce a scris și anulează, doar pentru elementul respectiv,
+  o mărire care strică pagina:
+  - o țintă mărită (`min-width`/`min-height`) care acoperă acum un text peste care nu era (avatarul din Teams peste nume)
+    sau care a mărit poza din ea (Instagram);
+  - un text mărit care stă în afara fluxului (`absolute`, `fixed`, `float`, până la 3 niveluri) sau a ieșit din cutia
+    lui și acoperă acum alt text (ora din bula WhatsApp peste mesaj).
+  Suprapunerea se judecă după rândurile de text, nu după cutii (un paragraf ocolește caseta plutitoare de pe Wikipedia).
+  Textul care curge normal împinge restul paginii și rămâne mărit. Ce rămâne sub limită, auditul raportează ca problemă
+  a site-ului. O margine cu aceeași culoare ca fundalul (contrast sub 1.1, pusă să nu se vadă) nu e făcută vizibilă.
