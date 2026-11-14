@@ -1,7 +1,7 @@
 // Preferințele de aspect „peste tot”: CSS-ul din profil ajunge pe orice site, validat, fără AI.
 
 import { describe, expect, test } from "vitest";
-import { applyGeneralStyle, generalCssFrom, GENERAL_STYLE_ID } from "./general-style";
+import { applyGeneralStyle, generalCssFrom, GENERAL_STYLE_ID, genericRulesOnly } from "./general-style";
 
 const pref = (css?: string) => ({
   id: "verde",
@@ -14,6 +14,12 @@ const pref = (css?: string) => ({
 });
 
 describe("preferințele de aspect peste tot", () => {
+  test("doar regulile cu selectori generici; cele cu clase, id-uri sau atribute cad", () => {
+    expect(genericRulesOnly("body { color: red } .ad { display: none } #x{a:b} a[href]{c:d} h1, p { margin: 0 }")).toBe(
+      "body { color: red }\nh1, p { margin: 0 }",
+    );
+  });
+
   test("din profilul local: doar preferințele cu CSS", () => {
     const stored = {
       userId: "u-1",

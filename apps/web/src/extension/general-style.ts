@@ -23,9 +23,24 @@ export function generalCssFrom(values: Record<string, unknown>, userIdKey: strin
     .join("\n");
 }
 
-/** Pune (sau scoate, fără CSS) foaia noastră; trece prin validarea CSS (C5) ca orice CSS pus de noi pe un site. */
+/** Un selector care merge pe orice site: fără clase, id-uri sau atribute (acelea țin de un singur site; nota lui A). */
+const SITE_SPECIFIC = /[.#[]/;
+
+/** Păstrează doar regulile cu selectori generici (html, body, a, button, p, h1–h6…). */
+export function genericRulesOnly(css: string): string {
+  const rules = css.match(/[^{}]+\{[^{}]*\}/g) ?? [];
+  return rules
+    .filter((rule) => !SITE_SPECIFIC.test(rule.slice(0, rule.indexOf("{"))))
+    .map((rule) => rule.trim())
+    .join("\n");
+}
+
+/**
+ * Pune (sau scoate, fără CSS) foaia noastră; trece prin validarea CSS (C5) ca orice CSS pus de noi pe un site.
+ * Stă prima în <head>: rețeta site-ului (pusă după) și fontul minim (C4, inline) o bat la egalitate (nota lui A).
+ */
 export function applyGeneralStyle(css: string, doc: Document = document): void {
-  const safe = css ? validateCss(css).css : "";
+  const safe = css ? validateCss(genericRulesOnly(css)).css : "";
   const existing = doc.getElementById(GENERAL_STYLE_ID);
   if (!safe) {
     existing?.remove();
@@ -35,5 +50,5 @@ export function applyGeneralStyle(css: string, doc: Document = document): void {
   const sheet = existing ?? doc.createElement("style");
   sheet.id = GENERAL_STYLE_ID;
   sheet.textContent = safe;
-  if (!existing) (doc.head ?? doc.documentElement).append(sheet);
+  if (!existing) (doc.head ?? doc.documentElement).prepend(sheet);
 }

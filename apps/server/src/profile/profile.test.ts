@@ -376,6 +376,7 @@ describe("preferința de aspect peste tot (css)", () => {
     assert.ok(ok.ok && ok.value.css?.includes("#2e7d32"));
     assert.equal(parseGeneralPreference({ ...base, css: "body { background: url(x.png) }" }).ok, false);
     assert.equal(parseGeneralPreference({ ...base, css: "@import 'x.css';" }).ok, false);
+    assert.equal(parseGeneralPreference({ ...base, css: ".site-header { background: green }" }).ok, false);
   });
 
   test("aceeași preferință spusă din nou: ultimul CSS câștigă", () => {

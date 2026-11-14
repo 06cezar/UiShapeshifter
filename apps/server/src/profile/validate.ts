@@ -226,6 +226,11 @@ function preferenceCss(raw: unknown, field: string): string {
   if (!css || css.length > PREFERENCE_CSS_MAX_CHARS)
     fail(field, `CSS scurt, cel mult ${PREFERENCE_CSS_MAX_CHARS} de caractere`);
   if (UNSAFE_CSS.test(css)) fail(field, "fără url(), @import sau cod");
+  // Pe orice site: doar selectori generici (html, body, a, button, p, h1–h6…), fără clase, id-uri sau atribute.
+  const selectors = [...css.matchAll(/([^{}]+)\{/g)].map((match) => match[1] ?? "");
+  if (selectors.length === 0 || selectors.some((selector) => /[.#[]/.test(selector))) {
+    fail(field, "doar selectori generici (html, body, a, button, p, h1–h6), fără clase, id-uri sau atribute");
+  }
   return css;
 }
 
