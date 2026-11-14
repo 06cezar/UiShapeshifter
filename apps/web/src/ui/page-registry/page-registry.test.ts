@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { SNAPSHOT_LIMITS } from "@uishapeshifter/contracts";
 import { runPageTool } from "../../agent-bridge/page-tools";
+import { HIDDEN_STYLE_ID } from "../recipes/dom-ops";
 import { createPageRegistry } from "./registry";
 import { buildSelector, looksHumanId } from "./selector";
 
@@ -417,6 +418,44 @@ describe("rândurile de tabel (facturile de pe site-ul de test)", () => {
     expect(document.querySelector(rows[1]!.selector)).toBe(second);
     // antetul nu e rând de date
     expect(rows.some((r) => r.label.startsWith("Nr. factură"))).toBe(false);
+  });
+});
+
+describe("ce a ascuns agentul cu remove apare în snapshot (hiddenBy recipe)", () => {
+  test("foaia operațiilor remove se oprește și ea la verificare, ca foaia CSS a rețetei", () => {
+    document.body.innerHTML = `<main><p>Conținut</p><div aria-label="Reclamă" id="ad">x</div></main>`;
+    // happy-dom nu aplică sheet.disabled: simulăm foaia operațiilor remove (dom-ops.ts) prin mărimea elementului
+    let removedOn = true;
+    const removedStyle = document.createElement("style");
+    removedStyle.id = HIDDEN_STYLE_ID;
+    Object.defineProperty(removedStyle, "sheet", {
+      value: {
+        cssRules: [], // happy-dom citește regulile foii când calculează stilurile
+        set disabled(off: boolean) {
+          removedOn = !off;
+        },
+      },
+    });
+    document.head.append(removedStyle);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      const size = this.id === "ad" && removedOn ? 0 : 20;
+      return {
+        x: 10,
+        y: 10,
+        width: size,
+        height: size,
+        top: 10,
+        left: 10,
+        right: 30,
+        bottom: 30,
+        toJSON() {},
+      } as DOMRect;
+    });
+    const reg = createPageRegistry({ ourHostId: HOST, recipe: () => ({ revision: 1, css: "" }) });
+    const ad = reg.snapshot().elements.find((element) => element.label === "Reclamă");
+    expect(ad).toMatchObject({ visible: false, hiddenBy: "recipe" });
+    expect(removedOn).toBe(true); // foaia repornită după verificare
+    removedStyle.remove();
   });
 });
 
