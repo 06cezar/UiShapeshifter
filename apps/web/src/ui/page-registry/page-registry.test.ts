@@ -91,6 +91,11 @@ describe("selectorul", () => {
     expect(buildSelector(document.querySelector("div")!)).toBe('[aria-label="Profil"]');
   });
 
+  test("<html> are selectorul html, nu body (fundalul paginii poate fi pe <html>)", () => {
+    expect(buildSelector(document.documentElement)).toBe("html");
+    expect(buildSelector(document.body)).toBe("body");
+  });
+
   test("ordinea: #id → aria-label → href → cale structurală, fără clase", () => {
     document.body.innerHTML = `
       <button id="cauta">Caută</button>

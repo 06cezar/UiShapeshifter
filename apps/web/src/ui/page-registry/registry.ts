@@ -612,18 +612,26 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       const backdrop = opaqueBackdropOf(element, options.ourHostId);
       if (backdrop && !listedSet.has(backdrop) && !backdropElements.includes(backdrop)) backdropElements.push(backdrop);
     }
-    const backdrops: PageElement[] = backdropElements.slice(0, MAX_BACKGROUNDS).map((element) => ({
-      id: idOf(element),
-      selector: buildSelector(element, doc),
-      tag: element.tagName.toLowerCase(),
-      role: "presentation",
-      label: `${BACKDROP_LABEL} (${getComputedStyle(element).backgroundColor})`,
-      regionId: regionOf(element)?.id,
-      rect: rectOf(element),
-      visible: true,
-      inViewport: true,
-      interactive: false,
-    }));
+    // Aceeași zonă ca la imagini; vizibil după cum e acum (rețeta îl poate ascunde), ca agentul să-și vadă munca.
+    const backdrops: PageElement[] = backdropElements
+      .filter((element) => !scope || scope.contains(element))
+      .slice(0, MAX_BACKGROUNDS)
+      .map((element) => {
+        const visible = isShown(element);
+        return {
+          id: idOf(element),
+          selector: buildSelector(element, doc),
+          tag: element.tagName.toLowerCase(),
+          role: "presentation",
+          label: `${BACKDROP_LABEL} (${getComputedStyle(element).backgroundColor})`,
+          regionId: regionOf(element)?.id,
+          rect: rectOf(element),
+          visible,
+          inViewport: visible,
+          interactive: false,
+          ...(visible ? {} : { hiddenBy: "recipe" as const }),
+        };
+      });
 
     const siteHidden = ordered.filter((e) => e.hiddenBy === "site").slice(0, MAX_SITE_HIDDEN);
     const others = ordered.filter((e) => e.hiddenBy !== "site");

@@ -103,6 +103,9 @@ function structuralPath(doc: Document, element: Element): string {
 }
 
 export function buildSelector(element: Element, doc: Document = element.ownerDocument): string {
+  // Calea structurală pornește de la <body>; <html> și <body> au numele lor (fundalul paginii poate fi pe <html>).
+  if (element === doc.documentElement) return "html";
+  if (element === doc.body) return "body";
   if (element.id && looksHumanId(element.id)) {
     const byId = `#${CSS.escape(element.id)}`;
     if (isUnique(doc, byId, element)) return byId;
