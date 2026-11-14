@@ -3,11 +3,12 @@
 // Mesajele vin în `journal` de la cine ține legătura cu serverul; `send` trimite `cancel_run` înapoi.
 // În extensie (D9) stă în shadow DOM-ul nostru, peste site; stilul e în journal-styles.ts.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "zustand";
 import type { AgentRun, AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
 import { activeRun, auditScores, revisionAtStep } from "./journal-store";
 import type { JournalStore, RunStatus, RunView } from "./journal-store";
+import type { RequestEntry } from "../validation";
 
 export interface JournalPanelProps {
   journal: JournalStore;
@@ -16,6 +17,10 @@ export interface JournalPanelProps {
   loadRun?: (runId: string) => Promise<AgentRun>;
   /** „Revino la original”: golește rețeta site-ului curent; fără ea, butonul nu apare. */
   revertToOriginal?: () => Promise<void>;
+  /** Cererile din istoricul rețetei site-ului (`requestHistory`, C); fără ea, lista „Ce ai cerut aici” nu apare. */
+  requestHistory?: () => RequestEntry[];
+  /** Scoate o singură cerere din rețetă; cererile de după rămân. Întoarce mesajul de eroare, dacă nu s-a putut. */
+  undoRequest?: (requestId: string) => Promise<{ ok: true } | { ok: false; message: string }>;
 }
 
 const TOOL_ICONS: Record<ToolName, string> = {
@@ -69,7 +74,12 @@ export function JournalPanel(props: JournalPanelProps) {
         <div className="journal-body">
           <ProposalBar journal={journal} />
           {replay ? <ReplayView journal={journal} /> : current ? <RunSection run={current} {...props} /> : null}
-          {props.revertToOriginal && <RevertToOriginal revert={props.revertToOriginal} />}
+          {props.requestHistory && props.undoRequest && (
+            <RequestHistory journal={journal} history={props.requestHistory} undo={props.undoRequest} />
+          )}
+          {props.revertToOriginal && (
+            <RevertToOriginal journal={journal} send={props.send} revert={props.revertToOriginal} />
+          )}
         </div>
       )}
     </aside>
@@ -253,19 +263,105 @@ function ReplayView({ journal }: { journal: JournalStore }) {
   );
 }
 
-/** „Revino la original”: site-ul arată din nou ca înainte de orice schimbare a noastră (golește rețeta). */
-function RevertToOriginal({ revert }: { revert: () => Promise<void> }) {
+/**
+ * „Revino la original”: site-ul arată din nou ca înainte de orice schimbare a noastră (golește rețeta).
+ * Merge și cât rulează agentul: întâi oprim rularea (altfel o unealtă aflată deja pe drum scrie la loc peste pagina
+ * golită), închidem propunerea deschisă, golim rețeta, iar când rularea chiar s-a oprit o golim încă o dată.
+ */
+function RevertToOriginal({
+  journal,
+  send,
+  revert,
+}: {
+  journal: JournalStore;
+  send: (message: ClientMessage) => void;
+  revert: () => Promise<void>;
+}) {
   const [done, setDone] = useState(false);
+  const [stoppingRunId, setStoppingRunId] = useState<string | null>(null);
+  const stoppingStatus = useStore(journal, (s) => s.runs.find((r) => r.runId === stoppingRunId)?.status);
+
+  useEffect(() => {
+    if (!stoppingRunId || stoppingStatus === "running") return;
+    setStoppingRunId(null);
+    void revert().then(() => setDone(true));
+  }, [stoppingRunId, stoppingStatus, revert]);
+
+  function revertNow() {
+    setDone(false);
+    const state = journal.getState();
+    const running = activeRun(state.runs);
+    if (running?.status === "running") {
+      state.markCancelRequested(running.runId);
+      send({ type: "cancel_run", runId: running.runId });
+      setStoppingRunId(running.runId);
+    }
+    // „Păstrez”, nu „Anulez”: anularea ar readuce revizia de la începutul rulării, adică exact ce vrem să scoatem.
+    if (state.proposal) state.decideProposal("keep");
+    void revert().then(() => setDone(true));
+  }
+
   return (
     <div className="journal-actions">
-      <button
-        type="button"
-        data-agent-id="journal-panel.revert-original"
-        onClick={() => void revert().then(() => setDone(true))}
-      >
+      <button type="button" data-agent-id="journal-panel.revert-original" onClick={revertNow}>
         Revino la original
       </button>
-      {done && <p role="status">Site-ul arată din nou ca la început.</p>}
+      {stoppingRunId ? (
+        <p role="status">Opresc agentul și readuc site-ul la început…</p>
+      ) : (
+        done && <p role="status">Site-ul arată din nou ca la început.</p>
+      )}
     </div>
+  );
+}
+
+/**
+ * „Ce ai cerut aici”: fiecare cerere care a schimbat site-ul, cu „Anulez” doar pe ea. Spre deosebire de „Anulez” din
+ * propunere (întoarce rețeta la începutul rulării), aici cererile de după rămân. Lista se recitește la fiecare rulare.
+ */
+function RequestHistory({
+  journal,
+  history,
+  undo,
+}: {
+  journal: JournalStore;
+  history: () => RequestEntry[];
+  undo: NonNullable<JournalPanelProps["undoRequest"]>;
+}) {
+  // Abonarea la rulări și `setVersion` doar re-randează lista: istoricul se recitește după o rulare sau o anulare.
+  const running = useStore(journal, (s) => activeRun(s.runs)?.status === "running");
+  const [, setVersion] = useState(0);
+  const [status, setStatus] = useState<string | null>(null);
+  const entries = history();
+  if (entries.length === 0) return null;
+
+  async function undoOne(entry: RequestEntry) {
+    setStatus(null);
+    const result = await undo(entry.requestId);
+    setStatus(result.ok ? `Am scos: ${entry.reason}` : result.message);
+    setVersion((v) => v + 1);
+  }
+
+  return (
+    <section className="journal-history" aria-label="Ce ai cerut aici">
+      <h3>Ce ai cerut aici</h3>
+      <ol>
+        {entries.map((entry) => (
+          <li key={entry.requestId} className="journal-history-entry">
+            <span>{entry.reason}</span>
+            <button
+              type="button"
+              data-agent-id={`journal-panel.undo-request.${entry.requestId}`}
+              aria-label={`Anulez: ${entry.reason}`}
+              disabled={running}
+              onClick={() => void undoOne(entry)}
+            >
+              Anulez
+            </button>
+          </li>
+        ))}
+      </ol>
+      {status && <p role="status">{status}</p>}
+    </section>
   );
 }

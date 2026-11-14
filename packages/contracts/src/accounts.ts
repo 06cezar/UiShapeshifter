@@ -3,7 +3,7 @@
 // Rute HTTP: specs/06-protocol.md. Cod: apps/server/src/accounts/ (E6), apps/web/src/sync/ (E6).
 
 import type { UserProfile } from "./profile";
-import type { SiteRecipe } from "./site-recipe";
+import type { RecipeRevision, SiteRecipe } from "./site-recipe";
 
 export const ACCOUNT_LIMITS = {
   usernameMinChars: 3,
@@ -40,5 +40,12 @@ export interface AuthResult {
 export interface SyncBundle {
   profile: UserProfile;
   recipes: SiteRecipe[];
+  /** Istoricul rețetelor pe site, ca „Anulez” pe o cerere din istoric să meargă și pe alt dispozitiv. Lipsește la clienții vechi. */
+  history?: SiteRecipeHistory[];
   updatedAt: string;
+}
+
+export interface SiteRecipeHistory {
+  host: string;
+  revisions: RecipeRevision[];
 }

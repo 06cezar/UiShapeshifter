@@ -120,6 +120,49 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("propose_changes");
   });
 
+  it("etapa 3: profilul și preferințele generale intră în promptul de sistem, cu ce e deja aplicat pe site", async () => {
+    const decider = createOpenRouterDecider("ascunde Shorts", {
+      stage: 3,
+      page: { url: "https://video.example/", host: "video.example", title: "Video" },
+      loadProfile: async () => ({
+        summary: "Maria, 60–74 de ani, vede greu: text de cel puțin 20px.",
+        generalPreferences: [
+          {
+            id: "fara-ai",
+            category: "ai-features",
+            text: "fără rezumate AI",
+            source: "conversation",
+            evidence: ["„nu vreau AI”"],
+            createdAt: "2026-11-13T22:00:00.000Z",
+            appliedOn: ["cautare.example"],
+          },
+          {
+            id: "fara-shorts",
+            category: "short-video",
+            text: "fără clipuri scurte",
+            source: "onboarding",
+            evidence: [],
+            createdAt: "2026-11-13T22:00:00.000Z",
+            appliedOn: ["video.example"],
+          },
+        ],
+      }),
+    });
+    replies.push(reply("Gata."));
+    await decider.decide(null);
+    const system = sent[0].messages[0].content ?? "";
+    expect(system).toContain("Maria, 60–74 de ani");
+    expect(system).toContain("- fără rezumate AI\n");
+    expect(system).toContain("- fără clipuri scurte (deja aplicată pe acest site)");
+    expect(system).toContain("/generalPreferences/-");
+    expect(system).toContain("DOAR când omul o spune limpede"); // nu orice cerere devine preferință generală (#64)
+    expect(system).toContain("„nicăieri”, „pe niciun site”, „pe toate paginile”"); // aceleași cuvinte ca requestedScope (#75)
+    expect(system).toContain("NU chemi update_profile pentru preferință"); // proba M3: patch gol la „nu vreau Shorts”
+    expect((sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name)).toContain(
+      "update_profile",
+    );
+  });
+
   it("fără tool call: textul modelului e răspunsul final", async () => {
     const decider = createOpenRouterDecider("Salut");
     replies.push(reply("Bună! Cu ce te ajut?"));

@@ -43,6 +43,53 @@ describe("selectorul", () => {
     expect(looksHumanId("a8f3k2")).toBe(false);
   });
 
+  test("respinge id-urile generate de framework-uri (altele la fiecare încărcare)", () => {
+    const generated = [
+      "mount_0_0_R4",
+      "mount_0_0_Rab",
+      ":r1:",
+      ":R2a6:",
+      "«r1»",
+      "_R_1_",
+      "x_1_R3k",
+      "ember123",
+      "ember7",
+      "react-select-2-input",
+      "react-aria-5",
+      "radix-:r3:",
+      "headlessui-menu-button-1",
+      "__next",
+      "__nuxt",
+      "C_1AACF49",
+      "slideexp0_AAAE3E",
+      "slideexp0_AAAE3Echevrons_nextbtn",
+    ];
+    for (const id of generated) expect(looksHumanId(id), id).toBe(false);
+  });
+
+  test("păstrează id-urile obișnuite", () => {
+    const human = [
+      "search",
+      "main-content",
+      "p-lang-btn",
+      "searchform",
+      "b_header",
+      "rhs",
+      "nav_Right",
+      "member",
+      "b_context",
+      "sb_form_q",
+      "ACCEPT",
+      "BADGE",
+    ];
+    for (const id of human) expect(looksHumanId(id), id).toBe(true);
+  });
+
+  test("buildSelector nu folosește #mount_0_0_R4, ci un atribut stabil", () => {
+    document.body.innerHTML = `<div id="mount_0_0_R4" aria-label="Profil">x</div>`;
+    expect(buildSelector(document.querySelector("div")!)).toBe('[aria-label="Profil"]');
+  });
+
   test("ordinea: #id → aria-label → href → cale structurală, fără clase", () => {
     document.body.innerHTML = `
       <button id="cauta">Caută</button>

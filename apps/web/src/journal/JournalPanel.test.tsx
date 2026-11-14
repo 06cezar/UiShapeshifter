@@ -132,11 +132,62 @@ describe("JournalPanel", () => {
 
   it("„Revino la original” cheamă golirea rețetei și confirmă", async () => {
     const revertToOriginal = vi.fn(async () => {});
-    const { container, byId, startRun } = await renderPanel({ revertToOriginal });
+    const { journal, container, byId, startRun } = await renderPanel({ revertToOriginal });
     await startRun();
+    await act(async () =>
+      journal.getState().handleServerMessage({ type: "run_finished", runId: "r1", success: true, summary: "gata" }),
+    );
     await act(async () => byId("journal-panel.revert-original")?.click());
     expect(revertToOriginal).toHaveBeenCalledOnce();
     expect(container.textContent).toContain("Site-ul arată din nou ca la început.");
+  });
+
+  it("„Revino la original” cât rulează agentul: oprește rularea, închide propunerea și golește din nou la final", async () => {
+    const revertToOriginal = vi.fn(async () => {});
+    const { journal, sent, container, byId, startRun } = await renderPanel({ revertToOriginal });
+    await startRun();
+    let decision: Promise<string> | undefined;
+    await act(async () => {
+      decision = journal
+        .getState()
+        .requestProposalDecision({ proposalId: "p1", title: "Căutarea sus", summary: "x", revisionBefore: 0 });
+    });
+
+    await act(async () => byId("journal-panel.revert-original")?.click());
+    expect(sent).toContainEqual({ type: "cancel_run", runId: "r1" });
+    await expect(decision).resolves.toBe("keep");
+    expect(revertToOriginal).toHaveBeenCalledOnce();
+    expect(container.textContent).toContain("Opresc agentul");
+
+    await act(async () =>
+      journal.getState().handleServerMessage({ type: "run_finished", runId: "r1", success: false, summary: "oprit" }),
+    );
+    expect(revertToOriginal).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain("Site-ul arată din nou ca la început.");
+  });
+
+  it("„Ce ai cerut aici”: Anulez scoate doar cererea aleasă, cât nu rulează agentul", async () => {
+    let entries = [
+      { requestId: "r0", reason: "Ascunde reclamele", at: "2026-11-14T01:00:00.000Z", revisions: [1] },
+      { requestId: "r1", reason: "Mută căutarea sus", at: "2026-11-14T01:05:00.000Z", revisions: [2, 3] },
+    ];
+    const undoRequest = vi.fn(async (requestId: string) => {
+      entries = entries.filter((e) => e.requestId !== requestId);
+      return { ok: true as const };
+    });
+    const { journal, container, byId, startRun } = await renderPanel({ requestHistory: () => entries, undoRequest });
+    await startRun();
+    expect(container.textContent).toContain("Ce ai cerut aici");
+    expect((byId("journal-panel.undo-request.r0") as HTMLButtonElement).disabled).toBe(true); // rulează agentul
+
+    await act(async () =>
+      journal.getState().handleServerMessage({ type: "run_finished", runId: "r1", success: true, summary: "gata" }),
+    );
+    await act(async () => byId("journal-panel.undo-request.r0")?.click());
+    expect(undoRequest).toHaveBeenCalledWith("r0");
+    expect(byId("journal-panel.undo-request.r0")).toBeNull();
+    expect(byId("journal-panel.undo-request.r1")).not.toBeNull();
+    expect(container.textContent).toContain("Am scos: Ascunde reclamele");
   });
 
   it("se poate ascunde", async () => {

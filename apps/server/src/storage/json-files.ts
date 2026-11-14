@@ -14,6 +14,15 @@ export function isSafeId(id: string): boolean {
   return SAFE_ID.test(id);
 }
 
+// host ajunge în calea fișierelor de rețete (data/recipes): fără „www.”, litere mici (specs/06). Etichete despărțite de
+// câte un punct, fără „.”, „..” sau puncte la capete, ca un host să nu poată fi niciodată o cale.
+const HOST_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)*$/;
+const MAX_HOST_CHARS = 253;
+
+export function isSafeHost(host: string): boolean {
+  return host.length <= MAX_HOST_CHARS && HOST_PATTERN.test(host);
+}
+
 export function dataPath(...parts: string[]): string {
   return join(process.env.DATA_DIR ?? DEFAULT_DATA_DIR, ...parts);
 }
