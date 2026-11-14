@@ -25,8 +25,8 @@
       }
     }
   },
-  "last_comms_sha": "7af50451c9b75531f9f8ac4135ef7562a70874be",
-  "last_run": "2026-11-14T09:20:27Z",
+  "last_comms_sha": "2528552d349ac0b06ebfb5b9c748c933ef009a56",
+  "last_run": "2026-11-14T09:29:18Z",
   "last_sha": "4e240173fd54cba64c43437132cdeaec372c09ca",
   "prs": {
     "1": {
@@ -313,6 +313,11 @@
       "head": "e4-date-test",
       "merged_at": null,
       "state": "CLOSED"
+    },
+    "150": {
+      "head": "b-foi-noastre-ultime",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "16": {
       "head": "b2-registru",
