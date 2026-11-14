@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "e8b0e8004c5e5eb13d087376c224b9da3ede8aa8",
-  "last_run": "2026-11-14T00:58:21Z",
+  "last_comms_sha": "a8ec29a25794e090c214fef4ed30375cd98ea2be",
+  "last_run": "2026-11-14T01:00:13Z",
   "last_sha": "e4e273da7a54536f8045680b319145da8b50a96c",
   "prs": {
     "1": {
@@ -331,7 +331,7 @@
     "65": {
       "head": "a6-context-profil",
       "merged_at": null,
-      "state": "OPEN"
+      "state": "CLOSED"
     },
     "66": {
       "head": "e3-adaptare",
@@ -382,6 +382,16 @@
       "head": "d-sync-history",
       "merged_at": "2026-11-14T00:58:11Z",
       "state": "MERGED"
+    },
+    "75": {
+      "head": "c-scope-nicaieri",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "76": {
+      "head": "e-profil-data-dir",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "8": {
       "head": "e1-profil",
