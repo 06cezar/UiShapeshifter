@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "743f0fa4723c8b86ebf3fce09515c13a3962efba",
-  "last_run": "2026-11-14T06:53:47Z",
+  "last_comms_sha": "907a4da1a07e2751a0f157eb5f64421c26b5a4ce",
+  "last_run": "2026-11-14T07:02:33Z",
   "last_sha": "2936f1092be29cba490c1b31f01318c74ff5d99b",
   "prs": {
     "1": {
@@ -225,6 +225,11 @@
     },
     "135": {
       "head": "a-fara-filtre-imagini",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "136": {
+      "head": "a-preferinte-css-prompt",
       "merged_at": null,
       "state": "OPEN"
     },
