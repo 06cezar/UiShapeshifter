@@ -187,6 +187,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
     clearTimeout(pendingAsk.timer);
     const { resolve } = pendingAsk;
     pendingAsk = null;
+    if (voiceHint === CHAT_TEXT.voiceNeedsButton) voiceHint = "";
     optionsBox.replaceChildren();
     optionsBox.hidden = true;
     render();
@@ -253,7 +254,15 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
     };
     const voice = createVoiceInput(Recognition, {
       interim: (text) => (input.value = text),
-      final: (text) => sendRequest(text, "voice"),
+      final: (text) => {
+        // Aprobarea codului nu se dă cu vocea: microfonul aude și sunetul paginii (un clip care spune „Rulează”).
+        if (pendingAsk?.humanOnly) {
+          input.value = "";
+          voiceHint = CHAT_TEXT.voiceNeedsButton;
+          return render();
+        }
+        sendRequest(text, "voice");
+      },
       error: (message) => {
         voiceHint = message;
         render();

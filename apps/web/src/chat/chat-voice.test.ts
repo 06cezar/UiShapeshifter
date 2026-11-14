@@ -35,11 +35,15 @@ class FakeRecognition implements RecognitionLike {
 function setup(recognition: typeof FakeRecognition | null = FakeRecognition) {
   document.getElementById(HOST_ID)?.remove();
   const sent: OutgoingClientMessage[] = [];
-  mountChat(mountOurRoot(document), { send: (message) => sent.push(message), page: () => PAGE, recognition });
+  const chat = mountChat(mountOurRoot(document), {
+    send: (message) => sent.push(message),
+    page: () => PAGE,
+    recognition,
+  });
   const shadow = ourShadowRoot(document.getElementById(HOST_ID))!;
   const q = <T extends Element>(selector: string) => shadow.querySelector<T>(selector)!;
   q<HTMLButtonElement>(".chat-launcher").click();
-  return { sent, q };
+  return { chat, sent, q };
 }
 
 beforeEach(() => {
@@ -74,6 +78,27 @@ describe("vocea (D10)", () => {
     recognition.onend?.();
     expect(mic.getAttribute("aria-pressed")).toBe("false");
     expect(q<HTMLElement>(".chat-hint").textContent).toBe("");
+  });
+
+  test("aprobarea codului (humanOnly) nu se dă cu vocea: un „Rulează” auzit nu pornește codul", async () => {
+    const { chat, q, sent } = setup();
+    let settled: string | null | undefined;
+    void chat.ask("Rulez codul?", ["Rulează", "Nu rula"], { humanOnly: true }).then((a) => (settled = a));
+    q<HTMLButtonElement>(".chat-voice").click();
+    FakeRecognition.last!.hear("Rulează", true);
+    FakeRecognition.last!.onend?.();
+    await Promise.resolve();
+    expect(settled).toBeUndefined();
+    expect(sent).toEqual([]);
+    expect(q<HTMLElement>(".chat-hint").textContent).toBe(CHAT_TEXT.voiceNeedsButton);
+  });
+
+  test("la o întrebare obișnuită, răspunsul vorbit merge", async () => {
+    const { chat, q } = setup();
+    const answer = chat.ask("Ce culoare?");
+    q<HTMLButtonElement>(".chat-voice").click();
+    FakeRecognition.last!.hear("verde", true);
+    expect(await answer).toBe("verde");
   });
 
   test("a doua apăsare oprește ascultarea", () => {
