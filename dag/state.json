@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "01cbc74ad5fff7af4432f95a4752902d617c40be",
-  "last_run": "2026-11-14T05:42:33Z",
+  "last_comms_sha": "49e43503b0e5b26060a758618612421e956e47ef",
+  "last_run": "2026-11-14T05:42:55Z",
   "last_sha": "c010f0d4583bed019f25bae3531566f6899a1e41",
   "prs": {
     "1": {
@@ -142,6 +142,11 @@
       "head": "e1-tmp-unic",
       "merged_at": "2026-11-13T14:46:58Z",
       "state": "MERGED"
+    },
+    "120": {
+      "head": "a-fara-bind-hover",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "13": {
       "head": "d-comms-block-review",
