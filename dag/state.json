@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "55d466f4bb5d653bdfb7a8837ea0c366d78c6d6a",
-  "last_run": "2026-11-14T05:56:45Z",
-  "last_sha": "e51ba63f763980795cdfb4c001c838ab563ef0c0",
+  "last_run": "2026-11-14T05:58:44Z",
+  "last_sha": "daffe2277475bd74aeccf1d05cf48ec600b7e36d",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -157,6 +157,11 @@
       "head": "a-fallback-sonnet",
       "merged_at": "2026-11-14T05:56:42Z",
       "state": "MERGED"
+    },
+    "123": {
+      "head": "a-actiune-o-data",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "13": {
       "head": "d-comms-block-review",
