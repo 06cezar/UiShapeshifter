@@ -9,6 +9,7 @@ import { WEB_PORT } from "@uishapeshifter/contracts";
 import { configRouter } from "./config/routes";
 import { createProfileRouter, profileStore } from "./profile";
 import { recipesRouter } from "./recipes/routes";
+import { createAccountsRouter } from "./accounts/routes";
 import { runsRouter } from "./runs/routes";
 import { handleConnection } from "./ws/connection";
 
@@ -32,6 +33,7 @@ export function createAppServer(): Server {
   app.use("/api", runsRouter);
   app.use("/api", configRouter);
   app.use("/api", recipesRouter);
+  app.use("/api", createAccountsRouter()); // conturile opționale și sincronizarea (E6)
   // Testul inițial nu pornește nicio rulare a agentului (specs/10, „După test”, pct. 4): în extensie ar schimba
   // primul site deschis fără cerere. Preferințele de bază se aplică fără AI (C4).
   app.use("/api/profile", createProfileRouter(profileStore));
