@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "19a5ecc8d81028c3e62db3659e2d376b9f48917f",
-  "last_run": "2026-11-14T06:33:37Z",
+  "last_comms_sha": "4f196e3e17fde148165910036657cbc6c90993ab",
+  "last_run": "2026-11-14T06:34:55Z",
   "last_sha": "824ffbdbcc4eadd664b9013efd473b3336826fe1",
   "prs": {
     "1": {
@@ -180,8 +180,8 @@
     },
     "127": {
       "head": "a-memorie-conversatie",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T06:34:51Z",
+      "state": "MERGED"
     },
     "128": {
       "head": "b-undo-request-tool",
