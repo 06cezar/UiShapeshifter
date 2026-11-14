@@ -44,7 +44,7 @@ declare namespace chrome {
       id?: number;
       url?: string;
     }
-    function query(query: { active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
+    function query(query: { active?: boolean; currentWindow?: boolean; url?: string }): Promise<Tab[]>;
     function create(properties: { url: string; active?: boolean }): Promise<Tab>;
     function reload(tabId: number): Promise<void>;
     const onActivated: { addListener(listener: (info: { tabId: number; windowId: number }) => void): void };
