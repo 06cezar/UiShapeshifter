@@ -1,6 +1,6 @@
 // „Nu schimba acest site” (popup): site-urile pe care extensia nu atinge nimic. Fontul minim și ascunderile fără AI (C4)
 // se aplică pe orice site; omul trebuie să le poată opri acolo unde îl încurcă (ex. un site de lucru).
-// Pe un site exclus nu pornește nimic al nostru: nici rețeta, nici preferințele de bază, nici chatul, nici semnalele.
+// Pe un site exclus nu aplicăm singuri nimic (rețeta, preferințele de bază, ascunderile); chatul și mascota rămân.
 
 export const EXCLUDED_SITES_KEY = "excludedSites";
 

@@ -28,8 +28,11 @@ import { HOST_ID, mountOurRoot } from "./shadow-root";
 declare const __UIS_DEV__: boolean;
 
 const host = normalizeHost(location.hostname);
-/** Pornit doar pe site-urile pe care omul nu le-a exclus din popup („Nu schimba acest site”). */
-let started = false;
+/**
+ * „Nu schimba acest site” (popup, specs/08): pe un site exclus nu aplicăm singuri nimic (fontul minim C4, ascunderile
+ * fără AI, rețeta salvată). Chatul și mascota rămân, ca omul să poată cere ceva sau să repornească din popup.
+ */
+let excluded = false;
 /** Din chat se vede mereu una dintre ele: butonul (chat închis) sau panoul (chat deschis). */
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
@@ -67,7 +70,7 @@ let needs: Partial<UserNeeds> = {};
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 // Testul inițial a salvat alte nevoi: preferințele de bază se refac după ele.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local" || !started) return; // site exclus („Nu schimba acest site”): nu atingem nimic
+  if (area !== "local" || excluded) return; // site exclus: nu reaplicăm nimic singuri
   const recipeChange = changes[recipeKey(host)];
   if (recipeChange) {
     recipes.adopt(parseStoredRecipe(recipeChange.newValue, host, new Date().toISOString()));
@@ -190,9 +193,9 @@ function start() {
   // peste rețetă.
   void readNeeds().then((saved) => {
     needs = saved;
-    base = startBasePreferences({ needs, ourHostId: HOST_ID });
+    if (!excluded) base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
-  void refreshDislikes();
+  if (!excluded) void refreshDislikes();
 
   // Registrul paginii (B2), motorul de rețete (B5), bula chatului pentru `say` și mascota pentru `point_at` (D2).
   const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
@@ -286,11 +289,10 @@ function start() {
   connect();
 }
 
-void isExcluded(chrome.storage.local, host).then((excluded) => {
-  if (excluded) return;
-  started = true;
+void isExcluded(chrome.storage.local, host).then((isOff) => {
+  excluded = isOff;
   // Rețeta cât mai devreme (document_start), ca site-ul să nu apară întâi neschimbat.
-  void recipes.load();
+  if (!excluded) void recipes.load();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();
 });

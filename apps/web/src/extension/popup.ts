@@ -70,7 +70,7 @@ const excludeStatus = document.getElementById("exclude-status")!;
 
 function showExcluded(excluded: boolean) {
   excludeButton.textContent = excluded ? "Schimbă din nou acest site" : "Nu schimba acest site";
-  excludeStatus.textContent = excluded ? "Aici extensia nu schimbă nimic." : "";
+  excludeStatus.textContent = excluded ? "Aici nu schimb nimic singur. Chatul rămâne, dacă vrei ceva." : "";
   resetButton.hidden = excluded;
 }
 
