@@ -39,6 +39,16 @@ function parseArgs(raw: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * Unelte din contracte pe care extensia nu le execută încă (page-tools.ts le respinge cu INVALID_ARGS): la limit
+ * testing modelul le chema în 7 cereri din 17 și pierdea un pas. Se scot de aici când extensia le are.
+ */
+export const NOT_IN_EXTENSION_YET: ReadonlySet<string> = new Set(["ask_user", "wait_for_user_click"]);
+
+export function extensionToolDefinitions(stage: SiteToolStage): ToolDefinition[] {
+  return siteToolDefinitions(stage).filter((definition) => !NOT_IN_EXTENSION_YET.has(definition.function.name));
+}
+
 export interface OpenRouterDeciderOptions {
   /** Etapa extensiei: alege uneltele (siteToolDefinitions) și secțiunile promptului. Implicit 1. */
   stage?: SiteToolStage;
@@ -53,7 +63,7 @@ export interface OpenRouterDeciderOptions {
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
   const { stage = 1, page, retryDelaysMs = RETRY_DELAYS_MS } = options;
-  const definitions = options.definitions ?? siteToolDefinitions(stage);
+  const definitions = options.definitions ?? extensionToolDefinitions(stage);
   const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
   const messages: ChatMessage[] = [];
@@ -68,7 +78,7 @@ export function createOpenRouterDecider(goal: string, options: OpenRouterDecider
           return undefined;
         });
         messages.push(
-          { role: "system", content: buildSystemPrompt({ page, stage, profile }) },
+          { role: "system", content: buildSystemPrompt({ page, stage, profile, tools: allowed }) },
           { role: "user", content: userMessage(goal, page) },
         );
       }

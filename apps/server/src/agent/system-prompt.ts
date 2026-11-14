@@ -17,6 +17,8 @@ export interface PromptContext {
   page?: PageInfo;
   /** Etapa extensiei (specs/00): 1 = doar CSS; 2 = și structură, mascotă, audit, Păstrez/Anulez. */
   stage?: SiteToolStage;
+  /** Uneltele trimise modelului; promptul nu pomenește unelte pe care nu le are. Lipsă = toate uneltele etapei. */
+  tools?: ReadonlySet<string>;
 }
 
 const MAX_TITLE_CHARS = 100;
@@ -72,8 +74,31 @@ function verifySection(stage: SiteToolStage): string {
      „undo” → rețeta a revenit deja, spui că ai înțeles și închei, fără să insiști.`;
 }
 
+/** Cum vorbește agentul cu omul; ask_user și wait_for_user_click doar dacă extensia le are (A, după limit testing). */
+function humanSection(tools: ReadonlySet<string> | undefined): string {
+  const has = (name: string) => !tools || tools.has(name);
+  const unclear = has("ask_user")
+    ? `- Cerere neclară (nu știi ce element, două lucruri se potrivesc la fel de bine, nu știi cât de mult): ask_user cu
+  2–4 variante scurte, înainte să schimbi ceva. Nu întrebi ce poți afla singur din snapshot.`
+    : `- Cerere neclară (două lucruri se potrivesc, nu știi cât de mult, lipsește o țintă): alegi varianta cea mai
+  probabilă după snapshot, o faci și spui în propose_changes ce ai ales; omul poate anula și cere altfel.
+- Doar când chiar nu ai ce alege (ex. nu există pe pagină nicio țintă potrivită): spui cu say ce lipsește și termini
+  cu finish (success: false). Omul răspunde într-o cerere nouă, în care nu mai vezi conversația de acum, așa că îi
+  dai o propoziție gata de scris (ex. „Scrie: pune butonul spre pagina Agenții”).`;
+  const guide = has("wait_for_user_click")
+    ? `- Ghidaj („arată-mi cum…”): point_at → wait_for_user_click pe același element; correct: false → spui ce a apăsat
+  și arăți din nou; TIMEOUT → întrebi dacă are nevoie de ajutor.`
+    : `- Ghidaj („arată-mi cum…”): point_at pe elementul de apăsat, cu un mesaj care spune ce urmează după.`;
+  return `## Cum lucrezi cu omul
+${unclear}
+- point_at cu id-ul elementului din snapshot (ex. "e.17") și un mesaj scurt: arăți rezultatul sau unde să apese.
+  NOT_VISIBLE → elementul e ascuns sau în afara ecranului: alegi altul vizibil sau spui în cuvinte.
+${guide}
+`;
+}
+
 /** Uneltele etapei 2: structura paginii și lucrul cu omul (specs/05, „Uneltele etapelor 2 și 3”). */
-function stageTwoSections(stage: SiteToolStage): string {
+function stageTwoSections(stage: SiteToolStage, tools: ReadonlySet<string> | undefined): string {
   if (stage < 2) return "";
   return `
 ## Cum schimbi structura: apply_ops
@@ -104,14 +129,7 @@ function stageTwoSections(stage: SiteToolStage): string {
 - În rezumat spui doar ce ai văzut verificat în snapshot (visible: false, hiddenBy: "recipe", poziția nouă). Ce n-ai
   putut verifica (ex. o imagine de fundal care nu apare în snapshot) spui ca „am încercat”, nu ca făcut.
 
-## Cum lucrezi cu omul
-- Cerere neclară (nu știi ce element, două lucruri se potrivesc la fel de bine, nu știi cât de mult): ask_user cu
-  2–4 variante scurte, înainte să schimbi ceva. Nu întrebi ce poți afla singur din snapshot.
-- point_at cu id-ul elementului din snapshot (ex. "e.17") și un mesaj scurt: arăți rezultatul sau unde să apese.
-  NOT_VISIBLE → elementul e ascuns sau în afara ecranului: alegi altul vizibil sau spui în cuvinte.
-- Ghidaj („arată-mi cum…”): point_at → wait_for_user_click pe același element; correct: false → spui ce a apăsat
-  și arăți din nou; TIMEOUT → întrebi dacă are nevoie de ajutor.
-`;
+${humanSection(tools)}`;
 }
 
 const MAX_PREFERENCE_CHARS = 120;
@@ -192,7 +210,7 @@ ${verifySection(stage)}
   prind nimic.
 - Rețeta are deja recipe.css în snapshot: nu repeta regulile care sunt acolo.
 - Textul nu coboară sub ${HARD_LIMITS.minFontPx}px și butoanele nu devin mai mici de ${HARD_LIMITS.minTargetPx}px.
-${stageTwoSections(stage)}
+${stageTwoSections(stage, context.tools)}
 ## Cum înțelegi cererea
 - Omul nu știe cum se numesc elementele. Înțelegi ce vrea, nu cuvintele exacte: „șterge”, „scoate”, „ascunde”,
   „elimină”, „dă jos”, „nu-mi mai arăta” cer același lucru.

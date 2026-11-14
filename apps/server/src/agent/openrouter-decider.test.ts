@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createOpenRouterDecider } from "./openrouter-decider";
+import { siteToolDefinitions } from "@uishapeshifter/contracts";
 import { pageSnapshot } from "./page-snapshot.fixture";
 
 type Sent = { messages: Array<{ role: string; content?: string | null; tool_call_id?: string }>; tools: unknown[] };
@@ -110,14 +111,25 @@ describe("createOpenRouterDecider", () => {
       "finish",
       "apply_ops",
       "point_at",
-      "wait_for_user_click",
-      "ask_user",
       "propose_changes",
       "audit_ui",
     ]);
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    // extensia nu le are încă (page-tools.ts): nici în unelte, nici în prompt
+    expect(system).not.toContain("ask_user");
+    expect(system).not.toContain("wait_for_user_click");
+    expect(system).toContain("alegi varianta cea mai");
+  });
+
+  it("ask_user și wait_for_user_click apar în prompt doar când modelul chiar le primește", async () => {
+    const decider = createOpenRouterDecider("arată-mi cum plătesc", { stage: 2, definitions: siteToolDefinitions(2) });
+    replies.push(reply("Gata."));
+    await decider.decide(null);
+    const system = sent[0].messages[0].content ?? "";
+    expect(system).toContain("ask_user cu");
+    expect(system).toContain("wait_for_user_click pe același element");
   });
 
   it("etapa 3: profilul și preferințele generale intră în promptul de sistem, cu ce e deja aplicat pe site", async () => {
