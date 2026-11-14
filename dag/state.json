@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "d9f64965915c03f526e55be2bf5e3d0d71dd9fbe",
-  "last_run": "2026-11-14T01:20:30Z",
-  "last_sha": "52a8b611de956493909c0b9e36a6d37e71b44bed",
+  "last_comms_sha": "a46abec261007da31adfe75912503a264d262bee",
+  "last_run": "2026-11-14T01:22:09Z",
+  "last_sha": "6736402f88b8c147149862f1dafaeb65b72124eb",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -417,6 +417,11 @@
       "head": "a6-scope-toate-paginile",
       "merged_at": "2026-11-14T01:20:28Z",
       "state": "MERGED"
+    },
+    "81": {
+      "head": "c-dislikes-peste-tot",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "9": {
       "head": "c3-onboarding",
