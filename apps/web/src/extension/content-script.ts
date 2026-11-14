@@ -11,6 +11,7 @@ import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
 import type { ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
 import { runAuditUi } from "../a11y";
 import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
+import { applyDislikes, dislikesFromStored } from "../a11y/dislike-rules";
 import { thresholdsFor } from "../a11y/thresholds";
 import { createPageRegistry } from "../ui/page-registry/registry";
 import { buildSelector } from "../ui/page-registry/selector";
@@ -74,6 +75,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   // Nevoile s-au putut schimba: testul inițial (cheia „onboarding”) sau profilul local, ținut la zi de service worker.
   if (changes[ONBOARDING_KEY] || (activeUserId && changes[activeUserId])) {
+    void refreshDislikes();
     void readNeeds().then((next) => {
       if (JSON.stringify(next) === JSON.stringify(needs)) return; // profilul s-a schimbat, nevoile nu
       needs = next;
@@ -92,6 +94,17 @@ async function readNeeds(): Promise<Partial<UserNeeds>> {
   activeUserId = typeof userId === "string" ? userId : undefined;
   const profile = activeUserId ? await chrome.storage.local.get(activeUserId) : {};
   return needsFromStored({ ...first, ...profile });
+}
+
+/**
+ * Ce îl deranjează pe om (testul inițial, preferințele „peste tot”), ascuns pe orice site, fără AI (C4).
+ * Aceleași chei ca la nevoi: testul inițial și profilul local de sub userId.
+ */
+async function refreshDislikes(): Promise<void> {
+  const first = await chrome.storage.local.get([USER_ID_KEY, ONBOARDING_KEY]);
+  const userId = first[USER_ID_KEY];
+  const profile = typeof userId === "string" ? await chrome.storage.local.get(userId) : {};
+  applyDislikes(dislikesFromStored({ ...first, ...profile }, ONBOARDING_KEY, USER_ID_KEY));
 }
 
 /** Ce face mascota la mesajele serverului: se gândește cât rulează agentul, se bucură sau se încurcă la final. */
@@ -150,6 +163,14 @@ function start() {
       await recipes.reset();
       base?.refresh();
     },
+    // „Ce ai cerut aici”: o cerere anulată singură, cele de dinainte și de după rămân (B, C).
+    requestHistory: () => recipes.history(),
+    undoRequest: async (requestId) => {
+      const result = await recipes.undoRequest(requestId);
+      if (!result.ok) return result;
+      base?.refresh();
+      return { ok: true };
+    },
   });
   /** Revizia rețetei de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
   const runStart = new Map<string, number>();
@@ -171,6 +192,7 @@ function start() {
     needs = saved;
     base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
+  void refreshDislikes();
 
   // Registrul paginii (B2), motorul de rețete (B5), bula chatului pentru `say` și mascota pentru `point_at` (D2).
   const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });

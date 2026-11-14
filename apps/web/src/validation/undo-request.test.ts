@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DomOp, RecipeRevision } from "@uishapeshifter/contracts";
-import { recipeWithoutRequest, requestHistory } from "./undo-request";
+import { recipeWithoutRequest, requestHistory, UNDO_RUN_PREFIX } from "./undo-request";
 
 const AT = "2026-11-14T00:00:00.000Z";
 
@@ -108,6 +108,33 @@ describe("recipeWithoutRequest: scoate o cerere, păstrează restul", () => {
     const result = recipeWithoutRequest(history, "run-a");
     expect(result.ok && result.recipe.css).toBe("");
     expect(result.ok && result.recipe.dropped.map((d) => d.reason)).toEqual(["url-function"]);
+  });
+
+  it("anulările se adună: după o anulare, a doua cerere scoasă nu o readuce pe prima", () => {
+    // B scoasă (revizia 4, făcută de motor), apoi C a fost cerută peste foaia de după anulare
+    const history = [
+      ...HISTORY,
+      revision(4, `${UNDO_RUN_PREFIX}run-text`, "Anulat: text mai mare", `${HIDE_SHORTS}\n${DARK}`),
+    ];
+    expect(requestHistory(history).map((entry) => entry.requestId)).toEqual(["run-shorts", "run-dark"]);
+    const css = cssWithout(history, "run-shorts");
+    expect(css).not.toContain(".shorts");
+    expect(css).not.toContain("font-size"); // anularea de mai devreme rămâne
+    expect(css).toContain("background");
+  });
+
+  it("o cerere nouă după o anulare se adaugă la foaia de după anulare", () => {
+    const afterUndo = `${HIDE_SHORTS}\n${DARK}`;
+    const history = [
+      ...HISTORY,
+      revision(4, `${UNDO_RUN_PREFIX}run-text`, "Anulat: text mai mare", afterUndo),
+      revision(5, "run-links", "linkuri subliniate", `${afterUndo}\na { text-decoration: underline !important; }`),
+    ];
+    const css = cssWithout(history, "run-dark");
+    expect(css).toContain(".shorts");
+    expect(css).toContain("underline");
+    expect(css).not.toContain("background");
+    expect(css).not.toContain("font-size");
   });
 
   it("o cerere necunoscută sau ieșită din istoric nu se poate scoate singură", () => {
