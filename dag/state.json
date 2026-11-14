@@ -25,9 +25,9 @@
       }
     }
   },
-  "last_comms_sha": "2d1e58fdec8d8ce4661f81ccaa36bdd79e74642c",
-  "last_run": "2026-11-14T09:30:53Z",
-  "last_sha": "4e240173fd54cba64c43437132cdeaec372c09ca",
+  "last_comms_sha": "1b06e6c1b7098d794db2cb405c7b03c64fd71e07",
+  "last_run": "2026-11-14T09:33:38Z",
+  "last_sha": "525ec2a10468b0098e0803043e71dc9db759742e",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -316,8 +316,8 @@
     },
     "150": {
       "head": "b-foi-noastre-ultime",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T09:33:31Z",
+      "state": "MERGED"
     },
     "16": {
       "head": "b2-registru",
