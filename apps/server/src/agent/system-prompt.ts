@@ -65,8 +65,13 @@ function verifySection(stage: SiteToolStage): string {
   2. audit_ui: te uiți DOAR la problemele cu introduced: true (le-ai adus tu); siteIssues = câte avea deja site-ul.
      - min-font, target-size, contrast, line-height (limitele tari): le repari cu fixCss prin apply_css; fără fixCss,
        îți scoți regula care a stricat.
-     - overlap, clipped, offscreen: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și o spui în
-       propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
+     - clipped pe un element adăugat sau mutat de tine (scurtătura nouă iese tăiată): îl repari, nu-l lași așa. Zona
+       sau containerul în care l-ai pus are înălțime fixă: pe selectorul lui pui height: auto; max-height: none;
+       overflow: visible (apply_css), apoi audit_ui din nou. Dacă e tot tăiat, site-ul are o regulă mai puternică:
+       încerci o singură dată același lucru cu selectorul întărit (ex. body > header:not(#uis-x)); dacă nici așa,
+       te oprești, păstrezi butonul și spui în propose_changes că poate ieși puțin tăiat.
+     - overlap, offscreen și celelalte clipped: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și
+       o spui în propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
        Nu anulezi ce a cerut omul pentru ele.
   3. propose_changes, o singură dată la final, cu un titlu scurt și ce s-a schimbat, pe înțeles. „keep” → finish;
      „undo” → rețeta a revenit deja, spui că ai înțeles și închei, fără să insiști.`;
