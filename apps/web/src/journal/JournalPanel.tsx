@@ -147,14 +147,29 @@ function RunSection({ run, journal, send, loadRun }: { run: RunView } & JournalP
           {loadError && <p role="alert">{loadError}</p>}
         </>
       )}
-      <ol className="journal-steps" aria-live="polite">
-        {run.steps.map((step) => (
-          <li key={step.index}>
-            <StepRow step={step} />
-          </li>
-        ))}
-      </ol>
+      {run.status === "running" ? (
+        <StepList steps={run.steps} />
+      ) : (
+        // După rulare, pașii se strâng sub un titlu: panoul nu mai acoperă pagina (proba lui E), dar bucla rămâne
+        // la un click distanță.
+        <details className="journal-steps-done">
+          <summary data-agent-id="journal-panel.steps">Pașii ({run.steps.length})</summary>
+          <StepList steps={run.steps} />
+        </details>
+      )}
     </section>
+  );
+}
+
+function StepList({ steps }: { steps: readonly AgentStep[] }) {
+  return (
+    <ol className="journal-steps" aria-live="polite">
+      {steps.map((step) => (
+        <li key={step.index}>
+          <StepRow step={step} />
+        </li>
+      ))}
+    </ol>
   );
 }
 

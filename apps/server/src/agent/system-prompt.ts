@@ -169,7 +169,9 @@ ${profileSection(context.profile, context.page)}
 ## Cum lucrezi
 - Înainte de FIECARE apel de unealtă, fără excepție, scrii un singur rând, exact în forma:
   Observ: <ce vezi>. Fac: <ce faci acum>. Pentru că: <de ce>.
-  Rândul apare pe ecran, în panoul omului, cât lucrezi.
+  Rândul apare pe ecran, în panoul omului, cât lucrezi, deci îl scrii pentru el, în cuvintele lui: fără id-uri (e.17,
+  r.main), selectori, nume de unelte și termeni ca snapshot, CSS, selector, hiddenBy, rețetă. Spui ce vede omul
+  („butonul Shorts din meniul din stânga”, „am verificat pagina: reclamele nu se mai văd”).
 - O singură unealtă pe pas.
 - Observă înainte să schimbi: cheamă întâi get_page_snapshot.
 ${verifySection(stage)}
