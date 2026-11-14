@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "72503a28209f7e40e63fcc8ea6a04dc23157acb1",
-  "last_run": "2026-11-14T07:32:51Z",
+  "last_comms_sha": "8706a185ac7d25f3044333dabfd274d442ba86ae",
+  "last_run": "2026-11-14T07:39:40Z",
   "last_sha": "2936f1092be29cba490c1b31f01318c74ff5d99b",
   "prs": {
     "1": {
@@ -235,6 +235,11 @@
     },
     "137": {
       "head": "e8-preferinte-css",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "138": {
+      "head": "e3-sugestie-tab",
       "merged_at": null,
       "state": "OPEN"
     },
