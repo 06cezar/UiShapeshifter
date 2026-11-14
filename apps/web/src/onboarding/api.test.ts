@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fetchProfile, isProfile, submitOnboarding } from "./api";
 import { skippedResult } from "./result";
+import { localWritesAfterTest } from "./storage-key";
 import { testProfile } from "./test-fixtures";
 
 const PROFILE = testProfile();
@@ -55,5 +56,18 @@ describe("submitOnboarding", () => {
     expect(url).toBe("http://localhost:8787/api/profile/demo-fresh/onboarding");
     expect(init.method).toBe("PUT");
     expect(JSON.parse(String(init.body))).toEqual({ skipped: true, answers: [] });
+    expect(init.signal).toBeInstanceOf(AbortSignal); // cu limită de timp: un server care atârnă nu blochează omul
+  });
+});
+
+describe("ce scrie pagina testului local, la final", () => {
+  it("rezultatul și profilul întors de server, sub userId, cum îl citește profilul local (E8)", () => {
+    expect(localWritesAfterTest("u-1", skippedResult(), PROFILE)).toEqual({
+      onboarding: skippedResult(),
+      "u-1": PROFILE,
+    });
+  });
+  it("fără server: doar rezultatul", () => {
+    expect(localWritesAfterTest("u-1", skippedResult(), null)).toEqual({ onboarding: skippedResult() });
   });
 });

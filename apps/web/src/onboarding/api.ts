@@ -6,6 +6,8 @@ import { API_URL } from "../server-url";
 
 /** Cât așteptăm profilul la pornire: un server care nu răspunde nu are voie să țină omul pe loc. */
 export const PROFILE_TIMEOUT_MS = 5000;
+/** Cât așteptăm salvarea: un server care atârnă nu are voie să țină omul pe „Salvez…”, cu „Omite” blocat. */
+export const SUBMIT_TIMEOUT_MS = 10_000;
 
 export async function fetchProfile(
   userId: string,
@@ -22,9 +24,11 @@ export async function submitOnboarding(
   userId: string,
   result: OnboardingResult,
   fetchFn: typeof fetch = fetch,
+  timeoutMs: number = SUBMIT_TIMEOUT_MS,
 ): Promise<UserProfile> {
   const res = await fetchFn(`${API_URL}/profile/${encodeURIComponent(userId)}/onboarding`, {
     method: "PUT",
+    signal: AbortSignal.timeout(timeoutMs),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(result),
   });

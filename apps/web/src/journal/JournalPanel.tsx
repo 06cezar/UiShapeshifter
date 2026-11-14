@@ -3,7 +3,7 @@
 // Mesajele vin în `journal` de la cine ține legătura cu serverul; `send` trimite `cancel_run` înapoi.
 // În extensie (D9) stă în shadow DOM-ul nostru, peste site; stilul e în journal-styles.ts.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "zustand";
 import type { AgentRun, AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
 import { activeRun, auditScores, revisionAtStep } from "./journal-store";
@@ -69,7 +69,9 @@ export function JournalPanel(props: JournalPanelProps) {
         <div className="journal-body">
           <ProposalBar journal={journal} />
           {replay ? <ReplayView journal={journal} /> : current ? <RunSection run={current} {...props} /> : null}
-          {props.revertToOriginal && <RevertToOriginal revert={props.revertToOriginal} />}
+          {props.revertToOriginal && (
+            <RevertToOriginal journal={journal} send={props.send} revert={props.revertToOriginal} />
+          )}
         </div>
       )}
     </aside>
@@ -253,19 +255,54 @@ function ReplayView({ journal }: { journal: JournalStore }) {
   );
 }
 
-/** „Revino la original”: site-ul arată din nou ca înainte de orice schimbare a noastră (golește rețeta). */
-function RevertToOriginal({ revert }: { revert: () => Promise<void> }) {
+/**
+ * „Revino la original”: site-ul arată din nou ca înainte de orice schimbare a noastră (golește rețeta).
+ * Merge și cât rulează agentul: întâi oprim rularea (altfel o unealtă aflată deja pe drum scrie la loc peste pagina
+ * golită), închidem propunerea deschisă, golim rețeta, iar când rularea chiar s-a oprit o golim încă o dată.
+ */
+function RevertToOriginal({
+  journal,
+  send,
+  revert,
+}: {
+  journal: JournalStore;
+  send: (message: ClientMessage) => void;
+  revert: () => Promise<void>;
+}) {
   const [done, setDone] = useState(false);
+  const [stoppingRunId, setStoppingRunId] = useState<string | null>(null);
+  const stoppingStatus = useStore(journal, (s) => s.runs.find((r) => r.runId === stoppingRunId)?.status);
+
+  useEffect(() => {
+    if (!stoppingRunId || stoppingStatus === "running") return;
+    setStoppingRunId(null);
+    void revert().then(() => setDone(true));
+  }, [stoppingRunId, stoppingStatus, revert]);
+
+  function revertNow() {
+    setDone(false);
+    const state = journal.getState();
+    const running = activeRun(state.runs);
+    if (running?.status === "running") {
+      state.markCancelRequested(running.runId);
+      send({ type: "cancel_run", runId: running.runId });
+      setStoppingRunId(running.runId);
+    }
+    // „Păstrez”, nu „Anulez”: anularea ar readuce revizia de la începutul rulării, adică exact ce vrem să scoatem.
+    if (state.proposal) state.decideProposal("keep");
+    void revert().then(() => setDone(true));
+  }
+
   return (
     <div className="journal-actions">
-      <button
-        type="button"
-        data-agent-id="journal-panel.revert-original"
-        onClick={() => void revert().then(() => setDone(true))}
-      >
+      <button type="button" data-agent-id="journal-panel.revert-original" onClick={revertNow}>
         Revino la original
       </button>
-      {done && <p role="status">Site-ul arată din nou ca la început.</p>}
+      {stoppingRunId ? (
+        <p role="status">Opresc agentul și readuc site-ul la început…</p>
+      ) : (
+        done && <p role="status">Site-ul arată din nou ca la început.</p>
+      )}
     </div>
   );
 }

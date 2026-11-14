@@ -199,6 +199,42 @@ describe("Onboarding", () => {
     expect(container.textContent).toContain("Cât de mari să fie butoanele?");
   });
 
+  it("dublu-click între ținte: al doilea click nu e o ratare la ținta nouă (review D)", async () => {
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const { fetchFn, sent } = fakeServer();
+    await renderOnboarding({ fetchFn, inputGuardMs: 400 });
+    for (const id of ["onboarding.next", "onboarding.font.20", "onboarding.contrast.normal"]) {
+      now += 500;
+      await click(id);
+    }
+    for (let target = 0; target < 5; target++) {
+      now += 500;
+      await tap("onboarding.touch.target"); // ținta din prima
+      if (target === 4) break; // după ultima țintă pasul s-a încheiat
+      now += 100;
+      await missTouchArea(); // al doilea click al dublu-click-ului, pe locul vechi
+    }
+    for (const id of ["onboarding.next", "onboarding.next", "onboarding.comfort.medium", "onboarding.voice.no"]) {
+      now += 500;
+      await click(id);
+    }
+    now += 500;
+    await click("onboarding.finish");
+    expect(sent[0].needs).toMatchObject({ minTargetPx: 44 }); // toate din prima, nu 72
+    expect(sent[0].answers).toContainEqual({ questionId: "touch.64.misses", answer: 0 });
+  });
+
+  it("pasul 5 are desen și text pe fiecare card, desenul ascuns pentru cititorul de ecran", async () => {
+    const { fetchFn } = fakeServer();
+    await renderOnboarding({ fetchFn });
+    for (const id of ["onboarding.next", "onboarding.font.20", "onboarding.contrast.normal"]) await click(id);
+    for (let i = 0; i < 5; i++) await tap("onboarding.touch.target");
+    const card = byId("onboarding.dislike.ai-features");
+    expect(card.querySelector(".onboarding__icon")?.getAttribute("aria-hidden")).toBe("true");
+    expect(card.textContent).toContain("Rezumate și butoane AI");
+  });
+
   it("serverul oprit, fără salvare locală: mesaj în română, fără textul tehnic", async () => {
     const onDone = vi.fn();
     await renderOnboarding({ fetchFn: offline(), onDone });
