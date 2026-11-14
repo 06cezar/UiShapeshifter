@@ -85,6 +85,33 @@ describe("dansul", () => {
 });
 
 describe("bula", () => {
+  test("think arată gândul cu „…” fără timp fix; null îl ascunde; un mesaj îl înlocuiește", async () => {
+    const { mascot, q } = await setup();
+    const bubble = q<HTMLElement>(".mascot-bubble");
+    mascot.think("Mă uit la pagină…");
+    expect(bubble.hidden).toBe(false);
+    expect(bubble.dataset.kind).toBe("thought");
+    expect(bubble.textContent).toBe("Mă uit la pagină");
+    expect(bubble.querySelectorAll(".mascot-dot")).toHaveLength(3);
+    mascot.think(null);
+    expect(bubble.hidden).toBe(true);
+    mascot.think("Caut butonul");
+    mascot.say("Gata.");
+    expect(bubble.dataset.kind).toBe("message");
+    mascot.think(null); // gândul gol nu ascunde un mesaj
+    expect(bubble.hidden).toBe(false);
+  });
+
+  test("un gând nu acoperă bula de la point_at", async () => {
+    const { mascot, q } = await setup();
+    const button = document.createElement("button");
+    document.body.append(button);
+    rectAt(button, 100, 100, 80, 40);
+    await mascot.pointAt(button, "Aici e butonul.");
+    mascot.think("Verific pagina");
+    expect(q<HTMLElement>(".mascot-bubble").textContent).toBe("Aici e butonul.");
+  });
+
   test("say arată mesajul și îl ascunde după timpul dat", async () => {
     vi.useFakeTimers();
     try {

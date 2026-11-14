@@ -146,6 +146,18 @@ function moveMascot(mascot: MascotController, server: ServerMessage) {
   else if (server.type === "error") mascot.setState("confused");
 }
 
+/**
+ * Bula mascotei ține pasul cu chatul: cât lucrează agentul, gândul lui (rândul de activitate, cu „…”); mesajele și
+ * rezumatul final ca mesaje. Cât arată un element (point_at), bula rămâne a lui.
+ */
+function mascotSpeech(mascot: MascotController, server: ServerMessage, activity: string | null) {
+  const pointing = mascot.state() === "pointing";
+  if (server.type === "run_started" || server.type === "step") mascot.think(activity);
+  else if (server.type === "agent_message" && server.text.trim() && !pointing) mascot.say(server.text.trim());
+  else if (server.type === "run_finished" && server.summary.trim() && !pointing) mascot.say(server.summary.trim());
+  else if (server.type === "run_finished" || server.type === "error") mascot.think(null);
+}
+
 let signals: SignalCollector | null = null;
 
 /** Elementele adăugate de agent (insertHtml, inject, wrap) au SHAPE_ATTR; ce e nou față de începutul rulării. */
@@ -340,6 +352,7 @@ function start() {
       }),
     say: (text) => {
       chat.handleServerMessage({ type: "agent_message", text, mascot: "speaking" });
+      if (mascot.state() !== "pointing") mascot.say(text);
       mascot.setState("speaking");
     },
     pointAt: (element, message) => mascot.pointAt(element, message),
@@ -420,6 +433,7 @@ function start() {
         return;
       }
       chat.handleServerMessage(server);
+      mascotSpeech(mascot, server, chat.state().activity);
       moveMascot(mascot, server);
       panel.journal.getState().handleServerMessage(server);
     });

@@ -95,6 +95,13 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   const voiceButton = container.querySelector<HTMLButtonElement>(".chat-voice")!;
   const optionsBox = container.querySelector<HTMLElement>(".chat-options")!;
 
+  // „…” al agentului la coada istoricului cât lucrează, ca într-un chat obișnuit. Decor (aria-hidden): rândul de
+  // activitate de sub istoric spune deja, ca text, ce face.
+  const typing = doc.createElement("p");
+  typing.className = "chat-typing";
+  typing.setAttribute("aria-hidden", "true");
+  typing.innerHTML = `<span class="chat-dot"></span><span class="chat-dot"></span><span class="chat-dot"></span>`;
+
   // Textele fixe se pun o singură dată, cu textContent.
   launcher.textContent = CHAT_TEXT.launcher;
   panel.setAttribute("aria-label", CHAT_TEXT.panelLabel);
@@ -142,7 +149,14 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
         bubble.textContent = message.text;
         log.append(bubble);
       }
+      log.append(typing);
       renderedLastId = lastId;
+      log.scrollTop = log.scrollHeight;
+    }
+    // Cât așteaptă răspunsul omului la o întrebare, nu se mai „gândește” agentul: e rândul omului.
+    const showTyping = state.working && !pendingAsk;
+    if (typing.hidden === showTyping) {
+      typing.hidden = !showTyping;
       log.scrollTop = log.scrollHeight;
     }
 
@@ -175,6 +189,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
     pendingAsk = null;
     optionsBox.replaceChildren();
     optionsBox.hidden = true;
+    render();
     resolve(answer);
   }
 
@@ -206,6 +221,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
         timer: setTimeout(() => finishAsk(null), ASK_TIMEOUT_MS),
         humanOnly: Boolean(opts.humanOnly),
       };
+      render();
     });
   }
 

@@ -39,6 +39,20 @@ export const CHAT_CSS = `
 .chat-bubble[data-role="user"] { align-self: flex-end; color: var(--uis-bg); background: var(--uis-accent); }
 .chat-bubble[data-role="agent"] { align-self: flex-start; background: color-mix(in srgb, var(--uis-fg) 14%, var(--uis-bg)); }
 .chat-bubble[data-error="true"] { border: 2px solid var(--uis-error); }
+.chat-typing {
+  margin: 0; align-self: flex-start; display: flex; gap: calc(var(--uis-space) / 2); align-items: center;
+  padding: calc(var(--uis-space) * 1.25) calc(var(--uis-space) * 1.5);
+  border-radius: calc(var(--uis-space) * 2); background: color-mix(in srgb, var(--uis-fg) 14%, var(--uis-bg));
+}
+.chat-typing[hidden] { display: none; }
+.chat-dot {
+  width: var(--uis-space); height: var(--uis-space); border-radius: 50%; background: var(--uis-muted);
+  animation: chat-dot 1.2s ease-in-out infinite;
+}
+.chat-dot:nth-child(2) { animation-delay: 0.15s; }
+.chat-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes chat-dot { 0%, 60%, 100% { opacity: 0.35; translate: 0 0; } 30% { opacity: 1; translate: 0 calc(var(--uis-space) / -2); } }
+@media (prefers-reduced-motion: reduce) { .chat-dot { animation: none; } }
 .chat-options { display: flex; flex-wrap: wrap; gap: var(--uis-space); }
 .chat-option {
   min-height: var(--uis-target); min-width: var(--uis-target); padding: 0 calc(var(--uis-space) * 1.5);
