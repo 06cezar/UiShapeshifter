@@ -12,8 +12,14 @@ import {
 } from "@uishapeshifter/contracts";
 import { WebSocket } from "ws";
 
-// uneltele care așteaptă omul (click, răspuns, Păstrez/Anulez) primesc mai mult timp decât restul
-const WAITS_FOR_HUMAN: ReadonlySet<ToolName> = new Set(["wait_for_user_click", "ask_user", "propose_changes"]);
+// uneltele care așteaptă omul (click, răspuns, Păstrez/Anulez, „Rulează” din modul expert) primesc mai mult timp
+// decât restul; run_js fără el pica la 15 s, cât omul încă citea codul
+const WAITS_FOR_HUMAN: ReadonlySet<ToolName> = new Set([
+  "wait_for_user_click",
+  "ask_user",
+  "propose_changes",
+  "run_js",
+]);
 // peste timeout-ul cerut de model, ca frontend-ul să apuce să răspundă el cu timedOut: true
 const CLICK_TIMEOUT_GRACE_MS = 2000;
 
@@ -35,7 +41,7 @@ export interface Session {
 
 const sessions = new Map<string, Session>();
 
-function timeoutFor(name: ToolName, args: unknown): number {
+export function timeoutFor(name: ToolName, args: unknown): number {
   if (name === "wait_for_user_click") {
     const asked = (args as { timeoutMs?: unknown } | null)?.timeoutMs;
     const wanted = typeof asked === "number" && asked > 0 ? asked : RUN_LIMITS.waitForClickMaxMs;
