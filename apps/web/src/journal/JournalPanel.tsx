@@ -184,7 +184,14 @@ function AuditScore({ steps }: { steps: readonly AgentStep[] }) {
   // Numărul problemelor, nu nota: pe site-urile mari nota stă la 0 și ascunde ce a reparat agentul (proba Iuliei).
   const counts = auditIssueCounts(steps);
   if (counts.before !== undefined) {
-    const news = counts.after === undefined ? "" : counts.introduced ? `, ${counts.introduced} noi` : ", niciuna nouă";
+    const news =
+      counts.after === undefined
+        ? ""
+        : !counts.introduced
+          ? ", niciuna nouă"
+          : counts.introduced === 1
+            ? ", 1 nouă"
+            : `, ${counts.introduced} noi`;
     return (
       <p className="journal-score">
         Probleme de accesibilitate: {counts.before}
