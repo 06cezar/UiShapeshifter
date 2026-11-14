@@ -5,9 +5,11 @@ import type { OnboardingResult } from "@uishapeshifter/contracts";
 import { RECIPE_KEY_PREFIX } from "../ui/recipes/recipe-store";
 import { EXCLUDED_SITES_KEY } from "./excluded-sites";
 
-export const ONBOARDING_KEY = "onboarding";
-export const ACCOUNT_KEY = "account";
-export const USER_ID_KEY = "userId";
+import { ACCOUNT_KEY } from "../sync/account-sync";
+import { ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
+
+// Cheile vin din locul unde sunt definite (nota lui D pe #91): o redenumire nu mai lasă resetarea în urmă.
+export { ACCOUNT_KEY, ONBOARDING_KEY, USER_ID_KEY };
 
 /** Profilul de demo (specs/08, „Profil de demo”): îl încărcăm ca rezultat al testului inițial. */
 export const DEMO_ONBOARDING: OnboardingResult = {
