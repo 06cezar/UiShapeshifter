@@ -74,6 +74,24 @@ export function pointPlacement(
   return { ...clampToViewport(choice, size, viewport, margin), facing: choice.facing };
 }
 
+/** Unde stă bula față de mascotă: dedesubt în loc de deasupra, lipită de marginea ei stângă în loc de cea dreaptă. */
+export interface BubblePlacement {
+  below: boolean;
+  alignLeft: boolean;
+}
+
+/**
+ * Bula stă de obicei deasupra mascotei și se întinde spre stânga (de la marginea ei dreaptă). Dacă așa ar ieși din
+ * ecran, trece dedesubt (când acolo e mai mult loc), respectiv se întinde spre dreapta (de la marginea stângă).
+ */
+export function bubblePlacement(mascot: Box, bubble: Size, viewport: Size, margin: number): BubblePlacement {
+  const roomAbove = mascot.y;
+  const roomBelow = viewport.height - (mascot.y + mascot.height);
+  const fitsAbove = roomAbove - bubble.height >= margin;
+  const leftEdgeIfRightAligned = mascot.x + mascot.width - bubble.width;
+  return { below: !fitsAbove && roomBelow > roomAbove, alignLeft: leftEdgeIfRightAligned < margin };
+}
+
 /** Un pas de mers spre țintă, de cel mult `maxStep` pixeli. */
 export function stepToward(from: Point, to: Point, maxStep: number): { point: Point; arrived: boolean } {
   const dx = to.x - from.x;

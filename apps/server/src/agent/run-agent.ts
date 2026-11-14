@@ -11,6 +11,7 @@ import {
   type ToolName,
   type ToolResult,
 } from "@uishapeshifter/contracts";
+import { createFailureGuard } from "./failure-guard";
 import { OpenRouterError } from "./openrouter";
 import { parseReasoning, withToolFallback } from "./reasoning";
 
@@ -44,6 +45,8 @@ export interface RunIO {
 const MAX_STEPS_SUMMARY = "M-am oprit după prea mulți pași. Am păstrat ce am reușit până acum.";
 const CANCELLED_SUMMARY = "Am oprit, cum ai cerut.";
 const CRASH_SUMMARY = "Am o problemă și m-am oprit. Încearcă din nou, te rog.";
+const pageChangedSummary = (from: string, to: string) =>
+  `Ai trecut de pe ${from} pe ${to} cât lucram, așa că m-am oprit ca să nu schimb site-ul greșit. Cere-mi din nou aici.`;
 // după reîncercările din openrouter.ts (specs/05, „Eșecuri”)
 const CONNECTION_SUMMARY = "Am o problemă de conexiune, încerc din nou imediat.";
 
@@ -63,9 +66,27 @@ function finishArgs(args: unknown): { summary: string; success: boolean } {
   };
 }
 
-export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Promise<AgentRun> {
+export interface RunOptions {
+  /** Site-ul de pe care a pornit cererea; dacă snapshot-ul arată alt site, rularea se oprește (pagină schimbată). */
+  host?: string;
+}
+
+/** Host-ul din rezultatul unui get_page_snapshot, dacă se poate citi. */
+function snapshotHost(name: ToolName, result: ToolResult): string | undefined {
+  if (name !== "get_page_snapshot" || !result.ok) return undefined;
+  const host = (result.data as { host?: unknown } | null)?.host;
+  return typeof host === "string" ? host : undefined;
+}
+
+export async function runAgent(
+  run: AgentRun,
+  decider: Decider,
+  io: RunIO,
+  options: RunOptions = {},
+): Promise<AgentRun> {
   let previous: PreviousStep | null = null;
   let lastRevision: number | undefined;
+  const guard = createFailureGuard();
 
   const end = async (status: AgentRun["status"], summary: string, mascot: MascotState) => {
     run.status = status;
@@ -90,10 +111,13 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
       if (decision.kind === "text") return await end("succeeded", decision.content.trim() || "Am terminat.", "happy");
 
       const startedAt = Date.now();
+      // un eșec deja văzut nu mai pleacă spre pagină; modelul primește în loc ce să facă altfel
       const result =
-        TOOL_RUNS_ON[decision.name] === "web"
+        guard.check(decision.name, decision.args) ??
+        (TOOL_RUNS_ON[decision.name] === "web"
           ? await io.callWebTool(decision.name, decision.args)
-          : await io.callServerTool(decision.name, decision.args);
+          : await io.callServerTool(decision.name, decision.args));
+      guard.record(decision.name, decision.args, result);
 
       const revisionAfter = recipeRevisionOf(result) ?? lastRevision;
       const step: AgentStep = {
@@ -112,6 +136,12 @@ export async function runAgent(run: AgentRun, decider: Decider, io: RunIO): Prom
       run.steps.push(step);
       await io.saveRun(run);
       io.send({ type: "step", step });
+
+      const seenHost = snapshotHost(decision.name, result);
+      if (options.host && seenHost && seenHost !== options.host) {
+        // omul a plecat pe alt site în timpul rulării: rețeta e a site-ului de la început, nu mai schimbăm nimic
+        return await end("failed", pageChangedSummary(options.host, seenHost), "confused");
+      }
 
       if (decision.name === "finish" && result.ok) {
         const { summary, success } = finishArgs(decision.args);

@@ -60,7 +60,7 @@ validează: litere, cifre, `.`, `-`, fiindcă ajunge în calea fișierului rețe
 | `PUT /api/recipes/:userId/:host` | `SiteRecipe` | `{ revision }` |
 | `DELETE /api/recipes/:userId/:host` | – | `{ ok: true }` („Revino la original”) |
 | `POST /api/accounts/register`, `/login` | `RegisterRequest` / `LoginRequest` | `AuthResult` |
-| `GET /api/sync` (Bearer) | – | `SyncBundle` (profil + rețete) |
+| `GET /api/sync` (Bearer) | – | `SyncBundle` (profil + rețete + `history?`, istoricul pe site) |
 | `PUT /api/sync` (Bearer) | `SyncBundle` | `{ updatedAt }` |
 
 Rețetele pe server sunt copia pentru cine are cont (sincronizare pe alt dispozitiv, etapa 4); sursa pentru reaplicare e

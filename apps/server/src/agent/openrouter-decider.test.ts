@@ -155,6 +155,7 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("- fără rezumate AI\n");
     expect(system).toContain("- fără clipuri scurte (deja aplicată pe acest site)");
     expect(system).toContain("/generalPreferences/-");
+    expect(system).toContain("DOAR când omul o spune limpede"); // nu orice cerere devine preferință generală (#64)
     expect((sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name)).toContain(
       "update_profile",
     );

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { HOST_ID, mountOurRoot } from "../extension/shadow-root";
-import type { SpriteAnimation } from "./animations";
+import { DANCE_MS, type SpriteAnimation } from "./animations";
 import type { Facing } from "./geometry";
 import { mountMascot, type MascotController } from "./mascot";
 import type { MascotRenderer } from "./renderer-sprite";
@@ -75,7 +75,7 @@ describe("dansul", () => {
       const { mascot, fake } = await setup();
       mascot.setState("happy");
       expect(fake.played.at(-1)).toBe("dance");
-      vi.advanceTimersByTime(4_501); // DANCE_MS: trei ture de dans
+      vi.advanceTimersByTime(DANCE_MS + 1);
       expect(mascot.state()).toBe("idle");
       expect(fake.played.at(-1)).toBe("idle");
     } finally {
@@ -163,6 +163,20 @@ describe("point_at", () => {
     await mascot.pointAt(search, "Aici cauți alt articol.");
 
     expect(q<HTMLElement>(".mascot").dataset.bubbleBelow).toBe("true");
+  });
+
+  test("un element lat, cu mascota în stânga lui: bula se întinde spre dreapta, ca să nu iasă din ecran", async () => {
+    const { mascot, q } = await setup();
+    expect(q<HTMLElement>(".mascot").dataset.bubbleAlign).toBe("right"); // acasă, în dreapta
+    rectAt(q(".mascot-bubble"), 0, 0, 264, 60); // happy-dom nu măsoară: bula are 264 px, mai lată decât mascota
+    const search = document.createElement("input");
+    document.body.append(search);
+    rectAt(search, 200, 300, 750, 40); // nu mai e loc în dreapta lui
+
+    await mascot.pointAt(search, "Aici cauți alt articol.");
+
+    expect(q<HTMLElement>(".mascot").style.transform).toBe("translate(64px, 264px)");
+    expect(q<HTMLElement>(".mascot").dataset.bubbleAlign).toBe("left");
   });
 
   test("release ascunde conturul și o întoarce în colț", async () => {
