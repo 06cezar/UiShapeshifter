@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "55d466f4bb5d653bdfb7a8837ea0c366d78c6d6a",
-  "last_run": "2026-11-14T05:56:23Z",
+  "last_run": "2026-11-14T05:56:45Z",
   "last_sha": "e51ba63f763980795cdfb4c001c838ab563ef0c0",
   "prs": {
     "1": {
@@ -155,8 +155,8 @@
     },
     "122": {
       "head": "a-fallback-sonnet",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T05:56:42Z",
+      "state": "MERGED"
     },
     "13": {
       "head": "d-comms-block-review",
