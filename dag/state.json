@@ -25,8 +25,8 @@
       }
     }
   },
-  "last_comms_sha": "a8ff1d2ad690eb26be4af8c2a4c0e4e264e92f20",
-  "last_run": "2026-11-14T10:43:45Z",
+  "last_comms_sha": "745b7aaeb86fb710ba10af1c5811eae18f458d64",
+  "last_run": "2026-11-14T10:43:56Z",
   "last_sha": "5ff25be9cbf24cd5a877da5e11ae5c5af8fa2498",
   "prs": {
     "1": {
@@ -376,6 +376,11 @@
     },
     "161": {
       "head": "d-panou-probleme-2",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "162": {
+      "head": "d-chat-port-pierdut",
       "merged_at": null,
       "state": "OPEN"
     },
