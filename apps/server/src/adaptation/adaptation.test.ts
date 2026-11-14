@@ -194,12 +194,16 @@ describe("motorul", () => {
     assert.equal(suggestions().length, 1);
     assert.equal(suggestions()[0]?.trigger, "general-preferences");
     assert.match(suggestions()[0]!.text, /fără rezumate AI/);
+    // Bula pierdută sau ignorată revine după pauză (proba Iuliei: bula a apărut în alt tab și nu mai venea).
+    clock += COOLDOWN_MS + 1;
+    await e.onSignals(USER, [], PAGE);
+    assert.equal(suggestions().length, 2, "după pauză se propune din nou pe același site");
 
-    await e.onDecision(USER, suggestions()[0]!.id, "accept");
+    await e.onDecision(USER, suggestions().at(-1)!.id, "accept");
     const after = await store.get(USER);
     assert.deepEqual(after.generalPreferences?.[0]?.appliedOn, ["alt.ro", "localhost"], "„Da” notează site-ul singur");
     assert.equal(runs.length, 1);
     await engine().onSignals(USER, [], PAGE);
-    assert.equal(suggestions().length, 1, "pe același site nu se mai propune, nici după repornire");
+    assert.equal(suggestions().length, 2, "după „Da”, pe același site nu se mai propune, nici după repornire");
   });
 });
