@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "2924481e4ea2354eaa7039d1d4d81531e8f7aafe",
-  "last_run": "2026-11-14T00:01:18Z",
+  "last_comms_sha": "b636dba967a9f09ebc0318b0b0c819c9e0e5a06e",
+  "last_run": "2026-11-14T00:03:58Z",
   "last_sha": "09da074dc6c7289ab35871ebcccaac39a284b9fa",
   "prs": {
     "1": {
@@ -305,8 +305,8 @@
     },
     "60": {
       "head": "a6-context-profil",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:03:58Z",
+      "state": "MERGED"
     },
     "61": {
       "head": "d-revino-in-rulare",
@@ -335,7 +335,7 @@
     "A3": "done",
     "A4": "progress",
     "A5": "progress",
-    "A6": "progress",
+    "A6": "done",
     "B1": "done",
     "B2": "done",
     "B3": "done",
@@ -368,7 +368,7 @@
     "M0": "done",
     "M1": "done",
     "M2": "done",
-    "M3": "wait",
+    "M3": "ready",
     "M4": "wait"
   }
 }
