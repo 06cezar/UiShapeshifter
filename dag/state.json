@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "713e39aa1a213575686646b46f39bd4adc828dbf",
-  "last_run": "2026-11-14T08:10:21Z",
+  "last_comms_sha": "ad412e346e0504568849978519d25eff205ad689",
+  "last_run": "2026-11-14T08:14:10Z",
   "last_sha": "fb5e3ec30f39d434f00e393537c3bc83e319755b",
   "prs": {
     "1": {
@@ -260,6 +260,11 @@
     },
     "141": {
       "head": "d-limite-agent",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "142": {
+      "head": "a-limitele-agentului",
       "merged_at": null,
       "state": "OPEN"
     },
