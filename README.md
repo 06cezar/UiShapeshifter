@@ -170,7 +170,7 @@ raportează, nu se ghicește.
 
 ## Echipa
 
-A Mihnea · B Ștefan R. · C Adelin · D Cezar (lider) · E Iulia
+A Mihnea · B Ștefan · C Adelin · D Cezar · E Iulia
 
 ## Atribuiri
 
