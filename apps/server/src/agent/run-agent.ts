@@ -44,6 +44,19 @@ export interface RunIO {
 
 const MAX_STEPS_SUMMARY = "M-am oprit după prea mulți pași. Am păstrat ce am reușit până acum.";
 const CANCELLED_SUMMARY = "Am oprit, cum ai cerut.";
+const UNDONE_SUMMARY = "Am pus pagina înapoi, cum ai ales.";
+
+/** „keep” / „undo” dacă ultimul pas a fost o propunere la care omul a răspuns. */
+function proposalDecision(previous: PreviousStep | null): "keep" | "undo" | undefined {
+  if (previous?.name !== "propose_changes" || !previous.result.ok) return undefined;
+  const decision = (previous.result.data as { decision?: unknown } | undefined)?.decision;
+  return decision === "keep" || decision === "undo" ? decision : undefined;
+}
+
+function proposalSummary(previous: PreviousStep | null): string {
+  const summary = (previous?.args as { summary?: unknown } | undefined)?.summary;
+  return typeof summary === "string" && summary.trim() ? summary.trim() : "Gata, ai păstrat schimbarea.";
+}
 const CRASH_SUMMARY = "Am o problemă și m-am oprit. Încearcă din nou, te rog.";
 const pageChangedSummary = (from: string, to: string) =>
   `Ai trecut de pe ${from} pe ${to} cât lucram, așa că m-am oprit ca să nu schimb site-ul greșit. Cere-mi din nou aici.`;
@@ -149,6 +162,11 @@ export async function runAgent(
       }
       previous = { name: decision.name, args: decision.args, result };
     }
+    // Pașii s-au terminat chiar după propunere: omul a ales deja Păstrez sau Anulez, deci rularea e încheiată, nu
+    // eșuată (repetiția demo-ului: reparația antetului lua pași, iar finish nu mai încăpea).
+    const decided = proposalDecision(previous);
+    if (decided === "keep") return await end("succeeded", proposalSummary(previous), "happy");
+    if (decided === "undo") return await end("succeeded", UNDONE_SUMMARY, "idle");
     return await end("failed", MAX_STEPS_SUMMARY, "confused");
   } catch (error) {
     if (error instanceof OpenRouterError) {

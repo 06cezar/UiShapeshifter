@@ -153,6 +153,24 @@ describe("runAgent, eșecurile din specs/05 (A4)", () => {
     expect(run.summary).toContain("prea mulți pași");
   });
 
+  it("maxSteps chiar după propunerea păstrată: rularea reușește, cu rezumatul propunerii", async () => {
+    const { io } = fakeIO({
+      callWebTool: async (name) =>
+        name === "propose_changes" ? { ok: true, data: { proposalId: "p", decision: "keep" } } : { ok: true, data: {} },
+    });
+    let n = 0;
+    const decider: Decider = {
+      model: "test",
+      decide: async () =>
+        ++n < 15
+          ? toolCall("get_page_snapshot", { regionId: `r.${n}` })
+          : toolCall("propose_changes", { title: "Buton", summary: "Am pus butonul în antet.", risk: "low" }),
+    };
+    const run = await runAgent(newRun(), decider, io);
+    expect(run.status).toBe("succeeded");
+    expect(run.summary).toBe("Am pus butonul în antet.");
+  });
+
   it("OpenRouter nu răspunde (după reîncercări): mesaj de conexiune și oprire curată", async () => {
     const { io, sent } = fakeIO();
     const decider: Decider = {
