@@ -382,3 +382,30 @@ describe("etichetele pe un rând rămân la locul lor (YouTube și Instagram, g�
     expect(ours("rand", "line-height")).toBe(false);
   });
 });
+
+describe("conținutul încărcat mai târziu e verificat împreună cu vecinii (Google, găsit de E)", () => {
+  it("adresa mărită la încărcare revine când linkul «Traducerea acestei pagini» apare și crește peste ea", async () => {
+    page(
+      `<div id="rezultat"><div id="rand"><cite id="adresa" style="font-size: 12px">https://www.wikipedia.org</cite></div></div>`,
+    );
+    layout("adresa", (c) => new DOMRect(124, 334, (135 * px(c.style.fontSize, 12)) / 12, 18));
+    base = startBasePreferences({ needs: { minFontPx: 20 }, ourHostId: HOST_ID });
+    expect(fontOf("adresa")).toBe(20); // singură pe rând, la încărcare: nimic de acoperit
+
+    // linkul apare după încărcare, aliniat la dreapta rândului: crescut, se întinde spre stânga, peste adresă
+    const link = document.createElement("a");
+    link.id = "traducere";
+    link.href = "/t";
+    link.style.fontSize = "12px";
+    link.textContent = "Traducerea acestei pagini";
+    el("rand").append(link);
+    layout("traducere", (t) => {
+      const width = (120 * px(t.style.fontSize, 12)) / 12;
+      return new DOMRect(520 - width, 334, width, 18);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(fontOf("traducere")).toBe(20);
+    expect(fontOf("adresa")).toBe(12); // ca la o trecere întreagă: adresa nu mai stă sub link
+  });
+});
