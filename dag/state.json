@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "9c74746983bef6e074514ea61abb7f9766117c82",
-  "last_run": "2026-11-14T01:55:38Z",
-  "last_sha": "a614f0e3c77596e07a11f25096ef1f34f7a3e60d",
+  "last_comms_sha": "bf066148c0713c39bbb1f55117f6497f400a852e",
+  "last_run": "2026-11-14T01:56:29Z",
+  "last_sha": "a5d361e5601e2dba889cc0435a93672c28f41c63",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -390,8 +390,8 @@
     },
     "76": {
       "head": "e-profil-data-dir",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T01:56:25Z",
+      "state": "MERGED"
     },
     "77": {
       "head": "d-istoric-cereri",
