@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "998dd27d03b5c91ad4270241df1a3e927eabe3a7",
-  "last_run": "2026-11-14T00:40:57Z",
+  "last_run": "2026-11-14T00:42:21Z",
   "last_sha": "7eb88a6a88272a15d330bffe161d31cdb559ecaf",
   "prs": {
     "1": {
@@ -360,6 +360,16 @@
     },
     "70": {
       "head": "d2-dans",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "71": {
+      "head": "a4-esecuri",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "72": {
+      "head": "a5-retete",
       "merged_at": null,
       "state": "OPEN"
     },
