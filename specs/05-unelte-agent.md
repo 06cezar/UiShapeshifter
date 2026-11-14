@@ -69,7 +69,7 @@ repară singur fără un snapshot în plus: un selector care nu a găsit nimic a
 ## Uneltele etapelor 2 și 3
 
 Modelul primește uneltele etapei la care e extensia (`siteToolDefinitions(stage)`, `site-tool-definitions.ts`): etapa 2 adaugă
-`apply_ops`, `point_at`, `wait_for_user_click`, `ask_user`, `propose_changes`, `audit_ui`; etapa 3 adaugă `get_profile` și
+`apply_ops`, `point_at`, `wait_for_user_click`, `ask_user`, `propose_changes`, `undo_request`, `audit_ui`; etapa 3 adaugă `get_profile` și
 `update_profile`.
 
 | Unealtă | Unde | Ce face | Erori tipice și ce face agentul |
@@ -79,6 +79,7 @@ Modelul primește uneltele etapei la care e extensia (`siteToolDefinitions(stage
 | `wait_for_user_click` | web | așteaptă click-ul | `TIMEOUT` → întreabă dacă are nevoie de ajutor |
 | `ask_user` | web | întrebare cu variante, în bula mascotei | `USER_CANCELLED` |
 | `propose_changes` | web | arată schimbările rulării cu Păstrez / Anulez; fără `ops` | decizia `undo` → rețeta revine la revizia dinainte; notează în profil, nu insistă |
+| `undo_request` | web | scoate o singură cerere de mai demult din rețetă (`requestId` din `recipe.requests` din snapshot); cele de dinainte și de după rămân | `INVALID_ARGS` (cerere necunoscută sau prea veche, ieșită din istoric) → spune omului și propune „Revino la original” |
 | `audit_ui` | web | raportul de accesibilitate pe pagină (`07`); `{ regionId? }` verifică doar o zonă | repară doar `issues` cu `introduced: true`: cu `fixCss` → `apply_css` (append); fără `fixCss` → decide agentul; `regionId` necunoscut → `ELEMENT_NOT_FOUND` |
 | `get_profile` | server | profilul (nevoi, preferințe generale, site-uri familiare) | – |
 | `update_profile` | server | fapte (cu dovezi) și preferințe generale | `INVALID_ARGS` (fapt fără dovezi) |

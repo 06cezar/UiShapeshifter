@@ -46,6 +46,14 @@ export interface PageElement {
   hiddenBy?: "recipe" | "site";
 }
 
+/** O cerere a omului din istoricul rețetei (`requestHistory`, apps/web/src/validation/undo-request.ts). */
+export interface RecipeRequest {
+  requestId: string;
+  /** Ce a cerut omul, din prima revizie a cererii. */
+  reason: string;
+  at: string;
+}
+
 export interface PageSnapshot {
   url: string;
   host: string;
@@ -55,7 +63,10 @@ export interface PageSnapshot {
   elements: PageElement[];
   /** true dacă pagina avea mai multe elemente decât `maxElements`; agentul cere o zonă anume. */
   truncated: boolean;
-  /** Rețeta aplicată acum, ca agentul să știe ce a schimbat deja (css tăiat la `maxRecipeCssChars`). */
-  recipe: { revision: number; css: string };
+  /**
+   * Rețeta aplicată acum, ca agentul să știe ce a schimbat deja (css tăiat la `maxRecipeCssChars`).
+   * `requests`: cererile omului care au încă efect pe site, în ordine (pentru `undo_request`); lipsește dacă nu e niciuna.
+   */
+  recipe: { revision: number; css: string; requests?: RecipeRequest[] };
   takenAt: string;         // ISO
 }
