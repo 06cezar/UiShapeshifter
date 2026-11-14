@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "aaed5809563bb2551273d92dc4710962fe39c104",
-  "last_run": "2026-11-14T03:41:46Z",
+  "last_comms_sha": "12f6d60e49d93da2afdd181a236a358a90ec4f3a",
+  "last_run": "2026-11-14T03:43:40Z",
   "last_sha": "19eb330248d958830145ceb38632d7ca3ff63894",
   "prs": {
     "1": {
@@ -510,6 +510,11 @@
     },
     "98": {
       "head": "a-mesaje-fara-jargon",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "99": {
+      "head": "e-ui-nu-acopera",
       "merged_at": null,
       "state": "OPEN"
     }
