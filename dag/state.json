@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "ab94ec38e4d3ccae7041748cb1b7ec6a00bd1777",
-  "last_run": "2026-11-14T02:06:17Z",
+  "last_run": "2026-11-14T02:07:31Z",
   "last_sha": "055b734069a5f1e62f5cce3bf05825415585b0c4",
   "prs": {
     "1": {
@@ -335,8 +335,8 @@
     },
     "66": {
       "head": "e3-adaptare",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T02:07:29Z",
+      "state": "MERGED"
     },
     "67": {
       "head": "a6-preferinta-doar-peste-tot",
@@ -504,7 +504,7 @@
     "D9": "done",
     "E1": "done",
     "E2": "done",
-    "E3": "progress",
+    "E3": "done",
     "E4": "wait",
     "E5": "done",
     "E6": "progress",
