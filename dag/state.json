@@ -26,7 +26,7 @@
     }
   },
   "last_comms_sha": "983a704094a46f9b57619623bf5631b39cccd4c1",
-  "last_run": "2026-11-14T10:28:27Z",
+  "last_run": "2026-11-14T10:31:56Z",
   "last_sha": "254c64b47e4f32a5493b7d1a694e50100bb8b86f",
   "prs": {
     "1": {
@@ -341,6 +341,11 @@
     },
     "155": {
       "head": "d-facturi-descarcabile",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "156": {
+      "head": "d-pitch-future",
       "merged_at": null,
       "state": "OPEN"
     },
