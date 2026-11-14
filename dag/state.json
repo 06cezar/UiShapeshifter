@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "d5fe23c466a43da098e8c78266993ca080c766b4",
-  "last_run": "2026-11-14T02:49:27Z",
-  "last_sha": "e15d6daf369a48b090fda57592980aa9bce12242",
+  "last_comms_sha": "8820a3110941fb8615170a793e52d898582c1910",
+  "last_run": "2026-11-14T02:50:22Z",
+  "last_sha": "5e6851a1530573b80e147ef7de6297f96461838b",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -485,8 +485,8 @@
     },
     "93": {
       "head": "a-garda-args",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T02:50:12Z",
+      "state": "MERGED"
     },
     "94": {
       "head": "a-prompt-arata-butonul",
