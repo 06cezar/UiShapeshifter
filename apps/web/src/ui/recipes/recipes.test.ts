@@ -38,7 +38,8 @@ function newEngine(options: Parameters<typeof createRecipeEngine>[0]): RecipeEng
 
 afterEach(() => {
   engines.splice(0).forEach((engine) => engine.dispose());
-  document.getElementById(RECIPE_STYLE_ID)?.remove();
+  // Foile noastre stau acum la capătul lui <html>; le scoatem pe toate (și pe cele „ale site-ului” din teste).
+  document.querySelectorAll("style").forEach((sheet) => sheet.remove());
   document.body.innerHTML = "";
 });
 
@@ -156,7 +157,7 @@ describe("reaplicarea și „Revino la original”", () => {
     early.remove();
   });
 
-  test("după mutare, foile noastre (mișcarea redusă, ce te deranjează) rămân ultimele, în aceeași ordine", async () => {
+  test("după mutare, foile noastre (mișcarea redusă, ce te deranjează) rămân ultimele: ce te deranjează, apoi mișcarea redusă", async () => {
     const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
     await engine.load();
     await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
@@ -175,8 +176,8 @@ describe("reaplicarea și „Revino la original”", () => {
     expect(order.slice(-4)).toEqual([
       "iotd-lite-bg",
       RECIPE_STYLE_ID,
-      "uishapeshifter-base",
       "uishapeshifter-dislikes",
+      "uishapeshifter-base",
     ]);
     [late, ...ours].forEach((sheet) => sheet.remove());
   });
@@ -209,6 +210,80 @@ describe("reaplicarea și „Revino la original”", () => {
     const sheets = [...document.querySelectorAll("style")].map((s) => s.id);
     expect(sheets.indexOf(RECIPE_STYLE_ID)).toBeLessThan(sheets.indexOf("uishapeshifter-dislikes"));
     ours.remove();
+  });
+});
+
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+/** Foaia unui modul de-al nostru (ce te deranjează, mișcarea redusă), pusă în <head> cum o pune modulul. */
+function ourSheet(id: string): HTMLStyleElement {
+  const sheet = document.createElement("style");
+  sheet.id = id;
+  document.head.append(sheet);
+  return sheet;
+}
+
+describe("foile noastre rămân ultimele fără să intre în containerele site-ului", () => {
+  test("site-ul își înlocuiește containerul cu foaia lui: foile noastre nu dispar odată cu el", async () => {
+    const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
+    const dislikes = ourSheet("uishapeshifter-dislikes");
+    await tick();
+    document.body.innerHTML = `<div id="widget"><style id="iotd-lite-bg">#cover{color:red}</style></div>`;
+    await tick();
+    document.getElementById("widget")!.remove(); // re-randare: site-ul își scoate containerul
+    await tick();
+    expect(document.getElementById(RECIPE_STYLE_ID)?.textContent).toContain("#cover");
+    expect(document.getElementById("uishapeshifter-dislikes")).not.toBeNull();
+    dislikes.remove();
+  });
+
+  test("un <style> din interiorul unui element nou (innerHTML) e prins: rețeta trece după el", async () => {
+    const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
+    const widget = document.createElement("div");
+    widget.innerHTML = `<style id="iotd-lite-bg">#cover{background-image:url(x)!important}</style>`;
+    document.body.append(widget);
+    await tick();
+    const order = [...document.querySelectorAll("style")].map((s) => s.id);
+    expect(order.indexOf(RECIPE_STYLE_ID)).toBeGreaterThan(order.indexOf("iotd-lite-bg"));
+  });
+
+  test("o foaie de-a noastră adăugată în <head> după ce rețeta a fost mutată ajunge tot după rețetă", async () => {
+    const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
+    document.body.innerHTML = `<style id="iotd-lite-bg">#cover{color:red}</style>`;
+    await tick();
+    const base = ourSheet("uishapeshifter-base");
+    await tick();
+    const order = [...document.querySelectorAll("style")].map((s) => s.id);
+    expect(order.indexOf("uishapeshifter-base")).toBeGreaterThan(order.indexOf(RECIPE_STYLE_ID));
+    base.remove();
+  });
+
+  test("altă extensie care își ține și ea foaia ultima: mutările se opresc după limită (fără buclă)", async () => {
+    const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
+    const rival = document.createElement("style");
+    rival.id = "alta-extensie";
+    let rivalMoves = 0;
+    const MAX_RIVAL_MOVES = 200;
+    // „Cealaltă extensie”: de câte ori nu mai e ultima, se mută la capăt.
+    const rivalObserver = new MutationObserver(() => {
+      if (document.documentElement.lastElementChild !== rival && rivalMoves < MAX_RIVAL_MOVES) {
+        rivalMoves++;
+        document.documentElement.append(rival);
+      }
+    });
+    rivalObserver.observe(document.documentElement, { childList: true, subtree: true });
+    document.documentElement.append(rival);
+    for (let i = 0; i < 50; i++) await tick();
+    rivalObserver.disconnect();
+    expect(rivalMoves).toBeLessThan(MAX_RIVAL_MOVES);
+    rival.remove();
   });
 });
 
