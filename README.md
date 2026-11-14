@@ -52,10 +52,17 @@ site, reluarea unei rulări pas cu pas și **„Revino la original”** pentru o
 
 ## Siguranța
 
-- **Agentul nu rulează cod.** Scrie CSS și bucăți de HTML, mută, împachetează și scoate elemente. Totul trece prin
-  validare (fără JavaScript, fără `url()`/`@import`, fără atribute `on*`). JavaScript generat de model nu se execută.
-- **Singura excepție e Modul expert** (experiment, oprit implicit): agentul poate propune un comportament în JavaScript
-  (de exemplu „citește-mi articolul”), iar codul rulează doar după ce omul îl vede și apasă **Rulează**.
+- **În afara Modului expert, agentul nu rulează cod.** Scrie CSS și bucăți de HTML, mută, împachetează și scoate
+  elemente. Totul trece prin validare (fără JavaScript, fără `url()`/`@import`, fără atribute `on*`).
+- **Modul expert** (experiment) e singurul loc unde agentul poate propune un comportament în JavaScript (de exemplu
+  „citește-mi articolul”). Are mai multe plase:
+  - e oprit implicit, și în extensie, și pe server (`AGENT_JS=1`);
+  - codul cu rețea, cookie-uri sau stocare (`fetch`, `document.cookie`, `localStorage` etc.) e refuzat înainte să-l
+    vadă omul;
+  - codul rulează doar după ce omul îl citește și apasă **Rulează**; aprobarea stă într-un shadow root închis, deci
+    pagina nu o poate da în locul omului.
+
+  Plasele nu sunt o garanție: garanția e omul care vede codul ([`specs/05`](specs/05-unelte-agent.md)).
 - **Limite tari de accesibilitate** (`HARD_LIMITS`): font minim 16px (mai mare din profil), ținte de cel puțin 44px,
   contrast WCAG. Fontul minim se aplică ultimul, peste orice a scris agentul.
 - **Ascultă doar de tine:** textul site-ului e doar informație pentru agent. O preferință generală nouă intră în profil
@@ -91,7 +98,7 @@ Copiază `apps/server/.env.example` în `apps/server/.env` și completează:
 |---|---|
 | `OPENROUTER_API_KEY` | cheia OpenRouter (doar aici, niciodată în git) |
 | `OPENROUTER_MODEL` | gol = Claude Opus 5.5; Claude Haiku 5.5 e mult mai ieftin pentru repetiții |
-| `AGENT_FAKE` | `0` pentru modelul real; `1` = agent fals, fără rețea (rezervă) |
+| `AGENT_FAKE` | în exemplu e `1` (agent fals, fără rețea); pune `0` pentru modelul real |
 | `AGENT_STAGE` | `3`: toate uneltele, inclusiv profilul |
 | `AGENT_JS` | `1` pornește Modul expert pe server (în extensie se pornește separat) |
 | `ADAPT_DEMO` | `1`: adaptarea automată pornește după 2 click-uri ratate în loc de 3 |
@@ -119,6 +126,8 @@ Serverul e pe http://localhost:8787 (`/api/health`), site-ul de test pe http://l
 3. Se deschide testul inițial. După el, pe orice site apare ratonul; scrie-i sau vorbește-i în bulă.
 4. Butonul extensiei din bara Chrome: „Nu schimba acest site”, „Revino la original”, contul, Modul expert și
    **„Resetează demo-ul”** (profil, rețete și rulări de la zero).
+   Modul expert cere în plus Chrome 138 sau mai nou și comutatorul **„Allow User Scripts”** din detaliile extensiei
+   (`chrome://extensions` → Details); fără el, codul nu poate rula.
 5. După o reconstruire, apasă ↻ pe cardul extensiei și reîncarcă pagina.
 
 ### Verificări
