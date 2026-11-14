@@ -1,3 +1,3 @@
-2026-11-14 01:21
+2026-11-14 02:09
 
-C: C1–C5 unite; #54 (reparații C3) și #56 (fals pozitiv overlap) unite; pagina testului o leagă E (e-onboarding-legat) pentru M3; blocat: nimic
+gata: C1-C5, #58 carusel; în lucru: #64 paza pentru scope (pagina/site/toate site-urile); urmează: răspunsurile lui D, A, B, E; blocat: nimic
