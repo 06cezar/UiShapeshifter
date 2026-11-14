@@ -21,7 +21,7 @@ import { SHAPE_ATTR } from "../ui/recipes/dom-ops";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { isExcluded } from "./excluded-sites";
-import { keepClearOfSiteFixed, startReservingSpace, type Placed } from "./reserve-space";
+import { keepClearOfSiteFixed } from "./keep-clear";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { measurePage, type PageMeasure } from "./measure";
@@ -124,32 +124,6 @@ function moveMascot(mascot: MascotController, server: ServerMessage) {
 
 let signals: SignalCollector | null = null;
 
-/**
- * Unde stă interfața noastră acum: panoul, chatul (deschis sau doar butonul) și mascota. Mascota se plimbă când arată
- * ceva; rezervăm locul ei de acasă (jos în dreapta), ca marginea paginii să nu sară după ea.
- */
-function ourBoxes(shadow: ShadowRoot): Placed[] {
-  const placed: Placed[] = [];
-  const add = (selector: string, side: Placed["side"]) => {
-    const element = shadow.querySelector(selector);
-    if (element && element.getClientRects().length > 0) placed.push({ box: element.getBoundingClientRect(), side });
-  };
-  // Panoul nu împinge pagina: la fonturi mari site-ul strâns lângă el își strică aspectul (proba cu Iulia). Are „Ascunde”.
-  // Chatul deschis nu împinge pagina: e mic, stă jos și se închide după cerere; o coloană întreagă ar fi goală.
-  add(".chat-launcher", "bottom");
-  const mascot = shadow.querySelector<HTMLElement>(".mascot");
-  if (mascot && mascot.offsetWidth > 0) {
-    const box = {
-      left: innerWidth - mascot.offsetWidth,
-      right: innerWidth,
-      top: innerHeight - mascot.offsetHeight,
-      bottom: innerHeight,
-    };
-    placed.push({ box, side: "bottom" });
-  }
-  return placed;
-}
-
 /** Elementele adăugate de agent (insertHtml, inject, wrap) au SHAPE_ATTR; ce e nou față de începutul rulării. */
 function addedShapeIds(): Set<string> {
   return new Set([...document.querySelectorAll(`[${SHAPE_ATTR}]`)].map((element) => element.getAttribute(SHAPE_ATTR)!));
@@ -221,8 +195,6 @@ function start() {
   /** Elementele adăugate care existau la începutul rulării: la propunere arătăm doar ce e nou. */
   const shapesAtStart = new Map<string, Set<string>>();
 
-  // Interfața noastră nu stă peste textul site-ului: pagina îi face loc pe margine (proba cu Iulia, 14 nov.).
-  startReservingSpace(() => ourBoxes(ourRoot.shadow), ourRoot.shadow);
   // Butoanele fixe ale site-ului nu se mută cu marginea: chatul nostru urcă deasupra lor, nu stă peste ele.
   const chatBox = ourRoot.shadow.querySelector<HTMLElement>(".chat");
   if (chatBox) keepClearOfSiteFixed(chatBox, ourRoot.host);
