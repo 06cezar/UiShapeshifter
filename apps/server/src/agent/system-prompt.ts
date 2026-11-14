@@ -112,7 +112,8 @@ function expertModeSection(on: boolean | undefined): string {
 - purpose: o propoziție pentru om, ce face codul („Citește cu voce articolul de pe pagină”). Omul vede codul și apasă
   „Rulează” sau „Nu rula”.
 - Codul: scurt și de sine stătător, pe pagina de acum, fără fetch, XMLHttpRequest, cookie-uri, localStorage, WebSocket,
-  parole sau formulare. Nu citește și nu trimite datele omului.
+  parole sau formulare. Nu citește și nu trimite datele omului. Fără secvențe \\u sau \\x în cod (plasa le refuză ca
+  nume ascunse): pentru diacritice folosești normalize("NFD") și literele direct.
 - Codul e corpul unei funcții async: scrii instrucțiunile direct, fără (function(){…})(), și termini cu
   return "<ce ai făcut, pe scurt>". Doar valoarea din return ajunge la tine în result; fără ea primești null și nu știi
   dacă a mers.

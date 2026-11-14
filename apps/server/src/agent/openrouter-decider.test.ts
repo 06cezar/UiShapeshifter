@@ -304,5 +304,6 @@ describe("modul expert (run_js, experiment)", () => {
     expect(system).toContain("run_js e ultima variantă");
     expect(system).toContain("Nu intră în rețetă");
     expect(system).toContain("Codul e corpul unei funcții async"); // altfel result vine null (wrapCode, E)
+    expect(system).toContain("Fără secvențe \\u sau \\x în cod"); // ANAF: filtrul cu \\u0300 era refuzat de plasă
   });
 });
