@@ -65,7 +65,7 @@ describe("uneltele de pe server", () => {
     expect(result).toMatchObject({ ok: false, error: { code: "INVALID_ARGS" } });
   });
 
-  it("preferința generală: păstrată după E8; înainte, refuzată explicit (nu pierdută în tăcere)", async () => {
+  it("o preferință generală adăugată cu add pe /generalPreferences/- se păstrează în profil (E8)", async () => {
     const result = await call("update_profile", {
       patch: [
         {
@@ -83,12 +83,8 @@ describe("uneltele de pe server", () => {
         },
       ],
     });
+    expect(result.ok).toBe(true);
     const saved = (await call("get_profile", {})) as { data: UserProfile };
-    if (saved.data.generalPreferences?.length) {
-      expect(result.ok).toBe(true); // după E8: păstrată
-    } else {
-      // E1 permite patch doar pe /needs, /preferences, /persona; E8 deschide /generalPreferences
-      expect(result.ok).toBe(false);
-    }
+    expect(saved.data.generalPreferences?.map((preference) => preference.text)).toContain("fără AI în site-uri");
   });
 });
