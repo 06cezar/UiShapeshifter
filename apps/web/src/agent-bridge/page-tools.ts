@@ -63,11 +63,6 @@ export interface PageToolDeps {
   /** Gazda interfeței noastre: un click în panou sau pe mascotă nu e răspunsul omului la ghidaj. */
   ourHostId?: string;
   doc?: Document;
-  /**
-   * Modul expert (run_js, x-mod-js; E): rulează codul deja verificat și aprobat de om. Întoarce `disabled` dacă modul
-   * e oprit sau Chrome nu permite scripturi („Allow User Scripts”).
-   */
-  executeJs?(code: string): Promise<RunJsData>;
   /** Panoul arată „Păstrez / Anulez” (D9); argumentele le verifică el. */
   proposeChanges?(args: unknown, runId?: string): Promise<ToolResult<ToolData["propose_changes"]>>;
   /**

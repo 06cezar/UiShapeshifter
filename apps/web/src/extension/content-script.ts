@@ -21,6 +21,7 @@ import { SHAPE_ATTR } from "../ui/recipes/dom-ops";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { isExcluded } from "./excluded-sites";
+import { isExpertMode } from "./expert-mode";
 import { applyGeneralStyle, generalCssFrom } from "./general-style";
 import { pageBackgroundFrom, startPageBackground } from "./page-background";
 import { keepClearOfSiteFixed } from "./keep-clear";
@@ -344,6 +345,8 @@ function start() {
     pointAt: (element, message) => mascot.pointAt(element, message),
     // Modul expert (run_js, x-mod-js): după verificarea și aprobarea din pagină (C), rularea o face service worker-ul.
     executeJs,
+    // Oprit → agentul află „disabled” fără să-i cerem omului aprobarea degeaba (C). API-ul îl verifică service worker-ul.
+    expertModeOn: () => isExpertMode(chrome.storage.local),
     proposeChanges: async (args, runId) => {
       showWhatChanged(runId);
       const result = await proposeChanges(args, runId, {
