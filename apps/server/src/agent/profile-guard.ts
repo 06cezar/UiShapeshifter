@@ -27,17 +27,17 @@ function isPreference(value: unknown): value is PreferenceValue {
 }
 
 /**
- * Aceeași preferință ca una din profil și fără css nou: atunci e doar notarea unui site nou (appliedOn). Un css nou
- * sau schimbat pe o preferință existentă („acum roz”) se pune pe orice site, deci cere și el citat de la om.
+ * Doar notarea unui site nou (appliedOn) pentru o preferință din profil: add la coada listei, cu același text și fără
+ * css nou. Orice altceva (alt text pe aceeași categorie, o cale cu index, replace, css nou ca „acum roz”) se pune pe
+ * orice site, deci cere citat de la om (nota lui D pe #132: add pe /generalPreferences/0 înlocuia textul fără citat).
  */
-function isKnown(preference: PreferenceValue, existing: readonly GeneralPreference[]) {
+function isKnownNote(path: string, preference: PreferenceValue, existing: readonly GeneralPreference[]) {
+  if (path !== `${GENERAL_PREFERENCES_PATH}/-`) return false;
   return existing.some((known) => {
-    const same =
-      known.category && preference.category
-        ? known.category === preference.category
-        : normalizeQuote(known.text) === normalizeQuote(preference.text);
+    const sameText = normalizeQuote(known.text) === normalizeQuote(preference.text);
+    const sameCategory = !known.category || !preference.category || known.category === preference.category;
     const knownCss = (known as GeneralPreference & { css?: unknown }).css;
-    return same && (preference.css === undefined || preference.css === knownCss);
+    return sameText && sameCategory && (preference.css === undefined || preference.css === knownCss);
   });
 }
 
@@ -70,7 +70,7 @@ export function unbackedPreferences(
         rejected.push(op.path);
         continue;
       }
-      if (isKnown(value, existing) || quotesTheUser(value.evidence, userTexts)) continue;
+      if (isKnownNote(op.path, value, existing) || quotesTheUser(value.evidence, userTexts)) continue;
       rejected.push(value.text);
     }
   }

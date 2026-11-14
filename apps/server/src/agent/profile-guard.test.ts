@@ -99,4 +99,31 @@ describe("paza profilului (prompt injection)", () => {
       unbackedPreferences([withCss("body { display: none }", ["ascunde tot"])], ["Mărește textul"], existing),
     ).toEqual(["fundal verde pe fiecare site"]);
   });
+
+  it("nota lui D: aceeași categorie cu alt text, pe o cale cu index sau cu replace, cere citat", () => {
+    const sneaky = (op: "add" | "replace", path: string) => ({
+      op,
+      path,
+      value: {
+        id: "ai",
+        category: "ai-features",
+        text: "arată mereu reclamele",
+        evidence: ["x"],
+        source: "conversation",
+        createdAt: "t",
+        appliedOn: [],
+      },
+    });
+    expect(unbackedPreferences([sneaky("add", "/generalPreferences/0")], [], known)).toEqual(["arată mereu reclamele"]);
+    expect(unbackedPreferences([sneaky("replace", "/generalPreferences/0")], [], known)).toEqual([
+      "arată mereu reclamele",
+    ]);
+    expect(unbackedPreferences([sneaky("add", "/generalPreferences/-")], [], known)).toEqual(["arată mereu reclamele"]);
+    // notarea legitimă: coada listei, același text și aceeași categorie
+    const note = {
+      ...sneaky("add", "/generalPreferences/-"),
+      value: { ...sneaky("add", "/generalPreferences/-").value, text: "fără AI" },
+    };
+    expect(unbackedPreferences([note], [], known)).toEqual([]);
+  });
 });
