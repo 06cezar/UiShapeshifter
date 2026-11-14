@@ -204,6 +204,26 @@ describe("JournalPanel", () => {
     expect(done?.querySelector("summary")?.textContent).toBe("Pașii (1)");
   });
 
+  it("după F5, fără rulare: panoul apare strâns dacă site-ul are cereri, iar „Arată” le arată", async () => {
+    const entries = [{ requestId: "r0", reason: "Ascunde reclamele", at: "2026-11-13T20:00:00.000Z", revisions: [1] }];
+    const { container, byId } = await renderPanel({
+      requestHistory: () => entries,
+      undoRequest: async () => ({ ok: true as const }),
+    });
+    expect(container.querySelector(".journal")).not.toBeNull();
+    expect(container.querySelector(".journal-body")).toBeNull();
+    await act(async () => byId("journal-panel.toggle")?.click());
+    expect(byId("journal-panel.undo-request.r0")).not.toBeNull();
+  });
+
+  it("fără rulare și fără cereri, panoul tot nu apare", async () => {
+    const { container } = await renderPanel({
+      requestHistory: () => [],
+      undoRequest: async () => ({ ok: true as const }),
+    });
+    expect(container.querySelector(".journal")).toBeNull();
+  });
+
   it("se poate ascunde", async () => {
     const { container, byId, startRun } = await renderPanel();
     await startRun();

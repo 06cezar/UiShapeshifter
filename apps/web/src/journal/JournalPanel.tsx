@@ -53,14 +53,20 @@ const STATUS_TEXT: Record<RunStatus, string> = {
 
 export function JournalPanel(props: JournalPanelProps) {
   const { journal } = props;
-  const [open, setOpen] = useState(true);
+  /** Ce a ales omul cu „Arată / Ascunde”; până alege, panoul e deschis cât lucrează agentul și strâns altfel. */
+  const [chosenOpen, setChosenOpen] = useState<boolean | null>(null);
   const runs = useStore(journal, (s) => s.runs);
   const replay = useStore(journal, (s) => s.replay);
   const proposal = useStore(journal, (s) => s.proposal);
   const current = activeRun(runs) ?? runs[runs.length - 1];
+  const activeNow = Boolean(current || proposal || replay);
+  // După F5 nu e nicio rulare în pagină, dar site-ul poate avea cereri de ieri: „Ce ai cerut aici” trebuie să se vadă.
+  const hasHistory = (props.requestHistory?.().length ?? 0) > 0;
 
-  // Pe un site unde agentul n-a lucrat încă, panoul nu ocupă loc.
-  if (!current && !proposal && !replay) return null;
+  // Pe un site unde agentul n-a lucrat niciodată, panoul nu ocupă loc.
+  if (!activeNow && !hasHistory) return null;
+  const open = chosenOpen ?? activeNow;
+  const setOpen = (next: boolean) => setChosenOpen(next);
 
   return (
     <aside className="journal" data-agent-id="journal-panel" aria-label="Panoul de control">
