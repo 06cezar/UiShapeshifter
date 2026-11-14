@@ -99,6 +99,20 @@ describe("auditPage pe un site", () => {
     expect(offscreen).toContain("singur");
   });
 
+  it("textul împins afară cu text-indent (în locul lui e o imagine) nu e tăiat; unul care chiar nu încape, da (găsit de A pe Bing)", () => {
+    page(`
+      <a data-t="next" href="/p2" style="display: block; overflow: hidden; text-indent: -9999px; font-size: 18px">Pagina următoare</a>
+      <p data-t="lung" style="overflow: hidden; font-size: 18px">Un text lung care nu încape în cutia lui</p>`);
+    for (const id of ["next", "lung"]) {
+      const element = document.querySelector<HTMLElement>(`[data-t="${id}"]`)!;
+      Object.defineProperty(element, "clientWidth", { value: 42 });
+      Object.defineProperty(element, "scrollWidth", { value: 1032 });
+    }
+    const clipped = issuesOf("clipped");
+    expect(clipped).not.toContain("next");
+    expect(clipped).toContain("lung");
+  });
+
   it("textul pe gradient sau imagine nu e judecat la contrast: fundalul nu se poate măsura", () => {
     page(`<div style="background-color: #ffffff; background-image: linear-gradient(#0b3d91, #1e88e5)">
       <p data-t="pe-gradient" style="color: #ffffff; font-size: 20px; line-height: 1.6">Doar azi</p></div>`);

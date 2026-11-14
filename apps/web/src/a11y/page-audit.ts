@@ -262,6 +262,9 @@ function intersectsViewport(rect: DOMRect, viewport: { width: number; height: nu
  */
 function isClipped(element: HTMLElement, style: CSSStyleDeclaration): boolean {
   if (style.display === "inline" || (style.overflowX === "visible" && style.overflowY === "visible")) return false;
+  // Textul împins afară cu `text-indent` (o imagine sau o săgeată în locul lui) e ascuns voit; cititorul de ecran îl
+  // citește. Găsit de A pe Bing: „Next page” (a.sb_pagN) ieșea „tăiat”, cu scrollWidth 1032 la o lățime de 42.
+  if (Math.abs(parseFloat(style.textIndent) || 0) >= element.clientWidth) return false;
   return element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1;
 }
 

@@ -2,6 +2,7 @@
 // pentru site-ul din tab-ul curent (B5). Contul vine cu E6.
 
 import { clearRecipe, loadRecipe } from "../ui/recipes/recipe-store";
+import { isExcluded, toggleExcluded } from "./excluded-sites";
 import { POPUP_PORT, parseFromWorker, type LinkStatus } from "./messages";
 import { normalizeHost } from "./page-info";
 import { savedChangesText } from "./popup-text";
@@ -61,3 +62,31 @@ resetButton.addEventListener("click", async () => {
 });
 
 void showSite();
+
+// ---------- „Nu schimba acest site”: fontul minim, ascunderile și rețeta se opresc pe site ----------
+
+const excludeButton = document.getElementById("exclude") as HTMLButtonElement;
+const excludeStatus = document.getElementById("exclude-status")!;
+
+function showExcluded(excluded: boolean) {
+  excludeButton.textContent = excluded ? "Schimbă din nou acest site" : "Nu schimba acest site";
+  excludeStatus.textContent = excluded ? "Aici nu schimb nimic singur. Chatul rămâne, dacă vrei ceva." : "";
+  resetButton.hidden = excluded;
+}
+
+async function showExcludeState() {
+  const host = await currentHost();
+  excludeButton.disabled = host === null;
+  if (host) showExcluded(await isExcluded(chrome.storage.local, host));
+}
+
+excludeButton.addEventListener("click", async () => {
+  const host = await currentHost();
+  if (!host) return;
+  showExcluded(await toggleExcluded(chrome.storage.local, host));
+  // Pagina se reîncarcă: pornește fie neatinsă, fie cu tot ce avea (rețeta rămâne salvată).
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id !== undefined) await chrome.tabs.reload(tab.id);
+});
+
+void showExcludeState();

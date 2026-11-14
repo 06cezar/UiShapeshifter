@@ -33,6 +33,9 @@ site la altul**: ce a spus omul pe un site nu mai trebuie explicat pe următorul
 - **Ce intră în prompt:** un rezumat de cel mult ~150 de cuvinte, generat determinist din profil (nevoi, preferințe
   generale, site-uri familiare, cele mai sigure 5 fapte), nu tot JSON-ul.
 - **Confidențialitate:** doar date de test în demo; profilul se poate vedea și șterge din panou („Ce știe agentul despre mine”).
+- **„Nu schimba acest site”** (popup): `chrome.storage.local`, cheia `excludedSites` = listă de host-uri (fără „www.”).
+  Pe un site din listă extensia nu aplică singură nimic: nici rețeta salvată, nici preferințele de bază (C4, fontul
+  minim), nici ascunderile fără AI din testul inițial. Chatul și mascota rămân. Lista nu pleacă pe server.
 
 ## Profil de demo: `demo-fresh` și `maria`-ul vechi
 
