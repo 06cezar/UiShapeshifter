@@ -71,6 +71,10 @@ export function createFailureGuard(maxRetries: number = RUN_LIMITS.maxToolRetrie
       // TIMEOUT e trecător (pagina grea, tab în fundal): același apel poate merge la a doua încercare, deci nu-l
       // blocăm ca „deja încercat”; se numără totuși la eșecurile uneltei.
       if (!result.ok && result.error.code !== "TIMEOUT") failedCalls.add(callKey(name, args));
+      // INVALID_ARGS = forma argumentelor (sau un apel oprit chiar de gardă): modelul se corectează cu alte argumente,
+      // deci nu consumă din limita uneltei. Altfel un propose_changes corect, după două greșite, era blocat (repetiția
+      // demo-ului, „vreau doar să plătesc factura”). Repetarea identică rămâne oprită mai sus; maxSteps ține bucla.
+      if (!result.ok && result.error.code === "INVALID_ARGS") return;
       failuresByTool.set(name, (failuresByTool.get(name) ?? 0) + 1);
     },
   };

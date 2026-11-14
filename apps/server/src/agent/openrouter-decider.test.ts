@@ -1,7 +1,7 @@
 // Decider-ul OpenRouter cu fetch înlocuit: fără rețea, fără cheie reală.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createOpenRouterDecider } from "./openrouter-decider";
+import { createOpenRouterDecider, repairLeakedParameters } from "./openrouter-decider";
 import { pageSnapshot } from "./page-snapshot.fixture";
 
 type Sent = { messages: Array<{ role: string; content?: string | null; tool_call_id?: string }>; tools: unknown[] };
@@ -205,5 +205,28 @@ describe("createOpenRouterDecider", () => {
     replies.push(new Response(JSON.stringify({ error: { message: "bad request" } }), { status: 400 }));
     await expect(decider.decide(null)).rejects.toThrow("400");
     expect(sent).toHaveLength(1);
+  });
+});
+
+describe("repairLeakedParameters", () => {
+  it("desparte câmpul lipit de model în valoarea altuia (repetiția demo-ului, propose_changes)", () => {
+    const leaked = {
+      title: 'Plata facturii, la vedere</title>\n<parameter name="summary">Am ascuns reclamele.',
+      risk: "low",
+    };
+    expect(repairLeakedParameters(leaked)).toEqual({
+      title: "Plata facturii, la vedere",
+      summary: "Am ascuns reclamele.",
+      risk: "low",
+    });
+  });
+
+  it("nu suprascrie un câmp trimis corect și lasă neatinse argumentele normale", () => {
+    expect(repairLeakedParameters({ title: 'A</title><parameter name="risk">high', risk: "low" })).toEqual({
+      title: "A",
+      risk: "low",
+    });
+    const normal = { css: "a > b { color: red }", reason: "x" };
+    expect(repairLeakedParameters(normal)).toEqual(normal);
   });
 });
