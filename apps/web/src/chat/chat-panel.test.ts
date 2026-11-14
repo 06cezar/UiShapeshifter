@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { PageInfo } from "@uishapeshifter/contracts";
+import { RUN_LIMITS, type PageInfo } from "@uishapeshifter/contracts";
 import { HOST_ID, mountOurRoot } from "../extension/shadow-root";
 import type { OutgoingClientMessage } from "../extension/messages";
 import { ASK_TIMEOUT_MS, mountChat } from "./chat-panel";
@@ -128,6 +128,21 @@ describe("ask_user: întrebarea agentului", () => {
     await expect(answer).resolves.toBe("albastru");
     type(q<HTMLInputElement>(".chat-input"), "ascunde reclamele");
     expect(sent).toEqual([{ type: "user_message", text: "ascunde reclamele", source: "text", page: PAGE }]);
+  });
+
+  test("chatul renunță la întrebare înaintea serverului: ce scrie omul după pleacă drept cerere nouă", async () => {
+    vi.useFakeTimers();
+    try {
+      expect(ASK_TIMEOUT_MS).toBeLessThan(RUN_LIMITS.waitForClickMaxMs);
+      const { chat, q, sent } = setup();
+      const answer = chat.ask("Care meniu?");
+      vi.advanceTimersByTime(ASK_TIMEOUT_MS);
+      await expect(answer).resolves.toBeNull();
+      type(q<HTMLInputElement>(".chat-input"), "ascunde reclamele");
+      expect(sent).toEqual([{ type: "user_message", text: "ascunde reclamele", source: "text", page: PAGE }]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("fără răspuns la timp sau dacă rularea se termină: null", async () => {

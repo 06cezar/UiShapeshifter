@@ -2,7 +2,7 @@
 // agentului și un câmp de text. Stă în shadow DOM-ul nostru (extension/shadow-root.ts), deci stilul site-ului nu-l atinge.
 // Tot textul primit de la server intră cu `textContent`, niciodată ca HTML: un răspuns nu poate adăuga elemente în pagină.
 
-import type { PageInfo, ServerMessage } from "@uishapeshifter/contracts";
+import { RUN_LIMITS, type PageInfo, type ServerMessage } from "@uishapeshifter/contracts";
 import type { LinkStatus, OutgoingClientMessage } from "../extension/messages";
 import type { OurRoot } from "../extension/shadow-root";
 import { CHAT_CSS } from "./chat-styles";
@@ -40,8 +40,14 @@ export interface ChatController {
 
 /** Tastele scrise în chat nu trebuie să ajungă la scurtăturile site-ului (ex. „k” sau „/” pe site-uri de video). */
 const KEY_EVENTS = ["keydown", "keyup", "keypress"] as const;
-/** Cât așteaptă o întrebare a agentului (`ask_user`) răspunsul omului. */
-export const ASK_TIMEOUT_MS = 120_000;
+/** Cu atât renunțăm mai devreme decât serverul, ca un răspuns întârziat să plece ca cerere nouă, nu să se piardă. */
+const ASK_EARLY_MS = 2_000;
+/**
+ * Cât așteaptă o întrebare a agentului (`ask_user`) răspunsul omului: puțin sub cât o așteaptă serverul
+ * (`RUN_LIMITS.waitForClickMaxMs`, ws/sessions.ts). Altfel ce scria omul după ce serverul renunțase era luat drept
+ * răspuns și nu mai pleca nicăieri (chatul rămânea la „Mă gândesc…”, găsit de A).
+ */
+export const ASK_TIMEOUT_MS = RUN_LIMITS.waitForClickMaxMs - ASK_EARLY_MS;
 /** Cel mult atâtea variante ca butoane; restul le poate scrie omul. */
 const MAX_ASK_OPTIONS = 4;
 
