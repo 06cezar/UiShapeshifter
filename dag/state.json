@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "4aeb621c253e4b862131ee2a58a16f58d49f0c20",
-  "last_run": "2026-11-14T03:33:33Z",
+  "last_comms_sha": "2aa455c76ae44ceb52d21756c7c3dd32e673e707",
+  "last_run": "2026-11-14T03:35:37Z",
   "last_sha": "1769fa91c2bde46a26e160b631d02490766b29df",
   "prs": {
     "1": {
@@ -505,8 +505,8 @@
     },
     "97": {
       "head": "a-jurnal-fara-jargon",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T03:35:33Z",
+      "state": "MERGED"
     }
   },
   "statuses": {
