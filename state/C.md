@@ -1,3 +1,3 @@
-2026-11-14 05:52
+2026-11-14 06:20
 
-gata: C1-C5 și #58, #64, #73, #75, #81, #84; ca B: #82, #83, #86, #92; în lucru: #100 (Teams); urmează: ce găsesc A/E la probe; blocat: nimic
+gata: C1-C5, #58, #64, #73, #75, #81, #84, #100, #104; ca B: #82, #83, #86, #92; urmează: probele A/E; blocat: nimic
