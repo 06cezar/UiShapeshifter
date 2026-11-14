@@ -8,6 +8,7 @@ import {
   type PageSnapshot,
   type Rect,
 } from "@uishapeshifter/contracts";
+import { HIDDEN_STYLE_ID } from "../recipes/dom-ops";
 import { buildSelector } from "./selector";
 
 /** Ce citește snapshot-ul de la motorul de rețete (B5): revizia, foaia și <style>-ul ei din pagină. */
@@ -505,11 +506,15 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
     // Ce ar fi vizibil fără rețetă: oprim foaia o clipă, ca să știm ce a ascuns ea (hiddenBy: "recipe").
     const shownNow = new Set(candidates.filter(isShown));
     const hiddenByRecipe = new Set<Element>();
-    const sheet = recipe.styleElement?.sheet;
-    if (sheet && candidates.length > shownNow.size) {
-      sheet.disabled = true;
+    // Rețeta ascunde în două feluri: foaia CSS a agentului și operațiile `remove` (atributul din dom-ops.ts, cu foaia
+    // lui). Le oprim pe amândouă, altfel ce a ascuns agentul cu `remove` lipsea din snapshot în loc să fie `hiddenBy:
+    // "recipe"`, iar agentul nu-și putea verifica munca.
+    const removedSheet = (doc.getElementById(HIDDEN_STYLE_ID) as HTMLStyleElement | null)?.sheet;
+    const sheets = [recipe.styleElement?.sheet, removedSheet].filter((sheet): sheet is CSSStyleSheet => !!sheet);
+    if (sheets.length > 0 && candidates.length > shownNow.size) {
+      for (const sheet of sheets) sheet.disabled = true;
       for (const element of candidates) if (!shownNow.has(element) && isShown(element)) hiddenByRecipe.add(element);
-      sheet.disabled = false;
+      for (const sheet of sheets) sheet.disabled = false;
     }
 
     // Ce a ascuns SITE-UL (meniuri închise, <details>, „Mai multe acțiuni ⋯”): doar ce se poate apăsa și are nume.
@@ -570,12 +575,12 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
     // Fundalurile mari, și cele ascunse deja de rețetă (ca agentul să-și vadă munca), cu locuri rezervate.
     const backgroundsShown = findBackgrounds(doc, options.ourHostId, viewport);
     const backgroundsHidden: Element[] = [];
-    if (sheet) {
-      sheet.disabled = true;
+    if (sheets.length > 0) {
+      for (const sheet of sheets) sheet.disabled = true;
       for (const element of findBackgrounds(doc, options.ourHostId, viewport)) {
         if (!backgroundsShown.includes(element)) backgroundsHidden.push(element);
       }
-      sheet.disabled = false;
+      for (const sheet of sheets) sheet.disabled = false;
     }
     const listedSet = new Set(listed);
     const backgrounds: PageElement[] = [...backgroundsShown, ...backgroundsHidden]

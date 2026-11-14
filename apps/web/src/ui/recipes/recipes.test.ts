@@ -13,6 +13,8 @@ import {
   selectorsOf,
 } from "./recipe-engine";
 import { loadRecipe, recipeKey, type RecipeStorage } from "./recipe-store";
+import { createPageRegistry } from "../page-registry/registry";
+import { FADE_MS } from "./fade";
 
 function memoryStorage(): RecipeStorage & { data: Record<string, unknown> } {
   const data: Record<string, unknown> = {};
@@ -585,5 +587,80 @@ describe("selectorii din CSS", () => {
 @media (max-width: 600px) { nav > li::before { content: "" } }
 @keyframes k { from { opacity: 0 } to { opacity: 1 } }`;
     expect(selectorsOf(css)).toEqual(["a", "b:not(.x, .y)", "nav > li"]);
+  });
+});
+
+describe("urma vizuală a ce ascunde agentul (specs/00, „Cât mai seamless”; condiția lui D)", () => {
+  const BOX = () => new DOMRect(10, 20, 300, 60);
+  function pageWithAd() {
+    document.body.innerHTML = `<main><p id="text">Conținut</p><div id="ad" class="ad">Reclamă</div></main>`;
+    for (const el of document.querySelectorAll<HTMLElement>("*")) el.getBoundingClientRect = BOX;
+  }
+  const ghosts = () => document.querySelectorAll('[data-agent-id="fade"]');
+
+  test("elementul e ascuns din prima clipă, iar urma care se stinge nu e a site-ului", async () => {
+    vi.useFakeTimers();
+    pageWithAd();
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
+    await engine.load();
+    const result = await engine.applyOps({
+      ops: [{ op: "remove", selector: "#ad" }],
+      reason: "fără reclame",
+      runId: "r1",
+    });
+    expect(result.ok && result.data.applied).toBe(1);
+    expect(getComputedStyle(document.getElementById("ad")!).display).toBe("none");
+
+    // urma e a noastră: snapshot-ul n-o vede ca element vizibil al site-ului și nu poartă id-ul lui
+    // (că elementul ascuns apare cu hiddenBy: "recipe" verifică page-registry.test.ts, cu foaia simulată)
+    expect(ghosts()).toHaveLength(1);
+    const registry = createPageRegistry({ ourHostId: "uishapeshifter-root", recipe: () => engine.view() });
+    const visibleAds = registry.snapshot().elements.filter((element) => element.label === "Reclamă" && element.visible);
+    expect(visibleAds).toHaveLength(0);
+    expect(document.querySelectorAll("#ad")).toHaveLength(1);
+
+    vi.advanceTimersByTime(FADE_MS + 100);
+    expect(ghosts()).toHaveLength(0);
+    vi.useRealTimers();
+  });
+
+  test("selectorii agentului nu prind urma: aceeași operație încă o dată nu e ambiguă", async () => {
+    pageWithAd();
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyOps({ ops: [{ op: "remove", selector: ".ad" }], reason: "fără reclame", runId: "r1" });
+    expect(ghosts()).toHaveLength(1);
+    const again = await engine.applyOps({
+      ops: [{ op: "setText", selector: ".ad", text: "x" }],
+      reason: "test",
+      runId: "r2",
+    });
+    expect(again.ok && again.data.skipped.map((skip) => skip.reason)).not.toContain("SELECTOR_AMBIGUOUS");
+  });
+
+  test("cu mișcare redusă (preferințele de bază), fără urmă", async () => {
+    pageWithAd();
+    const reduced = document.createElement("style");
+    reduced.id = "uishapeshifter-base";
+    document.head.append(reduced);
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyOps({ ops: [{ op: "remove", selector: "#ad" }], reason: "fără reclame", runId: "r1" });
+    expect(getComputedStyle(document.getElementById("ad")!).display).toBe("none");
+    expect(ghosts()).toHaveLength(0);
+  });
+
+  test("la încărcare, rețeta salvată ascunde fără urmă", async () => {
+    pageWithAd();
+    const storage = memoryStorage();
+    const first = newEngine({ host: "a.ro", storage });
+    await first.load();
+    await first.applyOps({ ops: [{ op: "remove", selector: "#ad" }], reason: "fără reclame", runId: "r1" });
+    first.dispose();
+    pageWithAd();
+    const second = newEngine({ host: "a.ro", storage });
+    await second.load();
+    expect(getComputedStyle(document.getElementById("ad")!).display).toBe("none");
+    expect(ghosts()).toHaveLength(0);
   });
 });
