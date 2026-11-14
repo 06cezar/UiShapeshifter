@@ -8,6 +8,7 @@ import { useStore } from "zustand";
 import type { AgentRun, AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
 import { activeRun, auditScores, revisionAtStep } from "./journal-store";
 import type { JournalStore, RunStatus, RunView } from "./journal-store";
+import type { RequestEntry } from "../validation";
 
 export interface JournalPanelProps {
   journal: JournalStore;
@@ -16,6 +17,10 @@ export interface JournalPanelProps {
   loadRun?: (runId: string) => Promise<AgentRun>;
   /** „Revino la original”: golește rețeta site-ului curent; fără ea, butonul nu apare. */
   revertToOriginal?: () => Promise<void>;
+  /** Cererile din istoricul rețetei site-ului (`requestHistory`, C); fără ea, lista „Ce ai cerut aici” nu apare. */
+  requestHistory?: () => RequestEntry[];
+  /** Scoate o singură cerere din rețetă; cererile de după rămân. Întoarce mesajul de eroare, dacă nu s-a putut. */
+  undoRequest?: (requestId: string) => Promise<{ ok: true } | { ok: false; message: string }>;
 }
 
 const TOOL_ICONS: Record<ToolName, string> = {
@@ -69,6 +74,9 @@ export function JournalPanel(props: JournalPanelProps) {
         <div className="journal-body">
           <ProposalBar journal={journal} />
           {replay ? <ReplayView journal={journal} /> : current ? <RunSection run={current} {...props} /> : null}
+          {props.requestHistory && props.undoRequest && (
+            <RequestHistory journal={journal} history={props.requestHistory} undo={props.undoRequest} />
+          )}
           {props.revertToOriginal && (
             <RevertToOriginal journal={journal} send={props.send} revert={props.revertToOriginal} />
           )}
@@ -304,5 +312,56 @@ function RevertToOriginal({
         done && <p role="status">Site-ul arată din nou ca la început.</p>
       )}
     </div>
+  );
+}
+
+/**
+ * „Ce ai cerut aici”: fiecare cerere care a schimbat site-ul, cu „Anulez” doar pe ea. Spre deosebire de „Anulez” din
+ * propunere (întoarce rețeta la începutul rulării), aici cererile de după rămân. Lista se recitește la fiecare rulare.
+ */
+function RequestHistory({
+  journal,
+  history,
+  undo,
+}: {
+  journal: JournalStore;
+  history: () => RequestEntry[];
+  undo: NonNullable<JournalPanelProps["undoRequest"]>;
+}) {
+  // Abonarea la rulări și `setVersion` doar re-randează lista: istoricul se recitește după o rulare sau o anulare.
+  const running = useStore(journal, (s) => activeRun(s.runs)?.status === "running");
+  const [, setVersion] = useState(0);
+  const [status, setStatus] = useState<string | null>(null);
+  const entries = history();
+  if (entries.length === 0) return null;
+
+  async function undoOne(entry: RequestEntry) {
+    setStatus(null);
+    const result = await undo(entry.requestId);
+    setStatus(result.ok ? `Am scos: ${entry.reason}` : result.message);
+    setVersion((v) => v + 1);
+  }
+
+  return (
+    <section className="journal-history" aria-label="Ce ai cerut aici">
+      <h3>Ce ai cerut aici</h3>
+      <ol>
+        {entries.map((entry) => (
+          <li key={entry.requestId} className="journal-history-entry">
+            <span>{entry.reason}</span>
+            <button
+              type="button"
+              data-agent-id={`journal-panel.undo-request.${entry.requestId}`}
+              aria-label={`Anulez: ${entry.reason}`}
+              disabled={running}
+              onClick={() => void undoOne(entry)}
+            >
+              Anulez
+            </button>
+          </li>
+        ))}
+      </ol>
+      {status && <p role="status">{status}</p>}
+    </section>
   );
 }
