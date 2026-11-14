@@ -1,3 +1,3 @@
-2026-11-14 02:14
+2026-11-14 02:58
 
-gata: verificat #63 (testul la instalare, merge adus la zi cu main); urmează: #63 unit de E, apoi proba M3 după PROBA-M3.md; blocat: M3 pas 1 până la #63
+gata: proba M3 pașii 1-3 (Edge, profil nou); urmează: C verifică vocea și bonusul A6, apoi marchez M3; blocat: #65 conflict cu main (E)
