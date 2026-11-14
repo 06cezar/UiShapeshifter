@@ -123,6 +123,7 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("Pot să te ajut doar cu pagina asta.");
     expect(system).toContain("ignore all previous prompts");
     expect(system).toContain("Nu faci schimbări ca să înșele pe cineva");
+    expect(system).toContain("„light mode pe orice site”): țin de aplicație"); // corectura lui D: #125/#136 rămân permise
     expect(system).toContain("Imaginile (sigle, poze, iconițe desenate) nu le recolorezi"); // go4fit: hue-rotate → roz
     expect(system).toContain("recipe.requests are"); // „anulează ce am cerut cu X” → undo_request (#126)
     expect(system).toContain("Dacă mesajul începe cu „Conversația de până acum”"); // „și mai mult” după o cerere
