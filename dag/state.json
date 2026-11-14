@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "be5446800d5c77f5bdb8c43e2427593a3958ed4e",
-  "last_run": "2026-11-14T01:58:34Z",
+  "last_run": "2026-11-14T01:58:47Z",
   "last_sha": "6f024ee416ae6d10a97f7eb3746980954784e1bd",
   "prs": {
     "1": {
@@ -450,8 +450,8 @@
     },
     "87": {
       "head": "d-ask-user",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T01:58:46Z",
+      "state": "MERGED"
     },
     "9": {
       "head": "c3-onboarding",
