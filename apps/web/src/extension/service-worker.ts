@@ -8,6 +8,7 @@ import { createRunRouter } from "./run-router";
 import { startServerLink, type ServerLink } from "./server-link";
 import { getOrCreateSessionId, getOrCreateUserId } from "./storage";
 import { PROFILE_RETRY_MS, syncProfile } from "../sync/profile-sync";
+import { changeNeedsPush, currentAccount, PUSH_DELAY_MS, pull, push, USER_ID_KEY } from "../sync/account-sync";
 
 /** Pus de build.mjs: true dacă pagina testului inițial (C3) e în build. */
 declare const __UIS_ONBOARDING__: boolean;
@@ -70,7 +71,8 @@ function routeFromServer(message: ServerMessage): void {
   for (const port of router.targetsFor(message, pagePorts)) post(port, { type: "from_server", message });
 }
 
-const linkReady: Promise<ServerLink> = (async () => {
+/** Pornește legătura cu serverul pentru userId-ul activ (anonim, sau al contului după login, E6). */
+async function startLink(): Promise<ServerLink> {
   userId = await getOrCreateUserId(chrome.storage.local);
   const sessionId = await getOrCreateSessionId(chrome.storage.session);
   link = startServerLink({
@@ -83,7 +85,28 @@ const linkReady: Promise<ServerLink> = (async () => {
   broadcastStatus();
   refreshProfile();
   return link;
-})();
+}
+let linkReady: Promise<ServerLink> = startLink();
+
+// Contul (E6): după login userId-ul activ devine cel al contului, deci legătura pornește din nou cu el; cu cont,
+// orice schimbare de rețetă sau de profil pleacă la server după o pauză scurtă (specs/08).
+let pushTimer: ReturnType<typeof setTimeout> | undefined;
+const syncOptions = { apiUrl: SERVER_API_URL, storage: chrome.storage.local };
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  const changedUser = changes[USER_ID_KEY];
+  if (changedUser && typeof changedUser.newValue === "string" && changedUser.newValue !== userId) {
+    link?.stop();
+    linkReady = startLink();
+  }
+  if (!changeNeedsPush(Object.keys(changes), userId ?? undefined)) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => void push(syncOptions), PUSH_DELAY_MS);
+});
+// La pornire, cu cont: ce s-a schimbat pe alt dispozitiv între timp.
+void currentAccount(chrome.storage.local).then((account) => {
+  if (account) void pull(syncOptions);
+});
 
 chrome.runtime.onConnect.addListener((port) => {
   const ports = port.name === POPUP_PORT ? popupPorts : port.name === PAGE_PORT ? pagePorts : null;

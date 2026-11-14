@@ -28,12 +28,22 @@ export interface ChatOptions {
 
 export interface ChatController {
   handleServerMessage(message: ServerMessage): void;
+  /**
+   * `ask_user`: întrebarea agentului apare în bulă, cu variantele ca butoane. Primul răspuns al omului (scris, vorbit
+   * sau o variantă) se întoarce agentului în loc să plece ca cerere nouă. `null` dacă omul nu răspunde la timp sau
+   * vine altă întrebare peste ea.
+   */
+  ask(question: string, options?: readonly string[]): Promise<string | null>;
   setLinkStatus(status: LinkStatus): void;
   state(): ChatState;
 }
 
 /** Tastele scrise în chat nu trebuie să ajungă la scurtăturile site-ului (ex. „k” sau „/” pe site-uri de video). */
 const KEY_EVENTS = ["keydown", "keyup", "keypress"] as const;
+/** Cât așteaptă o întrebare a agentului (`ask_user`) răspunsul omului. */
+export const ASK_TIMEOUT_MS = 120_000;
+/** Cel mult atâtea variante ca butoane; restul le poate scrie omul. */
+const MAX_ASK_OPTIONS = 4;
 
 export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   root.addStyle(CHAT_CSS);
@@ -49,6 +59,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
         <button type="button" class="chat-close" data-agent-id="chat.close"></button>
       </div>
       <div class="chat-log" role="log" aria-live="polite"></div>
+      <div class="chat-options" role="group" hidden></div>
       <p class="chat-activity" role="status"></p>
       <p class="chat-hint" role="status"></p>
       <form class="chat-form">
@@ -72,6 +83,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   const input = container.querySelector<HTMLInputElement>(".chat-input")!;
   const sendButton = container.querySelector<HTMLButtonElement>(".chat-send")!;
   const voiceButton = container.querySelector<HTMLButtonElement>(".chat-voice")!;
+  const optionsBox = container.querySelector<HTMLElement>(".chat-options")!;
 
   // Textele fixe se pun o singură dată, cu textContent.
   launcher.textContent = CHAT_TEXT.launcher;
@@ -88,6 +100,8 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   let voiceHint = "";
   /** Id-ul ultimului mesaj desenat: la fel de bun ca lungimea, și prinde și cazul în care istoricul s-a tăiat. */
   let renderedLastId = 0;
+  /** Întrebarea agentului care așteaptă răspuns (`ask_user`); cât e deschisă, ce scrie omul îi răspunde ei. */
+  let pendingAsk: { resolve(answer: string | null): void; timer: ReturnType<typeof setTimeout> } | null = null;
 
   function render() {
     panel.hidden = !state.open;
@@ -138,11 +152,44 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   launcher.addEventListener("click", open);
   closeButton.addEventListener("click", close);
 
+  function finishAsk(answer: string | null) {
+    if (!pendingAsk) return;
+    clearTimeout(pendingAsk.timer);
+    const { resolve } = pendingAsk;
+    pendingAsk = null;
+    optionsBox.replaceChildren();
+    optionsBox.hidden = true;
+    resolve(answer);
+  }
+
+  function ask(question: string, choices: readonly string[] = []): Promise<string | null> {
+    finishAsk(null); // o întrebare nouă o înlocuiește pe cea rămasă fără răspuns
+    dispatch({ type: "server", message: { type: "agent_message", text: question, mascot: "speaking" } });
+    optionsBox.replaceChildren();
+    optionsBox.setAttribute("aria-label", question);
+    for (const [i, choice] of choices.slice(0, MAX_ASK_OPTIONS).entries()) {
+      const button = doc.createElement("button");
+      button.type = "button";
+      button.className = "chat-option";
+      button.dataset.agentId = `chat.option.${i}`;
+      button.textContent = choice;
+      button.addEventListener("click", () => sendRequest(choice, "text"));
+      optionsBox.append(button);
+    }
+    optionsBox.hidden = optionsBox.childElementCount === 0;
+    open();
+    return new Promise((resolve) => {
+      pendingAsk = { resolve, timer: setTimeout(() => finishAsk(null), ASK_TIMEOUT_MS) };
+    });
+  }
+
   function sendRequest(raw: string, source: "text" | "voice") {
     const text = sendableText(raw);
     if (!text) return;
     input.value = "";
     dispatch({ type: "user_sent", text });
+    // Răspunsul la întrebarea agentului se întoarce rulării care așteaptă, nu pornește o cerere nouă.
+    if (pendingAsk) return finishAsk(text);
     options.send({ type: "user_message", text, source, page: options.page() });
   }
 
@@ -193,7 +240,12 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   render();
 
   return {
-    handleServerMessage: (message) => dispatch({ type: "server", message }),
+    handleServerMessage: (message) => {
+      // Rularea s-a terminat sau s-a oprit: întrebarea ei nu mai are cui să-i răspundă.
+      if (message.type === "run_finished" || message.type === "error") finishAsk(null);
+      dispatch({ type: "server", message });
+    },
+    ask,
     setLinkStatus: (status) => dispatch({ type: "link", status }),
     state: () => state,
   };

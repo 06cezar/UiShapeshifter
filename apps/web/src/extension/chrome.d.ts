@@ -24,7 +24,8 @@ declare namespace chrome {
 
   namespace storage {
     interface StorageArea {
-      get(keys: string | string[]): Promise<Record<string, unknown>>;
+      /** null = tot ce e în stocare. */
+      get(keys: string | string[] | null): Promise<Record<string, unknown>>;
       set(items: Record<string, unknown>): Promise<void>;
       remove(keys: string | string[]): Promise<void>;
     }
@@ -45,6 +46,7 @@ declare namespace chrome {
     }
     function query(query: { active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
     function create(properties: { url: string; active?: boolean }): Promise<Tab>;
+    function reload(tabId: number): Promise<void>;
     const onActivated: { addListener(listener: (info: { tabId: number; windowId: number }) => void): void };
   }
 }
