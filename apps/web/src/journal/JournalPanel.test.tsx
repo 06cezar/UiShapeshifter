@@ -231,4 +231,33 @@ describe("JournalPanel", () => {
     expect(container.querySelector(".journal-body")).toBeNull();
     expect(byId("journal-panel.toggle")?.getAttribute("aria-expanded")).toBe("false");
   });
+  it("pasul run_js arată la vedere ce vrea să facă, codul și ce s-a întâmplat", async () => {
+    const { journal, byId, startRun } = await renderPanel();
+    await startRun();
+    const code = "speechSynthesis.speak(new SpeechSynthesisUtterance('Salut'))";
+    await act(async () =>
+      journal.getState().handleServerMessage({
+        type: "step",
+        step: step(0, {
+          tool: "run_js",
+          args: { code, purpose: "Citește articolul cu voce" },
+          result: { ok: true, data: { status: "ran" } },
+        }),
+      }),
+    );
+    const block = byId("journal-panel.run-js");
+    expect(block?.textContent).toContain("Citește articolul cu voce");
+    expect(block?.querySelector("pre")?.textContent).toBe(code);
+    expect(block?.textContent).toContain("reîncarcă pagina");
+    expect(block?.closest("details")?.open).toBe(true);
+  });
+
+  it("run_js cu argumente stricate nu arată blocul de cod", async () => {
+    const { journal, byId, startRun } = await renderPanel();
+    await startRun();
+    await act(async () =>
+      journal.getState().handleServerMessage({ type: "step", step: step(0, { tool: "run_js", args: { code: 3 } }) }),
+    );
+    expect(byId("journal-panel.run-js")).toBeNull();
+  });
 });

@@ -168,6 +168,29 @@ export const JOURNAL_CSS = `
   margin: 0 0 calc(var(--spacing) / 2);
 }
 
+.journal-js {
+  border-left: calc(var(--spacing) / 2) solid var(--color-primary);
+  padding-left: var(--spacing);
+  margin-bottom: var(--spacing);
+}
+
+.journal-js-purpose {
+  font-weight: bold;
+}
+
+.journal-js-code {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: inherit;
+  background: var(--color-background);
+  padding: calc(var(--spacing) / 2);
+  border-radius: var(--radius);
+}
+
+.journal-js-detail {
+  color: var(--color-text-muted);
+}
+
 .journal-json {
   overflow-x: auto;
   white-space: pre-wrap;
