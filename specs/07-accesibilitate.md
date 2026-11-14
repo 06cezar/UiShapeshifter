@@ -67,3 +67,9 @@ au teste cu valori cunoscute (ex. `#777777` pe alb = 4.48:1).
   contrastul sub prag pe orice site; se pune **după** rețetă și se actualizează când se schimbă profilul.
 - Ce nu face: nu schimbă structura și nu ascunde nimic; doar aduce pagina la limite.
 - Pe site-uri cu probleme de lizibilitate cunoscute (iframe-uri din alt domeniu), rămâne ce nu poate atinge; auditul îl notează.
+- **Singura excepție de la fontul minim:** o etichetă scurtă (cel mult 24 de caractere) dintr-o cutie îngustă (cel mult
+  120px) care o taie pe un rând (`text-overflow: ellipsis`, sau `overflow: hidden`/`clip` cu `white-space: nowrap`), până
+  la 3 niveluri deasupra textului. Ex. bara laterală din Teams: mărită, eticheta se suprapune cu iconița și nu se mai
+  citește deloc. Fontul ei rămâne cum e (contrastul se repară în continuare), iar auditul o raportează ca problemă a
+  site-ului. Meniurile și antetele late își primesc fontul minim ca orice text. Constantele: `CLIPPED_LABEL_MAX_CHARS`,
+  `CLIPPED_LABEL_MAX_BOX_PX` în `base-preferences.ts` (#100).

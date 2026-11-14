@@ -100,6 +100,44 @@ describe("rândurile și marginile", () => {
   });
 });
 
+describe("ce găsise E pe Teams", () => {
+  it("eticheta dintr-o bară laterală cu lățime fixă care taie textul rămâne cum e; textul obișnuit crește", () => {
+    page(`
+      <nav style="width: 64px" data-rect="64,500">
+        <a href="/a"><span class="icon">🔔</span>
+          <span id="eticheta" data-rect="64,16" style="font-size: 11px; overflow: hidden; white-space: nowrap; display: block">Activitate</span></a>
+        <a href="/c"><span id="puncte" data-rect="64,16" style="font-size: 11px; text-overflow: ellipsis; overflow: hidden; display: block">Chat</span></a>
+      </nav>
+      <p id="paragraf" style="font-size: 11px; overflow: hidden">Un paragraf obișnuit, care trece pe rândul următor.</p>`);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("eticheta")).toBe(11);
+    expect(fontOf("puncte")).toBe(11);
+    expect(fontOf("paragraf")).toBe(20);
+  });
+});
+
+describe("excepția Teams nu atinge meniurile late (review D pe #100)", () => {
+  it("un meniu lat cu nowrap + overflow hidden: linkurile cresc la minim", () => {
+    page(`
+      <nav id="meniu" data-rect="1000,40" style="white-space: nowrap; overflow: hidden">
+        <a id="acasa" href="/" data-rect="80,40" style="font-size: 11px">Acasă</a>
+        <a id="produse" href="/p" data-rect="80,40" style="font-size: 11px">Produse</a>
+      </nav>`);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("acasa")).toBe(20);
+    expect(fontOf("produse")).toBe(20);
+  });
+
+  it("o frază lungă într-o cutie îngustă care taie tot crește: excepția e doar pentru etichete scurte", () => {
+    page(`
+      <div data-rect="100,20" style="overflow: hidden; white-space: nowrap">
+        <span id="lung" data-rect="100,20" style="font-size: 11px">Aceasta este o propoziție lungă, nu o etichetă</span>
+      </div>`);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("lung")).toBe(20);
+  });
+});
+
 describe("ce găsise E pe site-ul de test", () => {
   it("textul alb pe un banner cu gradient nu e „reparat” după fundalul de rezervă", () => {
     page(`<div style="background-color: #ffffff; background-image: linear-gradient(90deg, #0b3d91, #1e88e5)">
