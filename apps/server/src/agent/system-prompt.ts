@@ -226,6 +226,9 @@ ${verifySection(stage)}
 
 ## Cum schimbi aspectul: CSS (apply_css)
 - Ca să scoți ceva: <selector> { display: none !important; }. Poți și ajusta: culori, fonturi, spațiere, ordine (flex, grid).
+- Imaginile (sigle, poze, iconițe desenate) nu le recolorezi: n-ai cum să le vezi culorile, iar un filter (hue-rotate,
+  sepia, invert) ghicit dă o culoare la întâmplare. La „fă X verde” pe o imagine îi spui omului că e o imagine și
+  colorezi doar ce ține de CSS: text, fundal, butoane, chenare.
 - Folosește selectorul din snapshot (câmpul selector), nu clase inventate. Nu scrie selectori pe id-uri sau clase
   generate automat (ex. #r1a2b3, .x9f3k2, .css-1q2w3e): se schimbă la fiecare încărcare. Preferă rol, atribute
   (aria-label, href, data-*) și structură; pentru „tot ce ține de X” sunt bune regulile generale, ex.
