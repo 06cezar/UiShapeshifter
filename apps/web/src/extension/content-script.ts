@@ -37,6 +37,8 @@ const host = normalizeHost(location.hostname);
 let excluded = false;
 /** Din chat se vede mereu una dintre ele: butonul (chat închis) sau panoul (chat deschis). */
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
+/** Ce vede omul în chat când tab-ul are codul vechi al extensiei (după ↻): doar reîncărcarea paginii ajută. */
+const RELOAD_PAGE_TEXT = "Extensia s-a actualizat. Reîncarcă pagina (F5) și scrie din nou.";
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
 const RECONNECT_PORT_MS = 1000;
 
@@ -124,8 +126,12 @@ let signals: SignalCollector | null = null;
 
 function start() {
   let port: chrome.runtime.Port | null = null;
+  /** Chatul, după ce e montat: retire() îl folosește ca să-i spună omului să reîncarce pagina. */
+  let chatOf: { handleServerMessage(message: ServerMessage): void } | null = null;
 
   function send(message: ToWorker) {
+    // Fără port și fără extensie: codul din tab e cel vechi (↻ pe extensie); altfel mesajul s-ar pierde în tăcere.
+    if (!port && !extensionAlive()) return retire();
     try {
       port?.postMessage(message);
     } catch {
@@ -141,6 +147,8 @@ function start() {
     port = null;
     signals?.stop();
     signals = null;
+    // Omul a scris poate deja o cerere: îi spunem ce să facă, în loc de „Mă gândesc…” la nesfârșit.
+    chatOf?.handleServerMessage({ type: "error", message: RELOAD_PAGE_TEXT });
   }
   const extensionAlive = () => Boolean(chrome.runtime?.id);
 
@@ -159,6 +167,7 @@ function start() {
     },
     page: () => pageInfo(location, document.title),
   });
+  chatOf = chat;
   const mascot = mountMascot(ourRoot);
   // Propunerile adaptării automate (E3): bula discretă cu Da / Nu; răspunsul pleacă la server.
   const suggestions = mountSuggestionBubble(ourRoot, {
