@@ -5,7 +5,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, test } from "vitest";
-import type { ServerMessage, Suggestion, UsageSignal } from "@uishapeshifter/contracts";
+import type { PageInfo, ServerMessage, Suggestion, UsageSignal } from "@uishapeshifter/contracts";
 import { createProfileStore, type ProfileStore } from "../profile";
 import { applyProfileUpdate } from "../profile";
 import { COOLDOWN_MS, createAdaptationEngine } from "./engine";
@@ -78,6 +78,7 @@ describe("motorul", () => {
   let store: ProfileStore;
   let sent: ServerMessage[];
   let runs: string[];
+  let runPages: (PageInfo | undefined)[];
   let clock: number;
 
   function engine(hasTab = true) {
@@ -88,8 +89,9 @@ describe("motorul", () => {
         sent.push(message);
         return true;
       },
-      startRun: (_u, goal) => {
+      startRun: (_u, goal, page) => {
         runs.push(goal);
+        runPages.push(page);
         return hasTab ? "run-1" : null;
       },
       now: () => clock,
@@ -103,6 +105,7 @@ describe("motorul", () => {
     store = createProfileStore(dir);
     sent = [];
     runs = [];
+    runPages = [];
     clock = 1_000_000;
   });
   afterEach(() => rm(dir, { recursive: true, force: true }));
@@ -126,6 +129,7 @@ describe("motorul", () => {
     await e.onDecision(USER, suggestions()[0]!.id, "accept");
     assert.equal(runs.length, 1);
     assert.match(runs[0]!, /mărește țintele/);
+    assert.deepEqual(runPages[0], PAGE, "agentul știe site-ul de pe care au venit semnalele");
   });
 
   test("„Nu”: nu se mai propune, nici după pauză, nici după repornirea serverului (fapt în profil)", async () => {

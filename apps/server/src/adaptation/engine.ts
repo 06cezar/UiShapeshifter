@@ -28,8 +28,11 @@ export interface AdaptationDeps {
   store: ProfileStore;
   /** Trimite un mesaj în tab-ul omului; false dacă n-are niciunul deschis. */
   send(userId: string, message: ServerMessage): boolean;
-  /** Pornește agentul (origin „adaptation”); null dacă omul n-are tab, „queued” dacă rulează altceva. */
-  startRun(userId: string, goal: string): string | "queued" | null;
+  /**
+   * Pornește agentul (origin „adaptation”); null dacă omul n-are tab, „queued” dacă rulează altceva.
+   * `page`: site-ul de pe care au venit semnalele, ca agentul să știe unde lucrează (#68).
+   */
+  startRun(userId: string, goal: string, page?: PageInfo): string | "queued" | null;
   now?: () => number;
   thresholds?: RuleThresholds;
   log?: (line: string) => void;
@@ -41,7 +44,7 @@ interface UserState {
   cooldownUntil: Map<string, number>;
   /** chei refuzate cu „Nu”: nu se mai propun (și sunt fapte în profil, ca să supraviețuiască repornirii) */
   dismissed: Set<string>;
-  pending: Map<string, { suggestion: Suggestion; key: string }>;
+  pending: Map<string, { suggestion: Suggestion; key: string; page?: PageInfo }>;
   hostsSeen: Set<string>;
   keepStreak: number;
 }
@@ -100,7 +103,7 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
     );
   }
 
-  async function act(userId: string, state: UserState, finding: Finding, profile: UserProfile) {
+  async function act(userId: string, state: UserState, finding: Finding, profile: UserProfile, page?: PageInfo) {
     const t = now();
     if ((state.cooldownUntil.get(finding.key) ?? 0) > t) return;
     if (state.dismissed.has(finding.key) || dismissedInProfile(profile, finding.key)) return;
@@ -112,7 +115,8 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
 
     // Schimbare mică și omul a avut încredere de 3 ori la rând: o aplicăm direct, iar agentul anunță ce a făcut.
     if (finding.risk === "low" && profile.trust.autoApplyLowRisk) {
-      const started = deps.startRun(userId, `${finding.goal} Omul a acceptat des astfel de schimbări: aplic-o direct.`);
+      const goal = `${finding.goal} Omul a acceptat des astfel de schimbări: aplic-o direct.`;
+      const started = deps.startRun(userId, goal, page);
       if (started === null) return;
       state.cooldownUntil.set(finding.key, t + COOLDOWN_MS);
       log(`${userId}: ${finding.rule} aplicat direct (încredere)`);
@@ -129,7 +133,7 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
       createdAt: new Date(t).toISOString(),
     };
     if (!deps.send(userId, { type: "suggestion", suggestion })) return; // niciun tab deschis: mai încercăm data viitoare
-    state.pending.set(suggestion.id, { suggestion, key: finding.key });
+    state.pending.set(suggestion.id, { suggestion, key: finding.key, page });
     state.cooldownUntil.set(finding.key, t + COOLDOWN_MS);
     log(`${userId}: propun ${finding.rule} (${suggestion.id}): ${suggestion.text}`);
   }
@@ -153,7 +157,7 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
         const general = generalPreferencesFinding(page, profile.generalPreferences ?? []);
         if (general) findings.push(general);
       }
-      for (const finding of findings) await act(userId, state, finding, profile);
+      for (const finding of findings) await act(userId, state, finding, profile, page);
     },
 
     async onDecision(userId, suggestionId, decision) {
@@ -162,7 +166,7 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
       if (!pending) return log(`${userId}: decizie pentru o propunere necunoscută (${suggestionId})`);
       state.pending.delete(suggestionId);
       if (decision === "accept") {
-        const started = deps.startRun(userId, pending.suggestion.goal);
+        const started = deps.startRun(userId, pending.suggestion.goal, pending.page);
         log(`${userId}: a acceptat ${pending.suggestion.trigger} → rulare ${started ?? "nepornită (niciun tab)"}`);
         return;
       }
