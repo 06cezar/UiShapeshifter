@@ -202,7 +202,8 @@ describe("oprire și schimbarea profilului", () => {
     base.update({ minFontPx: 24 });
     expect(fontOf("mic")).toBe(24);
     expect(fontOf("gri")).toBe(24);
-    expect(el("buton").style.getPropertyValue("min-height")).toBe("44px"); // fără minTargetPx în profil: 44
+    // fără minTargetPx peste implicit, țintele nu se mai măresc (specs/07: doar la cererea testului de atingere)
+    expect(el("buton").style.getPropertyValue("min-height")).toBe("");
     expect(document.getElementById(BASE_STYLE_ID)).toBeNull(); // fără reducedMotion
   });
 
@@ -210,5 +211,98 @@ describe("oprire și schimbarea profilului", () => {
     base = startBasePreferences({ needs: {}, ourHostId: HOST_ID });
     expect(fontOf("mic")).toBe(16);
     expect(base.adjustedCount()).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * happy-dom nu face layout: aici dreptunghiul fiecărui element se calculează din stilul lui, ca să vedem ce se
+ * întâmplă după ce C4 scrie (min-width, min-height, font-size).
+ */
+function layout(id: string, rectOf: (el: HTMLElement) => DOMRect): void {
+  const element = el(id);
+  element.getBoundingClientRect = () => rectOf(element);
+}
+const px = (value: string, fallback: number) => parseFloat(value) || fallback;
+
+describe("verificarea de după scriere (Teams, WhatsApp, Instagram, găsite de Adelin)", () => {
+  it("Teams: avatarul mărit ar acoperi numele, deci rămâne cum era; numele crește", () => {
+    page(`
+      <div id="antet" data-rect="600,40">
+        <button id="avatar" style="position: absolute; font-size: 12px">IB</button>
+        <span id="nume" style="font-size: 14px">IULIA TEODORA</span>
+      </div>`);
+    layout(
+      "avatar",
+      (a) => new DOMRect(0, 0, Math.max(32, px(a.style.minWidth, 0)), Math.max(32, px(a.style.minHeight, 0))),
+    );
+    layout("nume", () => new DOMRect(36, 0, 200, 20));
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(el("avatar").style.minWidth).toBe("");
+    expect(fontOf("avatar")).toBe(12);
+    expect(fontOf("nume")).toBe(20);
+  });
+
+  it("WhatsApp: ora din colțul bulei (float) ar trece peste mesaj, deci rămâne mică; mesajul crește", () => {
+    page(`
+      <div id="bula" data-rect="300,40">
+        <span id="mesaj" style="font-size: 14px">Ne vedem mâine la 10</span>
+        <div id="meta" style="float: right"><span id="ora" style="font-size: 11px">12:34</span></div>
+      </div>`);
+    layout("bula", () => new DOMRect(0, 0, 300, 40));
+    layout("mesaj", (m) => new DOMRect(0, 0, 260, (20 * px(m.style.fontSize, 14)) / 14));
+    layout("ora", (o) => {
+      const scale = px(o.style.fontSize, 11) / 11;
+      return new DOMRect(300 - 30 * scale, 10, 30 * scale, 14 * scale);
+    });
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("ora")).toBe(11);
+    expect(fontOf("mesaj")).toBe(20);
+  });
+
+  it("Instagram: linkul din jurul unei poze nu se mărește dacă poza ar crește odată cu el", () => {
+    page(
+      `<p id="nume-ig" style="font-size: 20px">utilizator</p><a id="link" href="/u"><img id="poza" alt="profil"></a>`,
+    );
+    const linkSize = () => Math.max(32, px(el("link").style.minWidth, 0));
+    layout("link", () => new DOMRect(0, 100, linkSize(), linkSize()));
+    layout("poza", () => new DOMRect(0, 100, linkSize(), linkSize()));
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(el("link").style.minWidth).toBe("");
+    expect(el("link").style.display).toBe("");
+  });
+
+  it("un buton mic în flux, care împinge textul de sub el, rămâne mărit", () => {
+    page(`<button id="mic" style="font-size: 20px">OK</button><p id="sub" style="font-size: 20px">Text dedesubt</p>`);
+    const size = () => Math.max(30, px(el("mic").style.minHeight, 0));
+    layout("mic", () => new DOMRect(0, 0, size(), size()));
+    layout("sub", () => new DOMRect(0, size() + 10, 300, 24));
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(el("mic").style.minHeight).toBe("56px");
+  });
+
+  it("o margine cu aceeași culoare ca fundalul (pusă să nu se vadă) nu devine vizibilă", () => {
+    page(`<button id="reactie" style="border: 1px solid #ffffff; font-size: 20px" data-rect="60,60">+</button>`);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(el("reactie").style.borderColor).toBe("#ffffff"); // culoarea site-ului, nerescrisă de noi
+  });
+});
+
+describe("profilul implicit nu deformează site-urile la prima vizită (găsit de Adelin)", () => {
+  it("fără test de atingere: fontul crește la 16px, dar butoanele și linkurile mici rămân cum sunt", () => {
+    page(`
+      <button id="mic" data-rect="30,30" style="font-size: 12px">OK</button>
+      <nav><a id="meniu" href="/x" data-rect="60,20" style="font-size: 12px">Acasă</a></nav>`);
+    base = startBasePreferences({ needs: { minFontPx: 16, minTargetPx: 44 }, ourHostId: HOST_ID });
+    expect(fontOf("mic")).toBe(16);
+    expect(fontOf("meniu")).toBe(16);
+    expect(el("mic").style.minHeight).toBe("");
+    expect(el("meniu").style.minWidth).toBe("");
+    expect(el("meniu").style.display).toBe("");
+  });
+
+  it("cu țintele cerute de testul de atingere (56px), butonul mic crește", () => {
+    page(`<button id="mic" data-rect="30,30" style="font-size: 20px">OK</button>`);
+    base = startBasePreferences({ needs: { minFontPx: 16, minTargetPx: 56 }, ourHostId: HOST_ID });
+    expect(el("mic").style.minHeight).toBe("56px");
   });
 });

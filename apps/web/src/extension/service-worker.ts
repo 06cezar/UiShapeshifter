@@ -3,6 +3,7 @@
 // iar mesajele unei rulări ajung în tab-ul din care a plecat cererea (`runId → tab`, specs/06).
 
 import { SERVER_PORT, type ServerMessage } from "@uishapeshifter/contracts";
+import { ONBOARDING_KEY } from "./base-needs";
 import { PAGE_PORT, POPUP_PORT, parseToWorker, type FromWorker } from "./messages";
 import { createRunRouter } from "./run-router";
 import { startServerLink, type ServerLink } from "./server-link";
@@ -19,6 +20,20 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
   if (__UIS_ONBOARDING__ && reason === "install") {
     void chrome.tabs.create({ url: chrome.runtime.getURL("onboarding.html") });
   }
+});
+
+/**
+ * Omul a închis browserul fără să termine (sau să omită) testul: la următoarea pornire îl deschidem din nou, o singură
+ * dată, altfel rămâne cu valorile implicite fără să știe că testul există.
+ */
+async function reopenUnfinishedOnboarding(): Promise<void> {
+  if ((await chrome.storage.local.get(ONBOARDING_KEY))[ONBOARDING_KEY]) return; // terminat sau omis
+  const url = chrome.runtime.getURL("onboarding.html");
+  if ((await chrome.tabs.query({ url })).length > 0) return; // Chrome a redeschis deja tab-ul
+  await chrome.tabs.create({ url });
+}
+chrome.runtime.onStartup.addListener(() => {
+  if (__UIS_ONBOARDING__) void reopenUnfinishedOnboarding();
 });
 
 const SERVER_WS_URL = `ws://localhost:${SERVER_PORT}/ws`;

@@ -120,6 +120,8 @@ document.getElementById("demo-reset")!.addEventListener("click", async () => {
   demoStatus.textContent = `Gata: ${recipes} site-uri revenite la original${server ? "" : " (serverul nu a răspuns: doar local)"}. Reîncarcă paginile deschise.`;
   await showSite();
   await showAccount();
+  // Ca la instalare: testul inițial se deschide singur, ca demo-ul să poată începe de la zero (specs/12).
+  await chrome.tabs.create({ url: chrome.runtime.getURL("onboarding.html") });
 });
 
 document.getElementById("demo-profile")!.addEventListener("click", async () => {
