@@ -303,5 +303,6 @@ describe("modul expert (run_js, experiment)", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("run_js e ultima variantă");
     expect(system).toContain("Nu intră în rețetă");
+    expect(system).toContain("Codul e corpul unei funcții async"); // altfel result vine null (wrapCode, E)
   });
 });
