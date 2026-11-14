@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "b18036ede75659eb72bede2cf7955ae5da965be9",
-  "last_run": "2026-11-14T01:28:18Z",
+  "last_comms_sha": "8cf6465c815a3bbdc32c0864b21c96532a770080",
+  "last_run": "2026-11-14T01:29:12Z",
   "last_sha": "6736402f88b8c147149862f1dafaeb65b72124eb",
   "prs": {
     "1": {
@@ -425,6 +425,11 @@
     },
     "82": {
       "head": "b-undo-request",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "83": {
+      "head": "b4-refacere",
       "merged_at": null,
       "state": "OPEN"
     },

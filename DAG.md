@@ -161,7 +161,7 @@ _nimic_
 
 ## În lucru
 
-- **B4** (B) Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo: branch `b4-refacere` are commit-uri; încă așteaptă M3 _(Etapa 4 · sâm 06:00. Gata = pe perechea aleasă pentru demo, „fă-l să arate ca X” schimbă așezarea și stilul, pagina rămâne folosibilă și rețeta rezistă la reîncărcare; pe site-ul de test, „vreau doar să plătesc factura” lasă o pagină simplă.)_
+- **B4** (B) Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo: PR #83 deschis; încă așteaptă M3 _(Etapa 4 · sâm 06:00. Gata = pe perechea aleasă pentru demo, „fă-l să arate ca X” schimbă așezarea și stilul, pagina rămâne folosibilă și rețeta rezistă la reîncărcare; pe site-ul de test, „vreau doar să plătesc factura” lasă o pagină simplă.)_
 - **E3** (E) Adaptarea automată - reguli pe semnale, încrederea (autoApplyLowRisk) și preferințele generale propuse singure pe site-uri noi: PR #66 deschis; încă așteaptă M3 _(Etapa 4 · sâm 05:30. Gata = 3 ratări lângă un buton pornesc singure propunerea „butoane mai mari”; pe un site nou, mascota propune singură preferințele generale.)_
 - **E6** (E) Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv: PR #79 deschis; încă așteaptă M3 _(Etapa 4 · sâm 06:30. Gata = după login pe alt profil de browser apar același profil și aceleași rețete. Parola doar ca hash.)_
 
