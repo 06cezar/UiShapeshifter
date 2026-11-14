@@ -44,7 +44,7 @@ interface UserState {
   cooldownUntil: Map<string, number>;
   /** chei refuzate cu „Nu”: nu se mai propun (și sunt fapte în profil, ca să supraviețuiască repornirii) */
   dismissed: Set<string>;
-  pending: Map<string, { suggestion: Suggestion; key: string; page?: PageInfo }>;
+  pending: Map<string, { suggestion: Suggestion; key: string; page?: PageInfo; preferenceIds?: string[] }>;
   hostsSeen: Set<string>;
   keepStreak: number;
 }
@@ -103,6 +103,20 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
     );
   }
 
+  /**
+   * „Da” la preferințele generale pe un site nou: notăm site-ul în appliedOn aici, nu prin update_profile din model
+   * (modelul îl uita sau trimitea un patch gol, iar propunerea revenea la fiecare vizită).
+   */
+  async function markApplied(userId: string, preferenceIds: string[], host: string) {
+    const profile = await deps.store.get(userId);
+    const generalPreferences = (profile.generalPreferences ?? []).map((preference) =>
+      preferenceIds.includes(preference.id) && !preference.appliedOn.includes(host)
+        ? { ...preference, appliedOn: [...preference.appliedOn, host] }
+        : preference,
+    );
+    await deps.store.save({ ...profile, generalPreferences });
+  }
+
   async function act(userId: string, state: UserState, finding: Finding, profile: UserProfile, page?: PageInfo) {
     const t = now();
     if ((state.cooldownUntil.get(finding.key) ?? 0) > t) return;
@@ -133,7 +147,7 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
       createdAt: new Date(t).toISOString(),
     };
     if (!deps.send(userId, { type: "suggestion", suggestion })) return; // niciun tab deschis: mai încercăm data viitoare
-    state.pending.set(suggestion.id, { suggestion, key: finding.key, page });
+    state.pending.set(suggestion.id, { suggestion, key: finding.key, page, preferenceIds: finding.preferenceIds });
     state.cooldownUntil.set(finding.key, t + COOLDOWN_MS);
     log(`${userId}: propun ${finding.rule} (${suggestion.id}): ${suggestion.text}`);
   }
@@ -166,6 +180,8 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
       if (!pending) return log(`${userId}: decizie pentru o propunere necunoscută (${suggestionId})`);
       state.pending.delete(suggestionId);
       if (decision === "accept") {
+        const host = pending.suggestion.host;
+        if (host && pending.preferenceIds?.length) await markApplied(userId, pending.preferenceIds, host);
         const started = deps.startRun(userId, pending.suggestion.goal, pending.page);
         log(`${userId}: a acceptat ${pending.suggestion.trigger} → rulare ${started ?? "nepornită (niciun tab)"}`);
         return;

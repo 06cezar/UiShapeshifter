@@ -41,6 +41,8 @@ export interface Finding {
   goal: string;
   risk: "low" | "high";
   host?: string;
+  /** general-preferences: preferințele propuse aici, ca la „Da” să notăm site-ul în appliedOn fără model. */
+  preferenceIds?: string[];
   evidence: UsageSignal[];
 }
 
@@ -145,9 +147,10 @@ export function generalPreferencesFinding(page: PageInfo, preferences: GeneralPr
     text: `Pe ${page.host} pot aplica ce vrei peste tot: ${list}. Le aplic?`,
     goal:
       `Aplică pe ${page.host} preferințele generale ale omului: ${list}. Caută în snapshot elementele care li se ` +
-      "potrivesc, ascunde-le cu apply_css, verifică, apoi notează site-ul în appliedOn (update_profile).",
+      "potrivesc, ascunde-le cu apply_css și verifică. Site-ul e deja notat în appliedOn.",
     risk: "high",
     host: page.host,
+    preferenceIds: missing.map((p) => p.id),
     evidence: [],
   };
 }

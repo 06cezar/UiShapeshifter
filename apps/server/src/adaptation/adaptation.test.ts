@@ -192,5 +192,12 @@ describe("motorul", () => {
     assert.equal(suggestions().length, 1);
     assert.equal(suggestions()[0]?.trigger, "general-preferences");
     assert.match(suggestions()[0]!.text, /fără rezumate AI/);
+
+    await e.onDecision(USER, suggestions()[0]!.id, "accept");
+    const after = await store.get(USER);
+    assert.deepEqual(after.generalPreferences?.[0]?.appliedOn, ["alt.ro", "localhost"], "„Da” notează site-ul singur");
+    assert.equal(runs.length, 1);
+    await engine().onSignals(USER, [], PAGE);
+    assert.equal(suggestions().length, 1, "pe același site nu se mai propune, nici după repornire");
   });
 });
