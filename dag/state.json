@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "ae38b7732733d07222354b1d38559dcb1cfe0d33",
-  "last_run": "2026-11-14T04:22:11Z",
+  "last_comms_sha": "10a26db337b541d7194411745acff063ac2df020",
+  "last_run": "2026-11-14T04:27:26Z",
   "last_sha": "3a32a84182a5e128185a52b38adc0e6e77a8ead7",
   "prs": {
     "1": {
@@ -65,8 +65,8 @@
     },
     "106": {
       "head": "a-pasi-dupa-reparatie",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T04:27:25Z",
+      "state": "MERGED"
     },
     "11": {
       "head": "d4-panou",
