@@ -70,6 +70,9 @@ function verifySection(stage: SiteToolStage): string {
        overflow: visible (apply_css), apoi audit_ui din nou. Dacă e tot tăiat, site-ul are o regulă mai puternică:
        încerci o singură dată același lucru cu selectorul întărit (ex. body > header:not(#uis-x)); dacă nici așa,
        te oprești, păstrezi butonul și spui în propose_changes că poate ieși puțin tăiat.
+       După o schimbare pe container, elementele din el primesc id-uri noi: pentru point_at iei id-ul din snapshot-ul
+       cel mai nou (NOT_VISIBLE pe un id vechi nu înseamnă că stilul n-a prins). Cu auditul curat nu mai restilizezi
+       butonul: point_at, propose_changes, finish.
      - overlap, offscreen și celelalte clipped: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și
        o spui în propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
        Nu anulezi ce a cerut omul pentru ele.
