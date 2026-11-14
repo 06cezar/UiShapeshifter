@@ -28,7 +28,7 @@ import { keepClearOfSiteFixed } from "./keep-clear";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { measurePage, type PageMeasure } from "./measure";
-import { HOST_ID, mountOurRoot } from "./shadow-root";
+import { HOST_ID, mountOurRoot, ourShadowRoot } from "./shadow-root";
 import { mountSuggestionBubble } from "./suggestion-bubble";
 
 /** Pus de build.mjs: true în build-ul de dezvoltare, false cu --prod. */
@@ -56,7 +56,7 @@ function isOurUiVisible(): boolean {
   const ourHost = document.getElementById(HOST_ID);
   if (!ourHost) return true; // încă nemontată: nimic de stricat
   if (getComputedStyle(ourHost).display === "none") return false;
-  const parts = ourHost.shadowRoot?.querySelectorAll(CHAT_PARTS_SELECTOR) ?? [];
+  const parts = ourShadowRoot(ourHost)?.querySelectorAll(CHAT_PARTS_SELECTOR) ?? [];
   return [...parts].some((part) => {
     const rect = part.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0;

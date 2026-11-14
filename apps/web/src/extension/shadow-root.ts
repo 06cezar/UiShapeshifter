@@ -41,6 +41,17 @@ const THEME_CSS = `
 }
 `;
 
+/**
+ * Shadow root-ul e `closed`: scriptul site-ului nu-l vede (`host.shadowRoot` e null), deci nu poate citi chatul, rescrie
+ * codul arătat în aprobarea Modului expert sau apăsa butoanele noastre (review B pe #152). Îl ținem noi aici.
+ */
+const shadowOf = new WeakMap<HTMLElement, ShadowRoot>();
+
+/** Shadow root-ul nostru pentru o gazdă deja montată (null dacă nu e a noastră). */
+export function ourShadowRoot(host: HTMLElement | null): ShadowRoot | null {
+  return host ? (shadowOf.get(host) ?? null) : null;
+}
+
 export interface OurRoot {
   host: HTMLElement;
   shadow: ShadowRoot;
@@ -59,7 +70,8 @@ export function mountOurRoot(doc: Document = document): OurRoot {
     for (const [property, value] of Object.entries(HOST_STYLE)) host.style.setProperty(property, value, "important");
     doc.documentElement.appendChild(host);
   }
-  const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+  const shadow = shadowOf.get(host) ?? host.attachShadow({ mode: "closed" });
+  shadowOf.set(host, shadow);
 
   function addStyle(css: string) {
     const style = doc.createElement("style");
