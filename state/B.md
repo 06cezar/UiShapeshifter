@@ -1,3 +1,3 @@
-2026-11-14 01:47
+2026-11-14 03:30
 
-gata: b4-refacere impins cu fundaluri (4a) si coloane persistente (4b); extensia reconstruita pe tmp-proba-ca-site. urmeaza: Stefan reincarca extensia, apoi probele din nou. blocat: nimic
+B4 preluat de C (PR #83 din b4-refacere), undoRequest preluat de C (b-undo-request). B nu mai împinge pe b4-refacere. Rămas: review-uri și uniri; comms wait până la 05:55.
