@@ -44,6 +44,7 @@ export interface RunIO {
 
 const MAX_STEPS_SUMMARY = "M-am oprit după prea mulți pași. Am păstrat ce am reușit până acum.";
 const CANCELLED_SUMMARY = "Am oprit, cum ai cerut.";
+const REPLACED_SUMMARY = "Am lăsat cererea asta pentru cea nouă.";
 const EMPTY_REPLY_SUMMARY = "N-am reușit să încep: modelul n-a răspuns. Încearcă din nou, te rog.";
 const UNDONE_SUMMARY = "Am pus pagina înapoi, cum ai ales.";
 
@@ -110,10 +111,17 @@ export async function runAgent(
     run.finishedAt = new Date().toISOString();
     // jurnalul nesalvat nu trebuie să lase interfața fără run_finished
     await io.saveRun(run).catch((error: unknown) => console.error(`agent: n-am salvat ${run.runId}:`, error));
-    if (!(status === "cancelled" && io.isReplaced())) {
-      io.send({ type: "agent_message", runId: run.runId, text: summary, mascot });
-    }
-    io.send({ type: "run_finished", runId: run.runId, success: status === "succeeded", summary });
+    // Înlocuită de o cerere nouă a omului: chatul nu primește „Am oprit, cum ai cerut.” (roșu), fiindcă omul n-a cerut
+    // oprirea, ci altceva; run_finished pleacă fără rezumat (chatul îl sare), iar jurnalul notează înlocuirea.
+    const replaced = status === "cancelled" && io.isReplaced();
+    if (replaced) run.summary = REPLACED_SUMMARY;
+    if (!replaced) io.send({ type: "agent_message", runId: run.runId, text: summary, mascot });
+    io.send({
+      type: "run_finished",
+      runId: run.runId,
+      success: status === "succeeded",
+      summary: replaced ? "" : summary,
+    });
     return run;
   };
 
