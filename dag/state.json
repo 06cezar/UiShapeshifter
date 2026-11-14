@@ -25,9 +25,9 @@
       }
     }
   },
-  "last_comms_sha": "57fdeada5f1540365d6585184b36125c3bcecb66",
-  "last_run": "2026-11-14T10:45:11Z",
-  "last_sha": "3dfb2985badfb7ddfc5742c59b57cd3b56a0b785",
+  "last_comms_sha": "19ec2ea46bf7f5dfe90711c6edd6c34c6b4dbcc2",
+  "last_run": "2026-11-14T10:48:17Z",
+  "last_sha": "d103cb7c75789bc703fb48544655353237983fdc",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -386,8 +386,8 @@
     },
     "163": {
       "head": "a-fara-date-inventate",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T10:48:08Z",
+      "state": "MERGED"
     },
     "17": {
       "head": "c2-reparatii",
