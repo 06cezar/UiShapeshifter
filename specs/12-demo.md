@@ -67,8 +67,9 @@ agentul repară → audit 0 → Păstrez, 26–40 s. Videoul rămâne doar rezer
 - **Pitch:** problemă (site-uri făcute pentru toți, nu pentru tine), soluție, demo, impact. Monetizarea e un singur slide
   (sincronizare pe cont, Modul expert, planuri pentru echipe). Reclamele nu le „blocăm”: curățăm pagina după preferințele
   omului. Mobilul e direcție viitoare (Chrome pe Android nu rulează extensii).
-- **La „e un plugin care face orice?”:** „Face aproape orice îi ceri pe pagină, implicit fără cod, numai cu operații pe
-  care le verificăm, și ascultă doar de tine, nu de ce scrie pe site.” Două limite: operațiile validate (`specs/01`; codul
+- **La „e un plugin care face orice?”:** „Face aproape orice îi ceri pe pagină, fără cod, numai cu operații pe care le
+  verificăm; singura excepție e Modul expert, oprit implicit, unde vezi codul și apeși «Rulează». E făcut să asculte doar
+  de tine: textul site-ului e doar informație, iar ce rămâne permanent intră doar cu cuvintele tale.” Două limite: operațiile validate (`specs/01`; codul
   doar în Modul expert, cu aprobarea omului) și cine poate cere (doar omul; o preferință generală nouă intră doar cu citat
   din cererea lui, #132, #140).
 
@@ -88,3 +89,10 @@ agentul repară → audit 0 → Păstrez, 26–40 s. Videoul rămâne doar rezer
   Doar dacă `x-mod-js` e unit pe `main` (DECISIONS.md, 14 nov. 11:45). În demo arătăm fereastra de aprobare cu codul la
   vedere. Spunem cinstit: codul rulat nu intră în rețetă, nu se reaplică la reîncărcare și „Anulez” nu îl dă înapoi.
   Altfel, Modul expert e direcție viitoare, la fel ca mobilul.
+- **Direcție viitoare: consilierul anti-înșelătorii:** „Pe aceeași buclă se pot adăuga abilități noi. De pildă, un
+  consilier anti-înșelătorii: marchează pe pagină postările și ofertele suspecte și îți arată sursele găsite, fără să
+  ascundă nimic în locul tău. Tu decizi ce crezi; agentul doar îți arată unde să te uiți.”
+  De ce nu e în demo (14 nov. 12:10): verificarea surselor cere acces la web, iar agentul nu are încă așa ceva (nicio
+  unealtă de căutare pe server, niciun model OpenRouter `:online`). Ar fi însemnat o unealtă și un contract noi, prompt,
+  interfață și pași în jurnal după îngheț. Un verdict „adevărat/fals” pe care nu-l putem verifica live ar fi stricat
+  încrederea mai mult decât ajută. Dacă juriul întreabă, spunem exact asta.
