@@ -1,14 +1,15 @@
 // Cât de larg se aplică o schimbare: doar pagina de acum, tot site-ul sau toate site-urile. Hotărăște omul, prin ce
-// scrie; agentul nu are voie să lărgească. Fără nicio mențiune, schimbarea rămâne pe pagina pe care a fost cerută.
-// Funcții pure, ca restul validării: le folosește cine salvează rețeta (motorul de rețete și serverul).
+// scrie; agentul nu are voie să lărgească. Fără nicio mențiune, schimbarea ține pe tot site-ul, ca rețeta de azi
+// (specs/01). „Toate site-urile” doar la cerere limpede: atunci devine preferință generală (specs/08).
+// Funcții pure, ca restul validării: le folosește cine salvează schimbarea (serverul, motorul de rețete).
 
 /** Unde se aplică o schimbare. Ordinea contează: fiecare o cuprinde pe cea dinainte. */
 export type RequestScope = "page" | "site" | "all";
 
 const SCOPE_ORDER: readonly RequestScope[] = ["page", "site", "all"];
 
-/** Fără nicio mențiune, schimbarea rămâne pe pagina de acum (cererea lui Adelin). */
-export const DEFAULT_SCOPE: RequestScope = "page";
+/** Fără nicio mențiune: tot site-ul. „Nu vreau Shorts” trebuie să țină pe tot YouTube-ul (specs/12, pasul 2). */
+export const DEFAULT_SCOPE: RequestScope = "site";
 
 /**
  * Doar aici: bate orice altă mențiune din aceeași cerere („doar pe pagina asta, nu pe tot site-ul”).
@@ -43,7 +44,7 @@ function normalize(text: string): string {
   return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 }
 
-/** Cât de larg a cerut omul, din textul cererii. Fără nicio mențiune: doar pagina de acum. */
+/** Cât de larg a cerut omul, din textul cererii. Fără nicio mențiune: tot site-ul. */
 export function requestedScope(request: string): RequestScope {
   const text = normalize(request);
   if (ONLY_HERE_PATTERNS.some((pattern) => pattern.test(text))) return "page";
