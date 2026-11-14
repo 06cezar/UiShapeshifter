@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "258240acc5b9523deab23f7faa58c3dbac614cb4",
-  "last_run": "2026-11-14T03:45:58Z",
+  "last_comms_sha": "793c001877e706dff82c9c9e822e73edd58546bc",
+  "last_run": "2026-11-14T03:51:53Z",
   "last_sha": "7225ca0c9428fd1be34ee438dbe6a7585732bdaa",
   "prs": {
     "1": {
@@ -32,6 +32,11 @@
       "head": "d-regula-review",
       "merged_at": "2026-11-13T14:02:51Z",
       "state": "MERGED"
+    },
+    "100": {
+      "head": "c-c4-etichete-fixe",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "11": {
       "head": "d4-panou",
