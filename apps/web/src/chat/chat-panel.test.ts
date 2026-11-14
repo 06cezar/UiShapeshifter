@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { RUN_LIMITS, type PageInfo } from "@uishapeshifter/contracts";
-import { HOST_ID, mountOurRoot } from "../extension/shadow-root";
+import { HOST_ID, mountOurRoot, ourShadowRoot } from "../extension/shadow-root";
 import type { OutgoingClientMessage } from "../extension/messages";
 import { ASK_TIMEOUT_MS, mountChat } from "./chat-panel";
 import { CHAT_TEXT } from "./chat-state";
@@ -11,7 +11,7 @@ function setup() {
   document.getElementById(HOST_ID)?.remove();
   const sent: OutgoingClientMessage[] = [];
   const chat = mountChat(mountOurRoot(document), { send: (message) => sent.push(message), page: () => PAGE });
-  const shadow = document.getElementById(HOST_ID)!.shadowRoot!;
+  const shadow = ourShadowRoot(document.getElementById(HOST_ID))!;
   const q = <T extends Element>(selector: string) => shadow.querySelector<T>(selector)!;
   return { chat, sent, shadow, q };
 }
@@ -155,6 +155,24 @@ describe("ask_user: întrebarea agentului", () => {
     await Promise.resolve();
     expect(settled).toBeUndefined();
     expect(q<HTMLElement>(".chat-options").hidden).toBe(false);
+  });
+
+  test("humanOnly: nici un submit cu isTrusted = true (requestSubmit în Chrome) nu aprobă; doar butonul", async () => {
+    const { chat, q } = setup();
+    let settled: string | null | undefined;
+    void chat.ask("Rulez codul?", ["Rulează", "Nu rula"], { humanOnly: true }).then((a) => (settled = a));
+    q<HTMLInputElement>(".chat-input").value = "Rulează";
+    const submit = new Event("submit", { cancelable: true });
+    Object.defineProperty(submit, "isTrusted", { value: true }); // cum îl face Chrome pentru requestSubmit()
+    q<HTMLFormElement>(".chat-form").dispatchEvent(submit);
+    await Promise.resolve();
+    expect(settled).toBeUndefined();
+  });
+
+  test("scriptul paginii nu vede interfața noastră: shadow root închis", () => {
+    setup();
+    expect(document.getElementById(HOST_ID)!.shadowRoot).toBeNull();
+    expect(ourShadowRoot(document.getElementById(HOST_ID))?.querySelector(".chat-form")).not.toBeNull();
   });
 
   test("un răspuns scris merge la întrebare; următorul mesaj e iar o cerere", async () => {

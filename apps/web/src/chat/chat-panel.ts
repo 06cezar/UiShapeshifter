@@ -237,7 +237,10 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (fromHumanIfNeeded(event)) sendRequest(input.value, "text");
+    // Aprobarea codului (humanOnly) se dă doar cu butonul: în Chrome, `requestSubmit()` din script face un submit cu
+    // isTrusted = true, deci un text scris în câmp nu poate fi dovada că a apăsat omul (review B pe #152).
+    if (pendingAsk?.humanOnly) return;
+    sendRequest(input.value, "text");
   });
 
   // Vocea (D10): textul intermediar apare în câmp, fraza terminată pleacă singură, marcată „voice”.

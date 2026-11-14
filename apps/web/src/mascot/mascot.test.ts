@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { HOST_ID, mountOurRoot } from "../extension/shadow-root";
+import { HOST_ID, mountOurRoot, ourShadowRoot } from "../extension/shadow-root";
 import { DANCE_MS, type SpriteAnimation } from "./animations";
 import type { Facing } from "./geometry";
 import { mountMascot, type MascotController } from "./mascot";
@@ -32,7 +32,7 @@ async function setup(reducedMotion = true) {
     createRenderer: async () => fake.renderer,
   });
   await Promise.resolve(); // randarea falsă se creează asincron, ca modelul adevărat
-  const shadow = document.getElementById(HOST_ID)!.shadowRoot!;
+  const shadow = ourShadowRoot(document.getElementById(HOST_ID))!;
   const q = <T extends Element>(selector: string) => shadow.querySelector<T>(selector)!;
   return { mascot, fake, q };
 }

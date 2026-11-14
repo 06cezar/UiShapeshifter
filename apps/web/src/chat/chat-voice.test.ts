@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import type { PageInfo } from "@uishapeshifter/contracts";
-import { HOST_ID, mountOurRoot } from "../extension/shadow-root";
+import { HOST_ID, mountOurRoot, ourShadowRoot } from "../extension/shadow-root";
 import type { OutgoingClientMessage } from "../extension/messages";
 import { mountChat } from "./chat-panel";
 import { CHAT_TEXT } from "./chat-state";
@@ -36,7 +36,7 @@ function setup(recognition: typeof FakeRecognition | null = FakeRecognition) {
   document.getElementById(HOST_ID)?.remove();
   const sent: OutgoingClientMessage[] = [];
   mountChat(mountOurRoot(document), { send: (message) => sent.push(message), page: () => PAGE, recognition });
-  const shadow = document.getElementById(HOST_ID)!.shadowRoot!;
+  const shadow = ourShadowRoot(document.getElementById(HOST_ID))!;
   const q = <T extends Element>(selector: string) => shadow.querySelector<T>(selector)!;
   q<HTMLButtonElement>(".chat-launcher").click();
   return { sent, q };
