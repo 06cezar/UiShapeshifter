@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "321e9f422cde50ad9d10e2260fec643c17c00940",
-  "last_run": "2026-11-14T05:07:32Z",
-  "last_sha": "b6acdb7a3cf3583db444741a9d475f91142b875d",
+  "last_comms_sha": "b5b3b90ae972efad8314d5493c513387c7297820",
+  "last_run": "2026-11-14T05:11:05Z",
+  "last_sha": "0fa1cb428ec97841675b4a5ed6b6a4a62ec64028",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -105,8 +105,8 @@
     },
     "113": {
       "head": "c-c4-tinte-din-profil",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T05:10:45Z",
+      "state": "MERGED"
     },
     "12": {
       "head": "e1-tmp-unic",
