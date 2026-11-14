@@ -126,7 +126,20 @@ describe("auditPage pe un site", () => {
     const clipped = report.issues.filter((issue) => issue.rule === "clipped");
     expect(clipped.map((issue) => issue.elementId)).toEqual(["scurtatura"]);
     expect(clipped[0]!.message).toContain("tăiat de cutia în care stă");
-    expect(clipped[0]!.fixCss).toBe('[data-t="antet"] { height: auto !important; max-height: none !important; }');
+    expect(clipped[0]!.fixCss).toBe(
+      '[data-t="antet"]:not(#uis-reparatie) { height: auto !important; max-height: none !important; }',
+    );
+    // bate o regulă a site-ului pe clasă, chiar cu !important: aplicată, antetul crește
+    const header = document.querySelector<HTMLElement>('[data-t="antet"]')!;
+    header.classList.add("antet-strimt");
+    const site = document.createElement("style");
+    site.textContent = ".antet-strimt { height: 40px !important; }";
+    const fix = document.createElement("style");
+    fix.textContent = clipped[0]!.fixCss!;
+    document.head.append(site, fix);
+    expect(getComputedStyle(header).height).toBe("auto");
+    site.remove();
+    fix.remove();
     expect(validateCss(clipped[0]!.fixCss!).dropped).toEqual([]);
   });
 

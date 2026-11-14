@@ -32,7 +32,11 @@ export function fixCssFor(
       return rule(selector, [`line-height: ${thresholds.minLineHeight}`]);
     case "clipped":
       // Tăiat de cutia părinte: o lăsăm să crească după conținut. Textul tăiat în propriul element rămâne la agent.
-      return facts.clippedBySelector ? rule(facts.clippedBySelector, ["height: auto", "max-height: none"]) : undefined;
+      // Selectorul din registru („body > header”) e mai slab decât clasa site-ului („.site-header”) când și site-ul
+      // scrie `!important`: îi adăugăm greutatea unui id, fără să schimbăm ce prinde (găsit de A la proba pasului 4).
+      return facts.clippedBySelector
+        ? rule(`${facts.clippedBySelector}${SPECIFICITY_BOOST}`, ["height: auto", "max-height: none"])
+        : undefined;
     default:
       return undefined;
   }
@@ -65,6 +69,12 @@ function fixTextColor(element: ElementInfo, selector: string, thresholds: AuditT
   if (contrastRatio(color, background) >= required) return undefined;
   return rule(selector, [`color: ${adjustToContrast(color, background, required)}`]);
 }
+
+/**
+ * `:not(#…)` cu un id care nu există în pagină: nu schimbă elementele prinse, dar dă selectorului greutatea unui id,
+ * ca reparația să bată regulile site-ului scrise pe clase. Fără „uishapeshifter” în el, ca validarea (C5) să-l lase.
+ */
+const SPECIFICITY_BOOST = ":not(#uis-reparatie)";
 
 function rule(selector: string, declarations: string[]): string {
   return `${selector} { ${declarations.map((d) => `${d} !important`).join("; ")}; }`;
