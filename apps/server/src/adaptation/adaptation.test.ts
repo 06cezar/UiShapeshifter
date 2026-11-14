@@ -66,6 +66,8 @@ describe("regulile", () => {
       appliedOn,
     });
     assert.equal(generalPreferencesFinding(PAGE, [pref("fara-ai", ["localhost"])]), null);
+    // aspectul „peste tot” cu css îl pune extensia singură: fără bulă
+    assert.equal(generalPreferencesFinding(PAGE, [{ ...pref("fundal-roz", []), css: "body{background:pink}" }]), null);
     assert.match(
       generalPreferencesFinding(PAGE, [pref("fara-ai", []), pref("fara-shorts", [])])!.text,
       /fara-ai; fara-shorts/,

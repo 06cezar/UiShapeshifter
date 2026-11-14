@@ -2,7 +2,7 @@
 // cu CSS-ul pe care l-a aplicat (GeneralPreference.css, specs/08), iar extensia îl pune singură pe orice site, fără AI,
 // de la prima încărcare. Ca regulile de ascuns ale lui C (dislike-rules), dar cu CSS-ul omului.
 
-import type { GeneralPreference } from "@uishapeshifter/contracts";
+import { genericPreferenceCss, type GeneralPreference } from "@uishapeshifter/contracts";
 import { validateCss } from "../validation";
 
 /** „uishapeshifter” în id, ca rețeta unui site să n-o poată atinge (C5). */
@@ -23,24 +23,12 @@ export function generalCssFrom(values: Record<string, unknown>, userIdKey: strin
     .join("\n");
 }
 
-/** Un selector care merge pe orice site: fără clase, id-uri sau atribute (acelea țin de un singur site; nota lui A). */
-const SITE_SPECIFIC = /[.#[]/;
-
-/** Păstrează doar regulile cu selectori generici (html, body, a, button, p, h1–h6…). */
-export function genericRulesOnly(css: string): string {
-  const rules = css.match(/[^{}]+\{[^{}]*\}/g) ?? [];
-  return rules
-    .filter((rule) => !SITE_SPECIFIC.test(rule.slice(0, rule.indexOf("{"))))
-    .map((rule) => rule.trim())
-    .join("\n");
-}
-
 /**
  * Pune (sau scoate, fără CSS) foaia noastră; trece prin validarea CSS (C5) ca orice CSS pus de noi pe un site.
  * Stă prima în <head>: rețeta site-ului (pusă după) și fontul minim (C4, inline) o bat la egalitate (nota lui A).
  */
 export function applyGeneralStyle(css: string, doc: Document = document): void {
-  const safe = css ? validateCss(genericRulesOnly(css)).css : "";
+  const safe = css ? validateCss(genericPreferenceCss(css)).css : "";
   const existing = doc.getElementById(GENERAL_STYLE_ID);
   if (!safe) {
     existing?.remove();

@@ -2,6 +2,7 @@
 // Nevoile se aduc mereu în limitele HARD_LIMITS: nimeni nu coboară fontul sau țintele sub minim (specs/07).
 
 import {
+  genericPreferenceCss,
   HARD_LIMITS,
   type FamiliarSite,
   type GeneralPreference,
@@ -226,12 +227,11 @@ function preferenceCss(raw: unknown, field: string): string {
   if (!css || css.length > PREFERENCE_CSS_MAX_CHARS)
     fail(field, `CSS scurt, cel mult ${PREFERENCE_CSS_MAX_CHARS} de caractere`);
   if (UNSAFE_CSS.test(css)) fail(field, "fără url(), @import sau cod");
-  // Pe orice site: doar selectori generici (html, body, a, button, p, h1–h6…), fără clase, id-uri sau atribute.
-  const selectors = [...css.matchAll(/([^{}]+)\{/g)].map((match) => match[1] ?? "");
-  if (selectors.length === 0 || selectors.some((selector) => /[.#[]/.test(selector))) {
-    fail(field, "doar selectori generici (html, body, a, button, p, h1–h6), fără clase, id-uri sau atribute");
-  }
-  return css;
+  // Pe orice site: rămân doar selectorii generici (html, body, a, button, p, h1–h6…); restul ține de un site anume.
+  const generic = genericPreferenceCss(css);
+  if (!generic)
+    fail(field, "niciun selector generic (html, body, a, button, p, h1–h6); clasele și id-urile țin de un site");
+  return generic;
 }
 
 function parseFamiliarSiteUnsafe(raw: unknown, field: string): FamiliarSite {

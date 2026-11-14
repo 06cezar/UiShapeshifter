@@ -377,6 +377,13 @@ describe("preferința de aspect peste tot (css)", () => {
     assert.equal(parseGeneralPreference({ ...base, css: "body { background: url(x.png) }" }).ok, false);
     assert.equal(parseGeneralPreference({ ...base, css: "@import 'x.css';" }).ok, false);
     assert.equal(parseGeneralPreference({ ...base, css: ".site-header { background: green }" }).ok, false);
+    // ce scrie agentul pe un site („html, body, #main”): rămâne partea generică
+    const mixed = parseGeneralPreference({
+      ...base,
+      css: "html, body, #main-container { background: pink !important; }",
+    });
+    assert.ok(mixed.ok);
+    assert.equal(mixed.ok && mixed.value.css, "html, body { background: pink !important; }");
   });
 
   test("aceeași preferință spusă din nou: ultimul CSS câștigă", () => {
