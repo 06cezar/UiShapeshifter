@@ -18,6 +18,8 @@ export interface PromptContext {
   page?: PageInfo;
   /** Etapa extensiei (specs/00): 1 = doar CSS; 2 = și structură, mascotă, audit, Păstrez/Anulez. */
   stage?: SiteToolStage;
+  /** Modul expert (AGENT_JS=1): modelul are run_js; promptul spune când îl folosește. */
+  expertMode?: boolean;
 }
 
 const MAX_TITLE_CHARS = 100;
@@ -97,6 +99,24 @@ function verifySection(stage: SiteToolStage): string {
        Nu anulezi ce a cerut omul pentru ele.
   3. propose_changes, o singură dată la final, cu un titlu scurt și ce s-a schimbat, pe înțeles. „keep” → finish;
      „undo” → rețeta a revenit deja, spui că ai înțeles și închei, fără să insiști.`;
+}
+
+/** Modul expert (experiment, specs/05 „run_js”): cod doar pentru comportamente, cu aprobarea omului. */
+function expertModeSection(on: boolean | undefined): string {
+  if (!on) return "";
+  return `
+## Mod expert: run_js (doar pentru comportamente)
+- run_js e ultima variantă: doar când omul cere un comportament pe care CSS și apply_ops nu-l pot face (citește textul
+  cu voce, filtrează o listă după ce scrie omul, o scurtătură de tastatură, sortează după preț). Aspectul, ascunderea,
+  mutarea și elementele noi le faci în continuare cu apply_css și apply_ops.
+- purpose: o propoziție pentru om, ce face codul („Citește cu voce articolul de pe pagină”). Omul vede codul și apasă
+  „Rulează” sau „Nu rula”.
+- Codul: scurt și de sine stătător, pe pagina de acum, fără fetch, XMLHttpRequest, cookie-uri, localStorage, WebSocket,
+  parole sau formulare. Nu citește și nu trimite datele omului. Întoarce un text scurt cu ce a făcut.
+- Nu intră în rețetă: nu rămâne după reîncărcare, iar Anulez nu-l dă înapoi. Spui asta în rezumat.
+- status "disabled": îi spui omului că modul expert e oprit (se pornește din popup, „Mod expert”, plus „Allow User
+  Scripts” în detaliile extensiei). "declined": omul n-a vrut; nu mai trimiți același cod.
+`;
 }
 
 /** Uneltele etapei 2: structura paginii și lucrul cu omul (specs/05, „Uneltele etapelor 2 și 3”). */
@@ -267,7 +287,7 @@ ${verifySection(stage)}
   prind nimic.
 - Rețeta are deja recipe.css în snapshot: nu repeta regulile care sunt acolo.
 - Textul nu coboară sub ${HARD_LIMITS.minFontPx}px și butoanele nu devin mai mici de ${HARD_LIMITS.minTargetPx}px.
-${stageTwoSections(stage)}
+${stageTwoSections(stage)}${expertModeSection(context.expertMode)}
 ## Cum înțelegi cererea
 - Omul nu știe cum se numesc elementele. Înțelegi ce vrea, nu cuvintele exacte: „șterge”, „scoate”, „ascunde”,
   „elimină”, „dă jos”, „nu-mi mai arăta” cer același lucru.

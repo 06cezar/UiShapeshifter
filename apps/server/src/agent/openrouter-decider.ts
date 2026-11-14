@@ -2,6 +2,7 @@
 // Ține istoricul conversației cu modelul; bucla din run-agent.ts îi dă rezultatul fiecărui pas.
 
 import {
+  RUN_JS_TOOL_DEFINITION,
   siteToolDefinitions,
   TOOL_RUNS_ON,
   type PageInfo,
@@ -65,6 +66,21 @@ function parseArgs(raw: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * Modul expert (experiment până la 12:30, specs/05 „run_js”): unealta ajunge la model doar cu AGENT_JS=1 pe server și din
+ * etapa 2; extensia o rulează doar dacă omul a pornit modul și aprobă codul.
+ */
+export function expertModeOn(): boolean {
+  return process.env.AGENT_JS === "1";
+}
+
+function withExpertMode<T>(
+  definitions: readonly T[],
+  stage: SiteToolStage,
+): readonly (T | typeof RUN_JS_TOOL_DEFINITION)[] {
+  return expertModeOn() && stage >= 2 ? [...definitions, RUN_JS_TOOL_DEFINITION] : definitions;
+}
+
 export interface OpenRouterDeciderOptions {
   /** Etapa extensiei: alege uneltele (siteToolDefinitions) și secțiunile promptului. Implicit 1. */
   stage?: SiteToolStage;
@@ -81,7 +97,7 @@ export interface OpenRouterDeciderOptions {
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
   const { stage = 1, page, retryDelaysMs = RETRY_DELAYS_MS } = options;
-  const definitions = options.definitions ?? siteToolDefinitions(stage);
+  const definitions = options.definitions ?? withExpertMode(siteToolDefinitions(stage), stage);
   let model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL;
   const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
@@ -100,7 +116,7 @@ export function createOpenRouterDecider(goal: string, options: OpenRouterDecider
           return undefined;
         });
         messages.push(
-          { role: "system", content: buildSystemPrompt({ page, stage, profile }) },
+          { role: "system", content: buildSystemPrompt({ page, stage, profile, expertMode: allowed.has("run_js") }) },
           { role: "user", content: userMessage(goal, page, options.history) },
         );
       }
