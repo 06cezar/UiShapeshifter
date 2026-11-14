@@ -52,19 +52,25 @@ rezultată depășește `RECIPE_LIMITS.maxCssBytes`, la fel (`INVALID_ARGS`), ca
 (cel mult `DOM_OP_LIMITS.maxOpsPerCall` pe apel și `maxOpsPerRecipe` în total) și crește revizia, ca `apply_css`. Fiecare
 revizie păstrează lista completă (`RecipeRevision.ops`), deci „Anulez” scoate exact ultima schimbare, de CSS sau de structură.
 O operație care nu se poate aplica (selector negăsit, ambiguu) e **sărită și notată** în `skipped`; restul se aplică.
+În rețetă intră doar operațiile aplicate; dacă nu s-a aplicat niciuna, răspunsul e `ok` cu `applied: 0`, iar revizia nu
+crește.
 
 ## Reaplicarea fără AI
 
 - La încărcarea paginii, content script-ul citește rețeta gazdei din stocare și pune `<style>` la `document_start`,
   înainte să se vadă pagina. Fără apel la server, fără model.
-- Site-urile care își schimbă singure conținutul (aplicații de o pagină) nu au nevoie de reaplicare: o foaie de stil
-  se aplică și elementelor apărute după.
+- Site-urile care își schimbă singure conținutul (aplicații de o pagină) nu au nevoie de reaplicare **pentru CSS**: o foaie
+  de stil se aplică și elementelor apărute după. **Operațiile de structură** (`ops`) au nevoie: motorul le reaplică pe
+  cele care lipsesc, cu limită anti-buclă (`03`, „Reaplicarea și ce nu merge”).
 - Dacă gazda are o rețetă dar `<style>` a fost scos de site, motorul îl pune la loc (observer pe `<head>`).
 
 ## Istoric și undo
 
 - Se păstrează cel mult `RECIPE_LIMITS.maxRevisions` revizii (`RecipeRevision`) pe gazdă, cele vechi se aruncă.
-- **Anulez** (etapa 2, panoul): scoate ultima revizie; rețeta devine cea de la `revision - 1`.
+- **Anulez** (etapa 2, panoul): `recipes.revertTo(n)` (`apps/web/src/ui/recipes/recipe-engine.ts`). Rețeta devine exact
+  cea de la revizia `n` (CSS și `ops`), reviziile de după ea se șterg (revizia **coboară**), iar rezultatul se salvează.
+  Ultima schimbare: `revertTo(revision - 1)`; toată rularea: `revertTo(recipeRevisionBefore)` al primului ei pas (`11`).
+  `revertTo(0)` = rețeta goală. O revizie care nu mai e în istoric întoarce `INVALID_ARGS`, fără nicio schimbare.
 - **Revino la original** (etapa 1): golește rețeta gazdei (`revision` 0, `css` gol) și șterge istoricul. Merge oricând,
   inclusiv din popup.
 - Fiecare pas din jurnal poartă `recipeRevisionBefore` și `recipeRevisionAfter`, deci panoul știe la ce revizie se

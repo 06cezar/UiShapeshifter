@@ -28,6 +28,16 @@ export interface DomFacts {
   inline?: boolean;
   /** Link în mijlocul unei fraze: WCAG 2.5.5 îl scutește de mărimea țintei, iar mărit ar rupe rândul de text. */
   inSentence?: boolean;
+  /**
+   * Elementul e (sau stă într-un) `position: fixed` / `sticky`: antet lipit, banner de cookie-uri, buton de chat.
+   * Conținutul paginii trece pe sub el la derulare, deci o suprapunere cu el e felul site-ului, nu o greșeală.
+   */
+  overlay?: boolean;
+  /**
+   * Elementul stă într-un container care derulează sau taie pe orizontală și care încape el însuși în ecran (un
+   * carusel). Ce iese din ecran e doar derulat în carusel: omul ajunge la el cu săgețile sau derulând.
+   */
+  inScroller?: boolean;
 }
 export type DomFactsMap = Record<string, DomFacts>;
 
@@ -113,11 +123,11 @@ export function runRules(
       ...checkNonTextContrast(el, f),
       ...checkTargetSize(el, t, f),
       ...checkClipped(el, f),
-      ...checkOffscreen(el, viewport),
+      ...checkOffscreen(el, viewport, f),
       ...checkLineHeight(el, t, f),
     );
   }
-  issues.push(...checkOverlap(elements));
+  issues.push(...checkOverlap(elements, facts));
   return issues;
 }
 
@@ -205,8 +215,8 @@ export function checkClipped(el: ElementInfo, f: DomFacts = {}): AuditIssue[] {
   ];
 }
 
-export function checkOffscreen(el: ElementInfo, viewport: UISnapshot["viewport"]): AuditIssue[] {
-  if (!el.interactive) return [];
+export function checkOffscreen(el: ElementInfo, viewport: UISnapshot["viewport"], f: DomFacts = {}): AuditIssue[] {
+  if (!el.interactive || f.inScroller) return [];
   const left = el.rect.x;
   const right = el.rect.x + el.rect.width;
   if (left >= -OFFSCREEN_EPS && right <= viewport.width + OFFSCREEN_EPS) return [];
@@ -238,8 +248,10 @@ export function checkLineHeight(el: ElementInfo, t: AuditThresholds, f: DomFacts
 }
 
 /** Perechi de elemente interactive care se acoperă (mai mult de 4px²). Un element din altul nu contează. */
-export function checkOverlap(elements: ElementInfo[]): AuditIssue[] {
-  const targets = elements.filter((e) => e.interactive && e.rect.width > 0 && e.rect.height > 0);
+export function checkOverlap(elements: ElementInfo[], facts: DomFactsMap = {}): AuditIssue[] {
+  const targets = elements.filter(
+    (e) => e.interactive && e.rect.width > 0 && e.rect.height > 0 && !facts[e.id]?.overlay,
+  );
   const issues: AuditIssue[] = [];
   for (let i = 0; i < targets.length; i++) {
     for (let j = i + 1; j < targets.length; j++) {

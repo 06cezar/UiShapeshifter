@@ -1,5 +1,30 @@
-/* Panoul de control. Doar variabilele temei (specs/02, regula 6); țintele ≥ --min-target (specs/07). */
+// Stilul panoului de control. Panoul e scris cu variabilele temei aplicației (--color-text, --spacing...); în extensie
+// le legăm de tema shadow DOM-ului (--uis-*, extension/shadow-root.ts), ca să nu avem nicio culoare sau mărime fixă.
+// Țintele ≥ --uis-target (specs/07).
 
+export const JOURNAL_CSS = `
+.journal {
+  --font-family: var(--uis-font);
+  --font-base: var(--uis-font-size);
+  --line-height: 1.5;
+  --color-text: var(--uis-fg);
+  --color-text-muted: var(--uis-muted);
+  --color-surface: var(--uis-bg);
+  --color-background: color-mix(in srgb, var(--uis-fg) 10%, var(--uis-bg));
+  --color-primary: var(--uis-accent);
+  --color-danger: var(--uis-error);
+  --color-focus: var(--uis-fg);
+  --spacing: var(--uis-space);
+  --radius: var(--uis-space);
+  --min-target: var(--uis-target);
+
+  /* sus în dreapta, peste site; jos rămâne loc pentru mascotă, în stânga pentru chat */
+  position: fixed; top: calc(var(--uis-space) * 2); right: calc(var(--uis-space) * 2);
+  width: min(calc(var(--uis-target) * 9), calc(100vw - var(--uis-space) * 4));
+  max-height: calc(100vh - var(--uis-target) * 4);
+  overflow-y: auto; box-sizing: border-box;
+  border-radius: calc(var(--uis-space) * 2); box-shadow: var(--uis-shadow);
+}
 .journal {
   font-family: var(--font-family);
   font-size: var(--font-base);
@@ -131,3 +156,4 @@
   white-space: pre-wrap;
   font-size: inherit;
 }
+`;

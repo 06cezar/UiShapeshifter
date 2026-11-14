@@ -3,4 +3,5 @@
 
 export { OUR_INTERFACE_MARKERS, validateCss } from "./css";
 export { validateHtml } from "./html";
+export { DEFAULT_SCOPE, effectiveScope, requestedScope, type RequestScope } from "./scope";
 export type { CssValidation, HtmlValidation } from "./result";

@@ -8,7 +8,9 @@ import { abandonCallsOfRun, callWebTool, latestSessionOf, sendToSession, type Se
 import { createFakeDecider } from "./fake-decider";
 import { createOpenRouterDecider } from "./openrouter-decider";
 import { runAgent, type Decider } from "./run-agent";
+import { profileStore, profileSummary } from "../profile";
 import { callServerTool } from "./server-tools";
+import type { ProfileContext } from "./system-prompt";
 
 // pauza dintre pașii agentului fals, ca pașii să apară în panou unul câte unul
 const FAKE_STEP_DELAY_MS = Number(process.env.AGENT_FAKE_DELAY_MS ?? 600);
@@ -23,21 +25,29 @@ interface ActiveRun {
 const activeByUser = new Map<string, ActiveRun>();
 const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
 
-// etapa la care e extensia (specs/00), citită la fiecare rulare. Implicit 1, singura cu toate uneltele în extensie
-// acum (get_page_snapshot, apply_css, say); etapa 2 se pornește cu AGENT_STAGE=2 după M2, când extensia are și
-// apply_ops, point_at, ask_user, propose_changes. Altfel modelul cere unelte pe care pagina le refuză.
-const DEFAULT_STAGE: SiteToolStage = 1;
+// etapa la care e extensia (specs/00), citită la fiecare rulare. Implicit 2 de la M2: extensia are apply_ops (B6),
+// point_at (D2) și propose_changes (D9). AGENT_STAGE=1 o readuce la doar CSS; 3 adaugă profilul (A6).
+const DEFAULT_STAGE: SiteToolStage = 2;
 
 export function agentStage(): SiteToolStage {
   const stage = Number(process.env.AGENT_STAGE);
   return stage === 1 || stage === 2 || stage === 3 ? stage : DEFAULT_STAGE;
 }
 
-function createDecider(goal: string, page: PageInfo | undefined): Decider {
+/** Ce știe agentul despre om (etapa 3): rezumatul profilului și preferințele generale, din store-ul lui E. */
+async function profileContext(userId: string): Promise<ProfileContext> {
+  const profile = await profileStore.get(userId);
+  return { summary: profileSummary(profile), generalPreferences: profile.generalPreferences ?? [] };
+}
+
+function createDecider(userId: string, goal: string, page: PageInfo | undefined): Decider {
   const stage = agentStage();
-  return process.env.AGENT_FAKE === "1"
-    ? createFakeDecider(goal, FAKE_STEP_DELAY_MS, stage)
-    : createOpenRouterDecider(goal, { page, stage });
+  if (process.env.AGENT_FAKE === "1") return createFakeDecider(goal, FAKE_STEP_DELAY_MS, stage);
+  return createOpenRouterDecider(goal, {
+    page,
+    stage,
+    ...(stage >= 3 && { loadProfile: () => profileContext(userId) }),
+  });
 }
 
 function newRunId(): string {
@@ -45,7 +55,7 @@ function newRunId(): string {
 }
 
 function launch(session: Session, goal: string, origin: RunOrigin, page?: PageInfo): ActiveRun {
-  const decider = createDecider(goal, page);
+  const decider = createDecider(session.userId, goal, page);
   const run: AgentRun = {
     runId: newRunId(),
     userId: session.userId,
@@ -64,7 +74,7 @@ function launch(session: Session, goal: string, origin: RunOrigin, page?: PageIn
     decider,
     {
       callWebTool: (name, args) => callWebTool(session, run.runId, name, args),
-      callServerTool: async (name, args) => callServerTool(run.runId, name, args),
+      callServerTool: (name, args) => callServerTool(run.runId, session.userId, name, args),
       send: (message) => sendToSession(session, message),
       saveRun,
       isCancelled: () => active.cancelled,
