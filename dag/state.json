@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "599374d19c416bd1eba33d9ebef267d88b17a416",
-  "last_run": "2026-11-14T08:03:25Z",
+  "last_run": "2026-11-14T08:04:31Z",
   "last_sha": "d660e53c79c0657a1e00cc6503524ea0ed6c9e9e",
   "prs": {
     "1": {
@@ -225,8 +225,8 @@
     },
     "135": {
       "head": "a-fara-filtre-imagini",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T08:04:30Z",
+      "state": "MERGED"
     },
     "136": {
       "head": "a-preferinte-css-prompt",
