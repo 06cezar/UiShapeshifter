@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "5af56a577cdcc7f11640fbb87d85dadf950e190d",
-  "last_run": "2026-11-14T05:27:13Z",
-  "last_sha": "df0f81027222991ef753c61f4fffa943f3548fe6",
+  "last_comms_sha": "d69882914e48a38c0ec8a83d8aa21d50799750f2",
+  "last_run": "2026-11-14T05:31:01Z",
+  "last_sha": "3edd4e5cc3f3d9ae4b878576096c77864979e7f3",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -100,8 +100,8 @@
     },
     "112": {
       "head": "e-tab-vechi",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T05:30:51Z",
+      "state": "MERGED"
     },
     "113": {
       "head": "c-c4-tinte-din-profil",
