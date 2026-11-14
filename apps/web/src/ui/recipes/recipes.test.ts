@@ -142,6 +142,20 @@ describe("reaplicarea și „Revino la original”", () => {
     late.remove();
   });
 
+  test("stilul site-ului era deja în pagină când agentul aplică CSS-ul: rețeta trece imediat după el", async () => {
+    const early = document.createElement("style");
+    early.id = "iotd-lite-bg";
+    early.textContent = "#cover { background-image: url(x) !important }";
+    const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
+    await engine.load(); // foaia (goală) a rețetei e pusă acum, înaintea stilului site-ului
+    document.head.append(early);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
+    const sheets = [...document.querySelectorAll("style")].map((s) => s.id);
+    expect(sheets.indexOf(RECIPE_STYLE_ID)).toBeGreaterThan(sheets.indexOf("iotd-lite-bg"));
+    early.remove();
+  });
+
   test("stilurile noastre (preferințele de bază) puse după rețetă nu o mută", async () => {
     const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
     await engine.load();

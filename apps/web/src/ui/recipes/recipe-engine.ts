@@ -188,6 +188,8 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
   function renderCss() {
     const style = styleElement();
     if (style.textContent !== stored.recipe.css) style.textContent = stored.recipe.css;
+    // Și la aplicare: stilul site-ului poate fi deja în pagină, pus după foaia noastră încă goală.
+    if (stored.recipe.css) keepRecipeAfterSiteSheets();
   }
 
   /**
