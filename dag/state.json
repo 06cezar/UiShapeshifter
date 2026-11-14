@@ -25,9 +25,9 @@
       }
     }
   },
-  "last_comms_sha": "e8073b97e8ebccd11f72bd5985b6c093e3950c85",
-  "last_run": "2026-11-14T09:04:49Z",
-  "last_sha": "d6c677653cec63482c2eb527d3b1528c61bbcca1",
+  "last_comms_sha": "6d9e3fef803ab214014852827e2c0b634910ebe2",
+  "last_run": "2026-11-14T09:18:36Z",
+  "last_sha": "9f2b4f43ddacef74cf60f03f7dd26171c869d7bb",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -296,8 +296,8 @@
     },
     "147": {
       "head": "b-reteta-ultima",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T09:18:25Z",
+      "state": "MERGED"
     },
     "148": {
       "head": "a-nu-ad-blocker",
