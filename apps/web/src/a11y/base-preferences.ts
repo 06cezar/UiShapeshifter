@@ -10,7 +10,14 @@
 
 import { HARD_LIMITS, type AuditThresholds, type UserNeeds } from "@uishapeshifter/contracts";
 import { adjustToContrast, composite, contrastRatio, parseColor, requiredTextContrast, toHex } from "./contrast";
-import { effectiveBackground, factsOf, hasImageBackground } from "./dom";
+import {
+  effectiveBackground,
+  factsOf,
+  hasImageBackground,
+  isInHeightLimitedBox,
+  isSingleLineText,
+  ownTextRects,
+} from "./dom";
 import { hasOwnText, isInteractive, isLinkInSentence, isVisible, SKIPPED_TAGS } from "./page-audit";
 import { thresholdsFor } from "./thresholds";
 
@@ -50,8 +57,11 @@ const MEDIA_SELECTOR = "img, svg, video, picture, canvas";
 const GRID_CELL_PX = 128;
 /** Un text care acoperă mai multe pătrate decât atât (un container uriaș) se verifică separat, fără grilă. */
 const MAX_GRID_CELLS_PER_TEXT = 64;
-/** Proprietățile scrise de noi care măresc textul, respectiv ținta; doar pe ele le anulăm la verificare. */
-const FONT_GROWTH = ["font-size"];
+/**
+ * Proprietățile scrise de noi care măresc textul, respectiv ținta; doar pe ele le anulăm la verificare. Cu fontul pleacă
+ * și rândul scris pentru el: altfel eticheta rămânea cu fontul site-ului, dar cu un rând mai înalt decât al vecinilor.
+ */
+const FONT_GROWTH = ["font-size", "line-height"];
 const TARGET_GROWTH = ["min-height", "min-width", "display"];
 
 const REDUCED_MOTION_CSS =
@@ -202,7 +212,7 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     const linesOf = (element: HTMLElement): DOMRect[] => {
       let rects = lines.get(element);
       if (!rects) {
-        rects = textLineRects(element);
+        rects = ownTextRects(element);
         lines.set(element, rects);
       }
       return rects;
@@ -238,7 +248,7 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     const ownText = hasOwnText(element);
     const interactive = isInteractive(element);
     if (ownText || interactive) measured.rects.set(element, rect);
-    if (ownText) planText(element, style, thresholds, writes, measured);
+    if (ownText) planText(element, style, rect, thresholds, writes, measured);
     if (!interactive) return;
     planBorder(element, writes);
     if (wantsBiggerTargets(needs) && !isLinkInSentence(element, style)) {
@@ -249,22 +259,33 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
   function planText(
     element: HTMLElement,
     style: CSSStyleDeclaration,
+    rect: DOMRect,
     t: AuditThresholds,
     writes: StyleWrite[],
     measured: Measured,
   ): void {
     const originalFontPx = parseFloat(style.fontSize);
     let fontPx = originalFontPx;
-    if (fontPx < t.minFontPx && !isClippedLabel(element, style)) {
+    const raised = fontPx < t.minFontPx && !isClippedLabel(element, style);
+    if (raised) {
       writes.push({ element, property: "font-size", value: `${t.minFontPx}px` });
       fontPx = t.minFontPx;
       if (element.parentElement) measured.parents.set(element, element.parentElement.getBoundingClientRect());
     }
-    // Rândurile, cu fontul de după ridicare: un `line-height` fix în px devine prea strâns când textul crește.
-    if (isContentText(element)) {
-      const lineHeightPx =
-        style.lineHeight === "normal" ? NORMAL_LINE_HEIGHT * originalFontPx : parseFloat(style.lineHeight);
-      if (Number.isFinite(lineHeightPx) && lineHeightPx / fontPx < t.minLineHeight) {
+    const lineHeightPx = style.lineHeight === "normal" ? undefined : parseFloat(style.lineHeight);
+    if (isSingleLineText(element, style, rect)) {
+      // O etichetă pe un rând (un număr de aprecieri, numele unui canal): rândul își păstrează înălțimea dată de site,
+      // ca eticheta mărită să rămână la locul ei față de vecini. Cu `line-height: 1.5` pus peste tot, „6,74 mil.
+      // abonați” de sub numele canalului creștea de la 18 la 24px și împingea numele în sus (YouTube, găsit de Adelin).
+      // Doar pe frunze: un `line-height` fix s-ar moșteni la copiii cu alt font.
+      if (raised && lineHeightPx !== undefined && Number.isFinite(lineHeightPx) && element.childElementCount === 0) {
+        writes.push({ element, property: "line-height", value: `${Math.max(lineHeightPx, fontPx)}px` });
+      }
+    } else if (isContentText(element) && !isInHeightLimitedBox(element)) {
+      // Rândurile unui paragraf, cu fontul de după ridicare: un `line-height` fix în px devine prea strâns când
+      // textul crește (WCAG 1.4.12).
+      const usedPx = lineHeightPx ?? NORMAL_LINE_HEIGHT * originalFontPx;
+      if (Number.isFinite(usedPx) && usedPx / fontPx < t.minLineHeight) {
         writes.push({ element, property: "line-height", value: String(t.minLineHeight) });
       }
     }
@@ -501,18 +522,6 @@ function textGrid(texts: HTMLElement[], afterOf: (element: HTMLElement) => DOMRe
       return found;
     },
   };
-}
-
-/** Dreptunghiurile rândurilor de text proprii ale elementului (fără copiii lui), cum le desenează browserul. */
-function textLineRects(element: HTMLElement): DOMRect[] {
-  const range = element.ownerDocument.createRange();
-  const rects: DOMRect[] = [];
-  for (const node of element.childNodes) {
-    if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) continue;
-    range.selectNodeContents(node);
-    rects.push(...Array.from(range.getClientRects()));
-  }
-  return rects;
 }
 
 /**

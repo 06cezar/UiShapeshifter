@@ -5,7 +5,7 @@
 import type { AuditReport, AuditThresholds, ElementInfo } from "@uishapeshifter/contracts";
 import { computeScore, runRules, type DomFacts, type DomFactsMap } from "./audit";
 import { composite, parseColor, toHex } from "./contrast";
-import { effectiveBackground, factsOf, hasImageBackground } from "./dom";
+import { effectiveBackground, factsOf, hasImageBackground, isSingleLineText } from "./dom";
 
 /** Cum numește registrul paginii un element: id pentru raport, selector pentru CSS-ul de reparație. */
 export interface PageIdentity {
@@ -188,6 +188,7 @@ function pageFactsOf(element: HTMLElement, viewportWidth: number): DomFacts {
   const facts = factsOf(element);
   const style = getComputedStyle(element);
   if (style.display === "inline") facts.inline = true;
+  if (facts.lineHeight !== undefined && isSingleLineText(element, style)) facts.singleLine = true;
   if (isLinkInSentence(element, style)) facts.inSentence = true;
   if (isInOverlay(element)) facts.overlay = true;
   if (isInHorizontalScroller(element, viewportWidth)) facts.inScroller = true;
