@@ -25,8 +25,8 @@
       }
     }
   },
-  "last_comms_sha": "62d9adee4821f155d663a50112e11853ffd6b490",
-  "last_run": "2026-11-14T10:36:05Z",
+  "last_comms_sha": "b63169f724540c950f979ca5567f787231f8d65c",
+  "last_run": "2026-11-14T10:38:51Z",
   "last_sha": "3dbf57b846e3a7e3fd28e7830b013f37dd367a5e",
   "prs": {
     "1": {
@@ -368,6 +368,11 @@
       "head": "b2-registru",
       "merged_at": null,
       "state": "CLOSED"
+    },
+    "160": {
+      "head": "d-panou-probleme",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "17": {
       "head": "c2-reparatii",
