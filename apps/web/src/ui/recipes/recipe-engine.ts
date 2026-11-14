@@ -28,19 +28,22 @@ import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRec
 
 /** Id-ul <style>-ului rețetei: conține „uishapeshifter”, deci CSS-ul agentului nu-l poate ținti. */
 export const RECIPE_STYLE_ID = "uishapeshifter-recipe";
-/** Foile extensiei (rețeta, preferințele de bază, ce te deranjează) au id-uri cu prefixul ăsta. */
-const OUR_STYLE_ID_PREFIX = "uishapeshifter-";
 /**
  * Foile noastre care trebuie să vină după rețetă: ascunderile motorului, ce te deranjează, mișcarea redusă. Foaia
  * preferințelor generale (`uishapeshifter-general`, #137) NU e aici: ea stă înaintea rețetei, ca agentul s-o poată bate.
  */
 const AFTER_RECIPE_STYLE_IDS = [HIDDEN_STYLE_ID, DISLIKES_STYLE_ID, BASE_STYLE_ID];
 
-/** Pagina a adăugat o foaie de stil (`<style>` sau `<link rel="stylesheet">`)? Doar atunci verificăm ordinea. */
+const STYLE_SHEET_SELECTOR = 'style, link[rel~="stylesheet"]';
+
+/**
+ * Pagina a adăugat o foaie de stil (`<style>` sau `<link rel="stylesheet">`), direct sau în interiorul unui element
+ * nou (un widget pus cu innerHTML)? Doar atunci verificăm ordinea.
+ */
 function addsStyleSheet(record: MutationRecord): boolean {
   return [...record.addedNodes].some(
     (node) =>
-      node instanceof HTMLStyleElement || (node instanceof HTMLLinkElement && node.relList.contains("stylesheet")),
+      node instanceof Element && (node.matches(STYLE_SHEET_SELECTOR) || !!node.querySelector(STYLE_SHEET_SELECTOR)),
   );
 }
 /** Cel mult atâția selectori „care nu găsesc nimic” în răspunsul către agent (specs/02). */
@@ -196,33 +199,34 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     const style = styleElement();
     if (style.textContent !== stored.recipe.css) style.textContent = stored.recipe.css;
     // Și la aplicare: stilul site-ului poate fi deja în pagină, pus după foaia noastră încă goală.
-    if (stored.recipe.css) keepRecipeAfterSiteSheets();
+    if (stored.recipe.css) keepOurSheetsLast();
   }
+
+  let sheetMoveTimes: number[] = [];
 
   /**
    * La aceeași putere (`!important`, aceiași selectori) câștigă foaia de mai jos: Bing pune `<style id="iotd-lite-bg">`
-   * cu imaginea de fundal după rețetă și o bate. Dacă o foaie a site-ului a ajuns după a noastră, o mutăm după ea.
-   * Foile noastre (`uishapeshifter-*`, ex. preferințele de bază) rămân unde sunt: ele trebuie să vină ultimele.
+   * cu imaginea de fundal după rețetă și o bate. De aceea foaia rețetei, urmată de foile care trebuie să rămână
+   * ultimele (AFTER_RECIPE_STYLE_IDS), stă la capătul lui <html>, după <body>: după orice foaie a site-ului și în afara
+   * containerelor lui, ca o re-randare a site-ului să nu le șteargă și selectorii lui (`:last-child`) să nu le vadă.
+   * Foaia preferințelor generale (`uishapeshifter-general`) rămâne în <head>, înaintea rețetei.
    */
-  function keepRecipeAfterSiteSheets() {
+  function keepOurSheetsLast() {
+    const root = doc.documentElement;
     const style = doc.getElementById(RECIPE_STYLE_ID);
     if (!style) return;
-    const siteSheets = [...doc.querySelectorAll('style, link[rel~="stylesheet"]')].filter(
-      (sheet) => !sheet.id.startsWith(OUR_STYLE_ID_PREFIX),
-    );
-    const last = siteSheets.at(-1);
-    if (!last?.parentElement || !(style.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
-    // Foile care trebuie să rămână ultimele (AFTER_RECIPE_STYLE_IDS) vin după rețetă, în ordinea lor din pagină,
-    // altfel le-ar bate rețeta mutată peste ele.
-    const afterRecipe = [...doc.querySelectorAll("style[id]")].filter((sheet) =>
-      AFTER_RECIPE_STYLE_IDS.includes(sheet.id),
-    );
-    let previous: Element = style;
-    last.parentElement.insertBefore(style, last.nextSibling);
-    for (const sheet of afterRecipe) {
-      previous.after(sheet);
-      previous = sheet;
-    }
+    const ours = [
+      style,
+      ...AFTER_RECIPE_STYLE_IDS.map((id) => doc.getElementById(id)).filter((s): s is HTMLElement => s !== null),
+    ];
+    const tail = [...root.children].slice(-ours.length);
+    if (ours.every((sheet, i) => tail[i] === sheet)) return;
+    // Altă extensie care își ține și ea foaia ultima ne-ar muta pe rând la nesfârșit: limita, ca la refaceri.
+    const at = now().getTime();
+    sheetMoveTimes = sheetMoveTimes.filter((t) => at - t < REPAIR_WINDOW_MS);
+    if (sheetMoveTimes.length >= MAX_REPAIRS_PER_WINDOW) return;
+    sheetMoveTimes.push(at);
+    for (const sheet of ours) root.append(sheet);
   }
 
   const domOps = createDomOpsApplier({ doc, askAgent: (goal) => options.askAgent?.(goal) });
@@ -240,6 +244,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
   function render() {
     clearTimeout(reapplyTimer);
     repairTimes = []; // o schimbare a rețetei pornește o fereastră nouă pentru limita anti-buclă
+    sheetMoveTimes = [];
     warnedLoop = false;
     mutate(() => {
       renderCss();
@@ -273,7 +278,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
   // Pagina se schimbă singură: foaia scoasă din <head> se pune la loc imediat (specs/02), operațiile după debounce.
   const observer = new MutationObserver((records) => {
     if (stored.recipe.css && !doc.getElementById(RECIPE_STYLE_ID)) mutate(renderCss);
-    if (stored.recipe.css && records.some(addsStyleSheet)) mutate(keepRecipeAfterSiteSheets);
+    if (stored.recipe.css && records.some(addsStyleSheet)) mutate(keepOurSheetsLast);
     if (stored.recipe.ops?.length) scheduleReapply();
   });
   observer.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
