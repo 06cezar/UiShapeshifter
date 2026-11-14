@@ -118,6 +118,7 @@ describe("createOpenRouterDecider", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("Culorile nu apar în snapshot"); // „ca Google” pe pagina de start Bing rămânea gri
   });
 
   it("etapa 3: profilul și preferințele generale intră în promptul de sistem, cu ce e deja aplicat pe site", async () => {
