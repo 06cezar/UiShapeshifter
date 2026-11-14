@@ -216,6 +216,14 @@ describe("rulările pornite de server (adaptare, test inițial)", () => {
     expect(router.targetsFor(toolCall("r-adapt"), open)).toEqual(["tab-test"]);
   });
 
+  test("adaptarea aplicată direct (fără „Da”) lucrează în tab-ul din care au venit semnalele, nu în cel activ", () => {
+    const router = createRunRouter<string>({ activePort: () => "tab-activ" });
+    const open = new Set(["tab-activ", "tab-test"]);
+    router.signalsFrom("tab-test");
+    router.targetsFor(started("r-auto", "adaptation"), open);
+    expect(router.targetsFor(toolCall("r-auto"), open)).toEqual(["tab-test"]);
+  });
+
   test("fără tab activ cunoscut, merg la ultimul tab care a cerut ceva", () => {
     const router = createRunRouter<string>();
     const open = new Set(["tab-a", "tab-b"]);

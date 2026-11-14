@@ -150,6 +150,7 @@ chrome.runtime.onConnect.addListener((port) => {
     ) {
       router.acceptedSuggestionIn(port);
     }
+    if (port.name === PAGE_PORT && message.message.type === "signals") router.signalsFrom(port);
     void linkReady.then((ready) => ready.send(message.message));
   });
 

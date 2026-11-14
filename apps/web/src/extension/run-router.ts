@@ -25,6 +25,8 @@ export interface RunRouter<P> {
   requestedBy(port: P): void;
   /** Omul a spus „Da” la o propunere a adaptării în tab-ul ăsta: rularea de adaptare care urmează e a lui. */
   acceptedSuggestionIn(port: P): void;
+  /** Tab-ul a trimis semnale de utilizare: o adaptare aplicată direct (încredere, fără „Da”) lucrează acolo. */
+  signalsFrom(port: P): void;
   /** Porturile cărora le trimitem mesajul. */
   targetsFor(message: ServerMessage, openPorts: ReadonlySet<P>): P[];
   /** Tab închis: uităm rulările lui. */
@@ -46,6 +48,8 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
   let lastRequester: P | null = null;
   /** Tab-ul în care omul a spus „Da” la o propunere: acolo lucrează rularea de adaptare care pornește după. */
   let suggestionAcceptedIn: P | null = null;
+  /** Ultimul tab care a trimis semnale: de acolo vine o adaptare pornită fără „Da” (încredere, autoApplyLowRisk). */
+  let lastSignalsFrom: P | null = null;
 
   return {
     requestedBy(port) {
@@ -55,6 +59,10 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
 
     acceptedSuggestionIn(port) {
       suggestionAcceptedIn = port;
+    },
+
+    signalsFrom(port) {
+      lastSignalsFrom = port;
     },
 
     targetsFor(message, openPorts) {
@@ -87,7 +95,12 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
           const accepted =
             suggestionAcceptedIn !== null && openPorts.has(suggestionAcceptedIn) ? suggestionAcceptedIn : undefined;
           suggestionAcceptedIn = null;
-          const port = accepted ?? fallback();
+          // Fără „Da” (aplicată direct din încredere): tab-ul din care au venit semnalele, nu cel activ (D5, B).
+          const signalled =
+            message.origin === "adaptation" && lastSignalsFrom !== null && openPorts.has(lastSignalsFrom)
+              ? lastSignalsFrom
+              : undefined;
+          const port = accepted ?? signalled ?? fallback();
           if (port !== undefined) portOfRun.set(message.runId, port);
         }
       }
@@ -108,6 +121,7 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
       for (let i = waitingForRun.length - 1; i >= 0; i--) if (waitingForRun[i] === port) waitingForRun.splice(i, 1);
       if (lastRequester === port) lastRequester = null;
       if (suggestionAcceptedIn === port) suggestionAcceptedIn = null;
+      if (lastSignalsFrom === port) lastSignalsFrom = null;
     },
   };
 }
