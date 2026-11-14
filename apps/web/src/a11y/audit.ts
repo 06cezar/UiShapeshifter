@@ -43,6 +43,11 @@ export interface DomFacts {
    * agent într-un antet cu înălțime fixă. Reparația crește cutia (fix-css.ts), nu butonul.
    */
   clippedBySelector?: string;
+  /**
+   * Cutia care taie conține ceva adăugat de agent (`data-shape`, specs/03). Oprirea rețetei pentru „cum era” oprește
+   * doar CSS-ul, nu și elementele adăugate, deci tăierea apare și „înainte”; o socotim totuși adusă de agent.
+   */
+  clippedByAgentShape?: boolean;
 }
 export type DomFactsMap = Record<string, DomFacts>;
 
