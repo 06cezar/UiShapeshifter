@@ -170,6 +170,53 @@ function scoreOf(result: AgentStep["result"]): number[] {
   return typeof data.score === "number" ? [data.score] : [];
 }
 
+/**
+ * Problemele mari de accesibilitate (`severity: "error"`) înainte și după, din pașii audit_ui. Nota (0–100) se oprește
+ * la 0 pe site-urile mari (fiecare problemă mare taie 8 puncte), deci „0 → 0” ascundea ce a reparat agentul; numărul
+ * problemelor nu. Comparăm doar auditurile aceleiași zone (același regionId), altfel o scădere ar fi falsă.
+ * `introduced`: câte a adus agentul, în ultimul audit.
+ */
+export function auditIssueCounts(steps: readonly AgentStep[]): {
+  before?: number;
+  after?: number;
+  introduced?: number;
+} {
+  const audits = steps
+    .filter((s) => s.tool === "audit_ui")
+    .flatMap((s) => {
+      const issues = issuesOf(s.result);
+      return issues ? [{ region: regionOf(s.args), issues }] : [];
+    });
+  const first = audits[0];
+  if (!first) return {};
+  const last = audits
+    .slice(1)
+    .reverse()
+    .find((a) => a.region === first.region);
+  const errors = (issues: IssueLike[]) => issues.filter((i) => i.severity === "error").length;
+  return {
+    before: errors(first.issues),
+    after: last ? errors(last.issues) : undefined,
+    introduced: (last ?? first).issues.filter((i) => i.introduced === true).length,
+  };
+}
+
+type IssueLike = { severity?: unknown; introduced?: unknown };
+
+/** Lista de probleme a unui audit reușit; rezultatul vine de pe server, deci îl verificăm. */
+function issuesOf(result: AgentStep["result"]): IssueLike[] | null {
+  if (!result?.ok) return null;
+  const data: unknown = result.data;
+  if (typeof data !== "object" || data === null || !("issues" in data) || !Array.isArray(data.issues)) return null;
+  return data.issues.filter((i): i is IssueLike => typeof i === "object" && i !== null);
+}
+
+function regionOf(args: unknown): string {
+  return typeof args === "object" && args !== null && "regionId" in args && typeof args.regionId === "string"
+    ? args.regionId
+    : "";
+}
+
 /** Revizia config-ului de arătat la un pas din reluare: cea de după pas, altfel cea de dinainte. */
 export function revisionAtStep(step: AgentStep): number | undefined {
   return step.configRevisionAfter ?? step.configRevisionBefore;

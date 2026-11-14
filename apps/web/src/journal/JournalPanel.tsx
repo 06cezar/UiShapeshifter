@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { useStore } from "zustand";
 import type { AgentRun, AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
-import { activeRun, auditScores, revisionAtStep } from "./journal-store";
+import { activeRun, auditIssueCounts, auditScores, revisionAtStep } from "./journal-store";
 import { RunJsStep, runJsView } from "./RunJsStep";
 import type { JournalStore, RunStatus, RunView } from "./journal-store";
 import type { RequestEntry } from "../validation";
@@ -181,6 +181,18 @@ function StepList({ steps }: { steps: readonly AgentStep[] }) {
 }
 
 function AuditScore({ steps }: { steps: readonly AgentStep[] }) {
+  // Numărul problemelor, nu nota: pe site-urile mari nota stă la 0 și ascunde ce a reparat agentul (proba Iuliei).
+  const counts = auditIssueCounts(steps);
+  if (counts.before !== undefined) {
+    const news = counts.after === undefined ? "" : counts.introduced ? `, ${counts.introduced} noi` : ", niciuna nouă";
+    return (
+      <p className="journal-score">
+        Probleme de accesibilitate: {counts.before}
+        {counts.after !== undefined && ` → ${counts.after}`}
+        {news}
+      </p>
+    );
+  }
   const { before, after } = auditScores(steps);
   if (before === undefined) return null;
   return (

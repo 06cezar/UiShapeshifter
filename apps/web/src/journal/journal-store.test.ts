@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentRun, AgentStep } from "@uishapeshifter/contracts";
-import { activeRun, auditScores, createJournalStore, revisionAtStep } from "./journal-store";
+import { activeRun, auditIssueCounts, auditScores, createJournalStore, revisionAtStep } from "./journal-store";
 
 function step(index: number, extra: Partial<AgentStep> = {}): AgentStep {
   return {
@@ -118,5 +118,34 @@ describe("revisionAtStep", () => {
   it("preferă revizia de după pas", () => {
     expect(revisionAtStep(step(0, { configRevisionBefore: 4, configRevisionAfter: 5 }))).toBe(5);
     expect(revisionAtStep(step(0, { configRevisionBefore: 4 }))).toBe(4);
+  });
+});
+
+describe("auditIssueCounts", () => {
+  const issue = (severity: "error" | "warning", introduced = false) => ({
+    severity,
+    ...(introduced ? { introduced } : {}),
+  });
+  const audit = (index: number, issues: object[], regionId?: string) =>
+    step(index, {
+      tool: "audit_ui",
+      args: regionId ? { regionId } : {},
+      result: { ok: true, data: { score: 0, issues } },
+    });
+
+  it("problemele mari înainte → după, chiar când nota rămâne 0; câte a adus agentul", () => {
+    const before = audit(0, [...Array(50)].map(() => issue("error")).concat([issue("warning")]));
+    const after = audit(3, [...Array(30)].map(() => issue("error")).concat([issue("error", true)]));
+    expect(auditIssueCounts([before, step(1), after])).toEqual({ before: 50, after: 31, introduced: 1 });
+  });
+
+  it("compară doar aceeași zonă: un audit pe o regiune nu e „după” pentru cel pe toată pagina", () => {
+    const page = audit(0, [issue("error"), issue("error")]);
+    const region = audit(2, [], "r.main");
+    expect(auditIssueCounts([page, region])).toEqual({ before: 2, after: undefined, introduced: 0 });
+  });
+
+  it("fără listă de probleme (jurnale vechi): nimic, iar panoul cade pe notă", () => {
+    expect(auditIssueCounts([auditStep(0, 70)])).toEqual({});
   });
 });

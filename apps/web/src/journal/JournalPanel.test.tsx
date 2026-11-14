@@ -36,6 +36,25 @@ async function renderPanel(extra: Partial<Omit<JournalPanelProps, "journal" | "s
 }
 
 describe("JournalPanel", () => {
+  it("arată problemele de accesibilitate înainte → după, nu nota care stă la 0 pe site-urile mari", async () => {
+    const { journal, container, startRun } = await renderPanel();
+    await startRun();
+    const errors = (n: number) => [...Array(n)].map(() => ({ severity: "error" }));
+    await act(async () => {
+      const { handleServerMessage } = journal.getState();
+      handleServerMessage({
+        type: "step",
+        step: step(0, { tool: "audit_ui", args: {}, result: { ok: true, data: { score: 0, issues: errors(50) } } }),
+      });
+      handleServerMessage({
+        type: "step",
+        step: step(1, { tool: "audit_ui", args: {}, result: { ok: true, data: { score: 0, issues: errors(30) } } }),
+      });
+    });
+    expect(container.textContent).toContain("Probleme de accesibilitate: 50 → 30, niciuna nouă");
+    expect(container.textContent).not.toContain("0 → 0");
+  });
+
   it("pe un site unde agentul n-a lucrat, panoul nu apare", async () => {
     const { container, startRun } = await renderPanel();
     expect(container.querySelector(".journal")).toBeNull();
