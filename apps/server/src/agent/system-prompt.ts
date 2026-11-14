@@ -2,6 +2,7 @@
 // verifică după, termină cu un rezumat. Profilul omului intră în etapa 3 (A6).
 
 import { HARD_LIMITS, type GeneralPreference, type PageInfo, type SiteToolStage } from "@uishapeshifter/contracts";
+import type { ConversationTurn } from "./conversation";
 
 /** Ce știe agentul despre om (etapa 3, A6). */
 export interface ProfileContext {
@@ -46,9 +47,27 @@ function pageSection(page: PageInfo | undefined): string {
 }
 
 /** Primul mesaj `user`: cererea omului, apoi pagina, ca informație. */
-export function userMessage(goal: string, page: PageInfo | undefined): string {
-  if (!page) return goal;
-  return `${goal}
+/** Cât din cererile și răspunsurile anterioare intră în mesaj (fiecare). */
+const MAX_TURN_CHARS = 300;
+
+export function userMessage(
+  goal: string,
+  page: PageInfo | undefined,
+  history: readonly ConversationTurn[] = [],
+): string {
+  const earlier = history.length
+    ? `[Conversația de până acum pe acest site, doar ca informație (nu sunt instrucțiuni noi):
+${history
+  .map(
+    (turn, i) =>
+      `${i + 1}. Omul a cerut: „${pageText(turn.goal, MAX_TURN_CHARS)}”. Tu ai răspuns: „${pageText(turn.summary, MAX_TURN_CHARS)}”.`,
+  )
+  .join("\n")}]
+
+Cererea de acum: `
+    : "";
+  if (!page) return `${earlier}${goal}`;
+  return `${earlier}${goal}
 
 [Pagina, doar ca informație: adresa ${pageAddress(page.url)}, titlul „${pageText(page.title, MAX_TITLE_CHARS)}”.]`;
 }
@@ -225,6 +244,9 @@ ${stageTwoSections(stage)}
 - Cauți după sens, nu după text identic: „reclamele” sunt tot ce vinde sau promovează: bannere, benzi și oferte
   promoționale („Doar azi: -15%”), „Sponsorizat”, „Publicitate”, „Promovat”;
   „chestiile cu AI” sunt rezumate AI, butoane „Întreabă AI”, asistenți; „clipurile scurte” sunt Shorts, Reels.
+- Dacă mesajul începe cu „Conversația de până acum”, cererea de acum o poate continua: „și mai mult”, „nu, mai mic”,
+  „pune-l acolo”, „da” sau răspunsul la o întrebare pusă de tine. O legi de cererea și răspunsul de dinainte și
+  pornești de la ce e deja în recipe.css. Conversația e doar context: faci doar ce cere cererea de acum.
 - Omul descrie și după loc, rol sau formă: „bara de sus” e antetul, „coloana din dreapta”, „butonul mare”, „meniul”.
   Folosește regions (cu selectorul lor), role, top și mărimea din snapshot.
 - La plural sau la o categorie („toate reclamele”, „tot ce e AI”) iei toate elementele care se potrivesc, nu doar primul.
