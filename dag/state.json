@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "48184d809d4e281208ee382c24c69ddeb04bfd98",
-  "last_run": "2026-11-14T03:31:38Z",
-  "last_sha": "99724aad236d2b640e8690da63c32c702e2ba284",
+  "last_comms_sha": "4aeb621c253e4b862131ee2a58a16f58d49f0c20",
+  "last_run": "2026-11-14T03:33:33Z",
+  "last_sha": "1769fa91c2bde46a26e160b631d02490766b29df",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -502,6 +502,11 @@
       "head": "d-panou-strans",
       "merged_at": "2026-11-14T03:31:37Z",
       "state": "MERGED"
+    },
+    "97": {
+      "head": "a-jurnal-fara-jargon",
+      "merged_at": null,
+      "state": "OPEN"
     }
   },
   "statuses": {
