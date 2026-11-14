@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "2b9f9d76162c80ed4c5dec2389f40aca0b39813c",
-  "last_run": "2026-11-14T08:09:41Z",
-  "last_sha": "118dc8f3cc8c5d3ef9cd168bae64b185816534da",
+  "last_comms_sha": "713e39aa1a213575686646b46f39bd4adc828dbf",
+  "last_run": "2026-11-14T08:10:21Z",
+  "last_sha": "fb5e3ec30f39d434f00e393537c3bc83e319755b",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -255,8 +255,8 @@
     },
     "140": {
       "head": "a-profil-dovezi-cale",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T08:10:12Z",
+      "state": "MERGED"
     },
     "141": {
       "head": "d-limite-agent",
