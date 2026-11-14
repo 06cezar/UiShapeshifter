@@ -65,8 +65,26 @@ agentul repară → audit 0 → Păstrez, 26–40 s. Videoul rămâne doar rezer
 - **Cifre măsurate, nu inventate:** elemente scoase, click-uri până la o acțiune înainte/după, scorul de audit înainte/după,
   ratările de click înainte/după.
 - **Pitch:** problemă (site-uri făcute pentru toți, nu pentru tine), soluție, demo, impact. Monetizarea e un singur slide
-  (sincronizare pe cont, planuri pentru echipe). Reclamele nu le „blocăm”: curățăm pagina după preferințele omului. Mobilul
-  e direcție viitoare (Chrome pe Android nu rulează extensii).
-- **La „e un plugin care face orice?”:** „Face aproape orice îi ceri pe pagină, dar numai cu operații pe care le verificăm,
-  fără cod, și ascultă doar de tine, nu de ce scrie pe site.” Două limite: operațiile validate (fără JavaScript,
-  `specs/01`) și cine poate cere (doar omul; o preferință generală nouă intră doar cu citat din cererea lui, #132, #140).
+  (sincronizare pe cont, Modul expert, planuri pentru echipe). Reclamele nu le „blocăm”: curățăm pagina după preferințele
+  omului. Mobilul e direcție viitoare (Chrome pe Android nu rulează extensii).
+- **La „e un plugin care face orice?”:** „Face aproape orice îi ceri pe pagină, implicit fără cod, numai cu operații pe
+  care le verificăm, și ascultă doar de tine, nu de ce scrie pe site.” Două limite: operațiile validate (`specs/01`; codul
+  doar în Modul expert, cu aprobarea omului) și cine poate cere (doar omul; o preferință generală nouă intră doar cu citat
+  din cererea lui, #132, #140).
+
+### Frazele pentru întrebările juriului (din notițele de la mentori și juriu)
+
+- **Legal / reclamele:** „Nu blocăm reclamele pentru toată lumea și nu schimbăm nimic pe serverele site-ului. Fiecare om
+  își aranjează propria pagină, în browserul lui, cum face deja cu zoom-ul sau cu un cititor de ecran. Nu copiem și nu
+  republicăm nimic din site, iar rețeta rămâne a omului.”
+- **Monetizarea:** „Pentru om e gratuit, local și fără cont. Plătești pentru sincronizarea pe toate dispozitivele, pentru
+  Modul expert și pentru echipe: o firmă care lucrează zilnic în Jira sau într-un CRM dă tuturor angajaților aceeași
+  interfață curățată.”
+- **JavaScript / Modul expert:** „Implicit, agentul nu rulează cod: scrie CSS și HTML pe care le verificăm, așa că nu
+  poate strica pagina. Pentru ce nu se poate face așa există Modul expert, oprit până îl pornești tu. Agentul îți arată ce
+  vrea să facă și codul exact, iar codul rulează doar când apeși «Rulează». Modelul are deja limitele lui de siguranță.
+  Peste ele punem una a noastră: codul care trimite date afară sau citește cookie-urile ori datele salvate de site e oprit
+  înainte să ajungă la tine.”
+  Doar dacă `x-mod-js` e unit pe `main` (DECISIONS.md, 14 nov. 11:45). În demo arătăm fereastra de aprobare cu codul la
+  vedere. Spunem cinstit: codul rulat nu intră în rețetă, nu se reaplică la reîncărcare și „Anulez” nu îl dă înapoi.
+  Altfel, Modul expert e direcție viitoare, la fel ca mobilul.

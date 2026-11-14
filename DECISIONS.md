@@ -18,6 +18,16 @@ Afectează: specs/0X, fluxurile …
 
 ---
 
+## 2026-11-14 11:45 · Modul expert: JavaScript generat, doar cu aprobarea omului · decis de: D (Cezar)
+Decizia: implicit, agentul rămâne la CSS, HTML și operații validate; în plus, Modul expert (oprit implicit) îi dă unealta
+`run_js`, iar codul rulează doar după ce omul vede scopul și codul și apasă „Rulează”, cu o plasă care refuză din start
+rețeaua, cookie-urile și stocarea (`specs/05`, „Experiment: modul expert”).
+De ce: unele cereri nu se pot face doar cu CSS și HTML. Peste limitele de siguranță ale modelului se adaugă aprobarea
+omului și plasa noastră, deci e greu de făcut ceva rău. Modul expert e și o funcție plătită, dacă devine produsul final.
+Afectează: înlocuiește, doar pentru Modul expert, „nu rulează JavaScript” din decizia de la 2026-11-13 17:45. Intră pe
+`main` doar dacă `x-mod-js` merge cap-coadă pe site-ul de test până la 12:30; altfel rămâne direcție viitoare în pitch.
+`specs/01`, `specs/05`, `specs/12`, `CLAUDE.md` (regula „nu rulează cod”, de schimbat la unire), A, C, E.
+
 ## 2026-11-13 18:00 · Construim din aproape în aproape, cu puncte de control · decis de: D (Cezar)
 Decizia: planul e împărțit în etape (0–5); fiecare se termină cu un punct de control (M0–M4 în `dag/tasks.yaml`) la care
 echipa încarcă extensia și vede că merge cap-coadă; taskurile etapei următoare depind de punctul de control dinainte.
