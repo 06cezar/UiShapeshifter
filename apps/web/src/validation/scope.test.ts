@@ -32,6 +32,8 @@ describe("requestedScope: cât de larg a cerut omul", () => {
     expect(requestedScope("oriunde intru, fără clipuri scurte")).toBe("all");
     expect(requestedScope("și pe celelalte site-uri")).toBe("all");
     expect(requestedScope("pe orice site")).toBe("all");
+    expect(requestedScope("nu vreau Shorts nicăieri")).toBe("all");
+    expect(requestedScope("nu vreau rezumate AI pe niciun site")).toBe("all");
     expect(requestedScope("nu vreau AI în site-uri")).toBe("all"); // exemplul din specs/08 (găsit de B pe #64)
   });
 

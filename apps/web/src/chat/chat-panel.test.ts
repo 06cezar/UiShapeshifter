@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { PageInfo } from "@uishapeshifter/contracts";
 import { HOST_ID, mountOurRoot } from "../extension/shadow-root";
 import type { OutgoingClientMessage } from "../extension/messages";
-import { mountChat } from "./chat-panel";
+import { ASK_TIMEOUT_MS, mountChat } from "./chat-panel";
 import { CHAT_TEXT } from "./chat-state";
 
 const PAGE: PageInfo = { url: "https://example.com/a", host: "example.com", title: "Exemplu" };
@@ -104,5 +104,44 @@ describe("tastele", () => {
     );
     expect(onPage).not.toHaveBeenCalled();
     document.removeEventListener("keydown", onPage);
+  });
+});
+
+describe("ask_user: întrebarea agentului", () => {
+  test("întrebarea apare în bulă cu variante; un click răspunde agentului, fără cerere nouă", async () => {
+    const { chat, q, sent, shadow } = setup();
+    const answer = chat.ask("Care meniu?", ["Cel de sus", "Cel din stânga"]);
+    expect(q<HTMLElement>(".chat-panel").hidden).toBe(false);
+    expect(q<HTMLElement>(".chat-bubble").textContent).toBe("Care meniu?");
+    const options = shadow.querySelectorAll<HTMLButtonElement>(".chat-option");
+    expect([...options].map((b) => b.textContent)).toEqual(["Cel de sus", "Cel din stânga"]);
+    options[1]!.click();
+    await expect(answer).resolves.toBe("Cel din stânga");
+    expect(sent).toEqual([]);
+    expect(q<HTMLElement>(".chat-options").hidden).toBe(true);
+  });
+
+  test("un răspuns scris merge la întrebare; următorul mesaj e iar o cerere", async () => {
+    const { chat, q, sent } = setup();
+    const answer = chat.ask("Ce culoare?");
+    type(q<HTMLInputElement>(".chat-input"), "albastru");
+    await expect(answer).resolves.toBe("albastru");
+    type(q<HTMLInputElement>(".chat-input"), "ascunde reclamele");
+    expect(sent).toEqual([{ type: "user_message", text: "ascunde reclamele", source: "text", page: PAGE }]);
+  });
+
+  test("fără răspuns la timp sau dacă rularea se termină: null", async () => {
+    vi.useFakeTimers();
+    try {
+      const { chat } = setup();
+      const late = chat.ask("Ești acolo?");
+      vi.advanceTimersByTime(ASK_TIMEOUT_MS);
+      await expect(late).resolves.toBeNull();
+      const ended = chat.ask("Și acum?");
+      chat.handleServerMessage({ type: "run_finished", runId: "r1", success: false, summary: "oprit" });
+      await expect(ended).resolves.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
