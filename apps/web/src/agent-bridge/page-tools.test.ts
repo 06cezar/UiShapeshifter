@@ -131,3 +131,52 @@ describe("apply_ops în pagină", () => {
     expect(result.ok ? null : result.error.code).toBe("INTERNAL");
   });
 });
+
+describe("wait_for_user_click: ghidajul „arată-mi cum…”", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = "";
+  });
+
+  function clickDeps(): { deps: PageToolDeps; pay: HTMLElement; other: HTMLElement; ours: HTMLElement } {
+    document.body.innerHTML = `<button id="pay"><span>Plătește</span></button><a id="other" href="#">Altceva</a>
+      <div id="uishapeshifter-root"><button id="panel">Păstrez</button></div>`;
+    const pay = document.getElementById("pay")!;
+    const other = document.getElementById("other")!;
+    const ours = document.getElementById("panel")!;
+    const registry = {
+      idOf: (element: Element) => (element.closest("#pay") ? "e.1" : "e.2"),
+      elementOf: (id: string) => (id === "e.1" ? pay : undefined),
+    } as unknown as PageRegistry;
+    return { deps: { registry, ourHostId: "uishapeshifter-root" }, pay, other, ours };
+  }
+
+  test("click pe elementul așteptat (sau pe ce e în el): correct", async () => {
+    const { deps, pay } = clickDeps();
+    const waiting = runPageTool("wait_for_user_click", { elementId: "e.1" }, deps);
+    pay.querySelector("span")!.click();
+    expect(await waiting).toEqual({ ok: true, data: { clickedElementId: "e.1", correct: true, timedOut: false } });
+  });
+
+  test("click pe altceva: ce a apăsat, correct false; click-urile în interfața noastră nu contează", async () => {
+    const { deps, other, ours } = clickDeps();
+    const waiting = runPageTool("wait_for_user_click", { elementId: "e.1" }, deps);
+    ours.click();
+    other.click();
+    expect(await waiting).toEqual({ ok: true, data: { clickedElementId: "e.2", correct: false, timedOut: false } });
+  });
+
+  test("fără click până la timp: timedOut", async () => {
+    vi.useFakeTimers();
+    const { deps } = clickDeps();
+    const waiting = runPageTool("wait_for_user_click", { elementId: "e.1", timeoutMs: 5000 }, deps);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await waiting).toEqual({ ok: true, data: { clickedElementId: null, correct: false, timedOut: true } });
+  });
+
+  test("un id care nu mai e în pagină: ELEMENT_NOT_FOUND", async () => {
+    const { deps } = clickDeps();
+    const result = await runPageTool("wait_for_user_click", { elementId: "e.9" }, deps);
+    expect(!result.ok && result.error.code).toBe("ELEMENT_NOT_FOUND");
+  });
+});
