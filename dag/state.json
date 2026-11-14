@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "2db785d140a76adc8dd573cca8e894b401f62eb4",
-  "last_run": "2026-11-14T00:13:39Z",
-  "last_sha": "fcf78c8344c2aa76094704b228fff09d9b33d524",
+  "last_comms_sha": "7f44c9c9776de0905099593f3ccc4e93236fc439",
+  "last_run": "2026-11-14T00:15:23Z",
+  "last_sha": "8dbc7e16d34ba81f611679953fbb91d4d10cb6fd",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -325,8 +325,8 @@
     },
     "64": {
       "head": "c-scope-cerere",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:15:12Z",
+      "state": "MERGED"
     },
     "65": {
       "head": "a6-context-profil",
