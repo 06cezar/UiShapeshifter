@@ -120,6 +120,7 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("propose_changes");
     expect(system).toContain("benzi și oferte"); // limit testing: banda promoțională rămânea la „ascunde reclamele”
     expect(system).toContain("nu despre el („omul a păstrat”)"); // rezumatele vorbeau despre om la persoana a treia
+    expect(system).toContain("Culorile nu apar în snapshot"); // „ca Google” pe pagina de start Bing rămânea gri
   });
 
   it("etapa 3: profilul și preferințele generale intră în promptul de sistem, cu ce e deja aplicat pe site", async () => {
