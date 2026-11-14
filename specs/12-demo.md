@@ -49,3 +49,6 @@ agentul repară → audit 0 → Păstrez, 26–40 s. Videoul rămâne doar rezer
 - **Pitch:** problemă (site-uri făcute pentru toți, nu pentru tine), soluție, demo, impact. Monetizarea e un singur slide
   (sincronizare pe cont, planuri pentru echipe). Reclamele nu le „blocăm”: curățăm pagina după preferințele omului. Mobilul
   e direcție viitoare (Chrome pe Android nu rulează extensii).
+- **La „e un plugin care face orice?”:** „Face aproape orice îi ceri pe pagină, dar numai cu operații pe care le verificăm,
+  fără cod, și ascultă doar de tine, nu de ce scrie pe site.” Două limite: operațiile validate (fără JavaScript,
+  `specs/01`) și cine poate cere (doar omul; o preferință generală nouă intră doar cu citat din cererea lui, #132, #140).
