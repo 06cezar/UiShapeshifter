@@ -45,7 +45,6 @@ interface UserState {
   /** chei refuzate cu „Nu”: nu se mai propun (și sunt fapte în profil, ca să supraviețuiască repornirii) */
   dismissed: Set<string>;
   pending: Map<string, { suggestion: Suggestion; key: string; page?: PageInfo; preferenceIds?: string[] }>;
-  hostsSeen: Set<string>;
   keepStreak: number;
 }
 
@@ -68,7 +67,6 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
         cooldownUntil: new Map(),
         dismissed: new Set(),
         pending: new Map(),
-        hostsSeen: new Set(),
         keepStreak: 0,
       };
       users.set(userId, state);
@@ -165,9 +163,9 @@ export function createAdaptationEngine(deps: AdaptationDeps): AdaptationEngine {
 
       const profile = await deps.store.get(userId);
       const findings = evaluateRules(state.seen, t, thresholds);
-      // Prima dată pe un site: preferințele generale care nu s-au aplicat încă acolo (specs/08).
-      if (page && !state.hostsSeen.has(page.host)) {
-        state.hostsSeen.add(page.host);
+      // Pe un site: preferințele generale care nu s-au aplicat încă acolo (specs/08). Nu doar la prima vizită: o bulă
+      // pierdută (alt tab activ) sau ignorată revine după pauză; „Da” notează site-ul în appliedOn, „Nu” îl scoate.
+      if (page) {
         const general = generalPreferencesFinding(page, profile.generalPreferences ?? []);
         if (general) findings.push(general);
       }
