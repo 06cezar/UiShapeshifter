@@ -181,6 +181,23 @@ describe("reaplicarea și „Revino la original”", () => {
     [late, ...ours].forEach((sheet) => sheet.remove());
   });
 
+  test("foaia preferințelor generale (uishapeshifter-general) rămâne înaintea rețetei, nu se mută", async () => {
+    const general = document.createElement("style");
+    general.id = "uishapeshifter-general";
+    document.head.append(general);
+    const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
+    const late = document.createElement("style");
+    late.id = "iotd-lite-bg";
+    document.head.append(late);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const order = [...document.querySelectorAll("style")].map((s) => s.id);
+    expect(order.indexOf("uishapeshifter-general")).toBeLessThan(order.indexOf("iotd-lite-bg"));
+    expect(order.indexOf(RECIPE_STYLE_ID)).toBeGreaterThan(order.indexOf("iotd-lite-bg"));
+    [late, general].forEach((sheet) => sheet.remove());
+  });
+
   test("stilurile noastre (preferințele de bază) puse după rețetă nu o mută", async () => {
     const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
     await engine.load();
