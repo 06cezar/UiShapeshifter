@@ -35,7 +35,8 @@ să vadă cel puțin unul, deci îl pregătim pe **site-ul de test**, cu o cutie
 **Decizia de la 07:20 (D, după probele lui A pe main):** niciun caz nu iese sigur live (`#facturi` strâmt 1/3, antet
 strâmt + „pune butonul în antet” 2/3). La demo cerem **„Vreau doar să plătesc factura; pune butonul sus, în antet”**
 (2/3), iar dacă reparația nu apare live, o arătăm din **videoul de rezervă** (E4), înregistrat cu o rulare în care apare.
-Nu mai schimbăm codul pentru asta înainte de îngheț.
+**07:25:** cu #115 (tăierea din cutia în care a pus agentul e „introduced”), A: 3/3 live: auditul găsește tăierea →
+agentul repară → audit 0 → Păstrez, 26–40 s. Videoul rămâne doar rezervă.
 
 ## Ce pregătim
 
