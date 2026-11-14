@@ -106,6 +106,7 @@ export async function runAgent(
   const end = async (status: AgentRun["status"], summary: string, mascot: MascotState) => {
     run.status = status;
     run.summary = summary;
+    run.model = decider.model; // dacă a trecut pe modelul de rezervă, jurnalul spune pe care s-a terminat
     run.finishedAt = new Date().toISOString();
     // jurnalul nesalvat nu trebuie să lase interfața fără run_finished
     await io.saveRun(run).catch((error: unknown) => console.error(`agent: n-am salvat ${run.runId}:`, error));
