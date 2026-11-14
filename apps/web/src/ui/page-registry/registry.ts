@@ -125,6 +125,11 @@ const COLUMN_SEARCH_DEPTH = 3;
 /** Cu display inline sau contents, cutia elementului nu spune unde e conținutul: îl iau din copii. */
 const BOXLESS_DISPLAYS = new Set(["inline", "contents"]);
 
+/** Rândurile cu date ale unui tabel (nu antetul): facturi, comenzi, tranzacții. */
+const TABLE_ROW_SELECTOR = "tbody > tr, table > tr";
+/** Între celulele unui rând, în eticheta lui: „DEMO-2026-0011 · 10.11.2026 · 248,37 lei · De plată”. */
+const ROW_CELL_SEPARATOR = " · ";
+
 /** De la atâția frați cu aceeași etichetă și clasă e o listă care se repetă (carusel, rezultate, meniu lung). */
 const REPEAT_MIN_SIBLINGS = 4;
 /** Din fiecare listă care se repetă, primii atâția au loc înaintea restului paginii; ceilalți vin după, pe rând. */
@@ -310,6 +315,17 @@ function labelOf(element: Element, doc: Document): string {
   return cleanText(element.getAttribute("title") ?? img?.getAttribute("alt") ?? "");
 }
 
+/** Eticheta unui rând de tabel: textul celulelor, pe rând, ca agentul să știe ce factură e și în ce stare. */
+function rowLabelOf(row: Element): string {
+  const cells = [...row.children].filter((cell) => cell.tagName === "TD" || cell.tagName === "TH");
+  return cleanText(
+    cells
+      .map((cell) => cleanText((cell as HTMLElement).innerText?.trim() || cell.textContent || ""))
+      .filter(Boolean)
+      .join(ROW_CELL_SEPARATOR),
+  );
+}
+
 function roleOf(element: Element): string {
   const explicit = element.getAttribute("role");
   if (explicit) return explicit;
@@ -474,8 +490,15 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
         blockTitles.set(block, title);
       }
     }
+    // Rândurile de tabel: fără ele agentul vedea doar „Descarcă / Detalii” și nu putea face „doar facturile neplătite”
+    // sau „sortează după valoare” (A, limit testing pe site-ul de test).
+    const rows = new Set(
+      [...doc.querySelectorAll(TABLE_ROW_SELECTOR)].filter(
+        (row) => row.querySelector(":scope > td") && !isOurs(row, options.ourHostId),
+      ),
+    );
     const directSet = new Set(direct);
-    const all = [...direct, ...[...blocks].filter((b) => !directSet.has(b))].sort(byDocumentOrder);
+    const all = [...direct, ...[...blocks, ...rows].filter((b) => !directSet.has(b))].sort(byDocumentOrder);
     for (const element of all) idOf(element);
     const candidates = scope ? all.filter((element) => scope.contains(element)) : all;
 
@@ -515,8 +538,8 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
         id: idOf(element),
         selector: title ? blockSelector(element, doc) : buildSelector(element, doc),
         tag,
-        role: title ? (element.getAttribute("role") ?? "group") : roleOf(element),
-        label: title ? labelOf(title, doc) : labelOf(element, doc),
+        role: rows.has(element) ? "row" : title ? (element.getAttribute("role") ?? "group") : roleOf(element),
+        label: rows.has(element) ? rowLabelOf(element) : title ? labelOf(title, doc) : labelOf(element, doc),
         regionId: regionOf(element)?.id,
         rect,
         visible,
