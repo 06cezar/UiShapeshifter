@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import express from "express";
 import type { UserProfile } from "@uishapeshifter/contracts";
-import { createMariaProfile } from "./defaults";
+import { createEmptyProfile, createMariaProfile } from "./defaults";
 import { createProfileRouter } from "./routes";
 import { createProfileStore, type ProfileStore } from "./store";
 import { MAX_SUMMARY_WORDS, profileSummary } from "./summary";
@@ -266,5 +266,97 @@ describe("rutele HTTP", () => {
 
     const badId = await fetch(`${base}/bad.id`);
     assert.equal(badId.status, 400);
+  });
+});
+
+describe("profilul extins (E8): preferințe generale și site-uri familiare", () => {
+  // exact ce trimite agentul din A6 (system-prompt + server-tools.test)
+  const fromAgent = {
+    id: "fara-ai",
+    category: "ai-features",
+    text: "fără AI în site-uri",
+    source: "conversation",
+    evidence: ["„nu vreau AI”"],
+    createdAt: NOW,
+    appliedOn: ["cautare.example"],
+  };
+  const addPreference = (value: unknown) => ({ patch: [{ op: "add" as const, path: "/generalPreferences/-", value }] });
+
+  test("add pe /generalPreferences/- merge și pe un profil vechi, fără câmpul nou", () => {
+    const old = createMariaProfile(NOW);
+    delete old.generalPreferences;
+    const result = applyProfileUpdate(old, addPreference(fromAgent), NOW);
+    assert.ok(result.ok, result.ok ? "" : result.error);
+    assert.deepEqual(
+      result.value.generalPreferences?.map((p) => p.text),
+      ["fără AI în site-uri"],
+    );
+  });
+
+  test("fără dovezi, cu categorie necunoscută sau cu text gol: refuzat", () => {
+    for (const bad of [
+      { ...fromAgent, evidence: [] },
+      { ...fromAgent, category: "orice" },
+      { ...fromAgent, text: "  " },
+    ]) {
+      assert.ok(!applyProfileUpdate(createMariaProfile(NOW), addPreference(bad), NOW).ok);
+    }
+  });
+
+  test("aceeași categorie spusă din nou nu se dublează: dovezile și site-urile se adună", () => {
+    const first = applyProfileUpdate(createMariaProfile(NOW), addPreference(fromAgent), NOW);
+    assert.ok(first.ok);
+    const again = applyProfileUpdate(
+      first.value,
+      addPreference({ ...fromAgent, id: "nu-ai", evidence: ["„scoate AI”"], appliedOn: ["WWW.Video.example"] }),
+      NOW,
+    );
+    assert.ok(again.ok);
+    assert.equal(again.value.generalPreferences?.length, 1);
+    assert.deepEqual(again.value.generalPreferences?.[0]?.appliedOn, ["cautare.example", "video.example"]);
+    assert.equal(again.value.generalPreferences?.[0]?.evidence.length, 2);
+  });
+
+  test("testul inițial: „ce te deranjează” devine preferințe generale, „ce site-uri cunoști” site-uri familiare", () => {
+    const result = applyOnboarding(
+      createEmptyProfile("demo-fresh", NOW),
+      {
+        skipped: false,
+        dislikes: ["ai-features", "short-video"],
+        familiarSites: ["www.YouTube.com", "youtube.com"],
+        answers: [],
+      },
+      NOW,
+    );
+    assert.ok(result.ok, result.ok ? "" : result.error);
+    assert.deepEqual(
+      result.value.generalPreferences?.map((p) => p.category),
+      ["ai-features", "short-video"],
+    );
+    assert.ok(result.value.generalPreferences?.every((p) => p.source === "onboarding"));
+    assert.deepEqual(result.value.familiarSites, [{ host: "youtube.com", level: "daily", source: "onboarding" }]);
+  });
+
+  test("rezumatul pentru prompt include preferințele generale și site-urile cunoscute, sub limită", () => {
+    const result = applyOnboarding(
+      createMariaProfile(NOW),
+      { skipped: false, dislikes: ["ai-features", "promos"], familiarSites: ["youtube.com"], answers: [] },
+      NOW,
+    );
+    assert.ok(result.ok);
+    const summary = profileSummary(result.value);
+    assert.match(summary, /Vrea peste tot: fără rezumate și butoane AI; fără bannere și reclame\./);
+    assert.match(summary, /Site-uri cunoscute bine: youtube\.com\./);
+    assert.ok(words(summary) <= MAX_SUMMARY_WORDS);
+  });
+
+  test("un profil vechi din data/ (fără câmpurile noi) se citește cu liste goale", () => {
+    const old = createMariaProfile(NOW) as Partial<UserProfile>;
+    delete old.generalPreferences;
+    delete old.familiarSites;
+    const parsed = parseProfile(old);
+    assert.ok(parsed.ok);
+    assert.deepEqual(parsed.value.generalPreferences, []);
+    assert.deepEqual(parsed.value.familiarSites, []);
   });
 });
