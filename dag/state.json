@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "47f26de7edbcfb5f7dfcc6e901c56b69b529dc3e",
-  "last_run": "2026-11-14T06:19:29Z",
+  "last_comms_sha": "4686ffc2d8153811105e25634394742676addc2f",
+  "last_run": "2026-11-14T06:28:30Z",
   "last_sha": "b440492dddfc0c116353ebd20c9e17ebb8ab9217",
   "prs": {
     "1": {
@@ -172,6 +172,11 @@
       "head": "a-preferinte-stil",
       "merged_at": "2026-11-14T06:19:21Z",
       "state": "MERGED"
+    },
+    "126": {
+      "head": "d-undo-request-contract",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "13": {
       "head": "d-comms-block-review",
