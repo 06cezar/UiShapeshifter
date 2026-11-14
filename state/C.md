@@ -1,3 +1,3 @@
-2026-11-14 09:45
+2026-11-14 10:05
 
-gata: #134 (+ WhatsApp «Editat 08:58» de la E); urmează: review D pe #131 și #134, unire cu acordul lui Adelin; blocat: nimic
+gata: #131, #134 unite (fade fără conținut activ; Google AI + vecini; WhatsApp «Editat»); urmează: probe pe site-uri reale pentru E/D; blocat: nimic
