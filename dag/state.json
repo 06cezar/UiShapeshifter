@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "30fc3c39dfe5fcebf4efea430ec9e46d3b21644b",
-  "last_run": "2026-11-14T00:28:00Z",
+  "last_comms_sha": "998dd27d03b5c91ad4270241df1a3e927eabe3a7",
+  "last_run": "2026-11-14T00:40:57Z",
   "last_sha": "7eb88a6a88272a15d330bffe161d31cdb559ecaf",
   "prs": {
     "1": {
@@ -357,6 +357,11 @@
       "head": "b1-store-layout",
       "merged_at": "2026-11-13T14:06:46Z",
       "state": "MERGED"
+    },
+    "70": {
+      "head": "d2-dans",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "8": {
       "head": "e1-profil",
