@@ -1,8 +1,8 @@
 // Executorul uneltelor „web” în pagina unui site (etapa 1, specs/05 și 06): primește tool_call de la server, întoarce
 // tool_result. get_page_snapshot îl face registrul (B2), apply_css și apply_ops motorul de rețete (B5, B6),
 // say bula mascotei (D), point_at mascota (D2), care merge la elementul găsit în registru, wait_for_user_click
-// ascultă click-ul omului (ghidajul „arată-mi cum…”), ask_user întrebarea în chat (D), propose_changes panoul
-// (D9, Păstrez / Anulez).
+// ascultă click-ul omului (ghidajul „arată-mi cum…”), ask_user întrebarea în chat (D), undo_request scoate o cerere
+// de mai demult din rețetă (motorul, #82), propose_changes panoul (D9, Păstrez / Anulez).
 
 import type {
   ApplyCssData,
@@ -46,6 +46,13 @@ export interface PageToolDeps {
    * terminat sau a venit altă întrebare).
    */
   askUser?(question: string, options?: string[]): Promise<string | null>;
+  /**
+   * Scoate o singură cerere din rețeta site-ului (motorul de rețete, `undoRequest`, #82); cele de dinainte și de după
+   * rămân. Aceeași funcție ca „Anulez” din lista „Ce ai cerut aici” a panoului.
+   */
+  undoRequest?(
+    requestId: string,
+  ): Promise<{ ok: true; revision: number; droppedOps: number } | { ok: false; message: string }>;
   /** Gazda interfeței noastre: un click în panou sau pe mascotă nu e răspunsul omului la ghidaj. */
   ourHostId?: string;
   doc?: Document;
@@ -171,6 +178,20 @@ export async function runPageTool(
           return fail("TIMEOUT", "Omul n-a răspuns. Continuă cu ce știi sau întreabă mai simplu.");
         }
         return { ok: true, data: { answer } };
+      }
+      case "undo_request": {
+        if (typeof a.requestId !== "string" || !a.requestId.trim()) {
+          return fail("INVALID_ARGS", "undo_request cere requestId, din recipe.requests din snapshot.");
+        }
+        if (!deps.undoRequest) return fail("INTERNAL", "Motorul de rețete nu e încă pornit în pagină.");
+        const result = await deps.undoRequest(a.requestId);
+        if (!result.ok) {
+          return fail(
+            "INVALID_ARGS",
+            `${result.message} Cererile care pot fi scoase sunt în recipe.requests din snapshot; altfel propune „Revino la original”.`,
+          );
+        }
+        return { ok: true, data: { revision: result.revision, droppedOps: result.droppedOps } };
       }
       case "propose_changes": {
         if (!deps.proposeChanges) return fail("INTERNAL", "Panoul de control nu e încă pornit în pagină.");
