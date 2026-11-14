@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "599374d19c416bd1eba33d9ebef267d88b17a416",
-  "last_run": "2026-11-14T08:04:55Z",
-  "last_sha": "c1486980f22d58b6159f17ff21d335e7009f5c19",
+  "last_run": "2026-11-14T08:05:11Z",
+  "last_sha": "118dc8f3cc8c5d3ef9cd168bae64b185816534da",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -220,8 +220,8 @@
     },
     "134": {
       "head": "c-google-ai-vecini",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T08:05:01Z",
+      "state": "MERGED"
     },
     "135": {
       "head": "a-fara-filtre-imagini",
@@ -240,8 +240,8 @@
     },
     "138": {
       "head": "e3-sugestie-tab",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T08:05:07Z",
+      "state": "MERGED"
     },
     "139": {
       "head": "d-demo-pas1",
