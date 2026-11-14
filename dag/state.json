@@ -26,7 +26,7 @@
     }
   },
   "last_comms_sha": "7af50451c9b75531f9f8ac4135ef7562a70874be",
-  "last_run": "2026-11-14T09:19:45Z",
+  "last_run": "2026-11-14T09:20:27Z",
   "last_sha": "4e240173fd54cba64c43437132cdeaec372c09ca",
   "prs": {
     "1": {
@@ -303,6 +303,11 @@
       "head": "a-nu-ad-blocker",
       "merged_at": "2026-11-14T09:19:42Z",
       "state": "MERGED"
+    },
+    "149": {
+      "head": "a-mod-js",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "15": {
       "head": "e4-date-test",
