@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "b0e96e04a9bbfdaeecbb9e133b28b83890be91a9",
-  "last_run": "2026-11-14T01:07:05Z",
+  "last_comms_sha": "4df3d8445ac97878c5ea1b0940d994bd354455b8",
+  "last_run": "2026-11-14T01:09:31Z",
   "last_sha": "9a5a8a326cd3a29cfd6ff8ec7fc1c622ed2f229c",
   "prs": {
     "1": {
@@ -402,6 +402,11 @@
       "head": "a6-scope-nicaieri",
       "merged_at": "2026-11-14T01:06:58Z",
       "state": "MERGED"
+    },
+    "79": {
+      "head": "e6-conturi",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "8": {
       "head": "e1-profil",
