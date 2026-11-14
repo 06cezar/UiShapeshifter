@@ -233,6 +233,15 @@ describe("Anulez pe o singură cerere: undoRequest", () => {
     expect(style()).toContain("nav");
   });
 
+  test("view() dă cererile care mai au efect, pentru snapshot (undo_request din chat)", async () => {
+    const { engine } = await threeRequests();
+    await engine.undoRequest("r2");
+    expect(engine.view().requests?.map((request) => [request.requestId, request.reason])).toEqual([
+      ["r1", "fără coloană"],
+      ["r3", "fără subsol"],
+    ]);
+  });
+
   test("o cerere necunoscută nu schimbă nimic", async () => {
     const { engine } = await threeRequests();
     expect((await engine.undoRequest("nu-exista")).ok).toBe(false);

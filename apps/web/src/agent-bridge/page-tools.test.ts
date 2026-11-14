@@ -207,3 +207,29 @@ describe("ask_user: întrebarea agentului în chat", () => {
     expect(askUser).not.toHaveBeenCalled();
   });
 });
+
+describe("undo_request: „anulează ce am cerut cu X” din chat", () => {
+  const registry = {} as PageRegistry;
+
+  test("scoate cererea prin motor și întoarce revizia nouă", async () => {
+    const undoRequest = vi.fn().mockResolvedValue({ ok: true, revision: 7, droppedOps: 1 });
+    const result = await runPageTool("undo_request", { requestId: "run-1" }, { registry, undoRequest });
+    expect(undoRequest).toHaveBeenCalledWith("run-1");
+    expect(result).toEqual({ ok: true, data: { revision: 7, droppedOps: 1 } });
+  });
+
+  test("cerere necunoscută: INVALID_ARGS, cu unde găsește cererile și ce poate propune", async () => {
+    const undoRequest = async () => ({ ok: false as const, message: "Cererea nu mai e în istoricul acestui site." });
+    const result = await runPageTool("undo_request", { requestId: "nu-exista" }, { registry, undoRequest });
+    expect(!result.ok && result.error.code).toBe("INVALID_ARGS");
+    expect(!result.ok && result.error.message).toContain("recipe.requests");
+  });
+
+  test("fără requestId: INVALID_ARGS; fără motor: INTERNAL", async () => {
+    const undoRequest = vi.fn();
+    expect((await runPageTool("undo_request", {}, { registry, undoRequest })).ok).toBe(false);
+    expect(undoRequest).not.toHaveBeenCalled();
+    const result = await runPageTool("undo_request", { requestId: "run-1" }, { registry });
+    expect(!result.ok && result.error.code).toBe("INTERNAL");
+  });
+});

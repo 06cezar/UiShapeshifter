@@ -259,6 +259,12 @@ function start() {
     registry,
     ourHostId: HOST_ID,
     askUser: (question, options) => chat.ask(question, options),
+    // „anulează ce am cerut cu X” din chat: la fel ca „Anulez” din lista panoului, apoi limitele de bază din nou
+    undoRequest: async (requestId) => {
+      const result = await recipes.undoRequest(requestId);
+      if (result.ok) base?.refresh();
+      return result;
+    },
     recipes: {
       // După fiecare CSS al agentului, fontul minim se verifică din nou (C4: „ultimele, peste tot ce a scris agentul”).
       async applyCss(args) {

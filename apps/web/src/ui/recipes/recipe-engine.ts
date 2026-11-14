@@ -454,6 +454,7 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
         revision: stored.recipe.revision,
         css: stored.recipe.css,
         styleElement: doc.getElementById(RECIPE_STYLE_ID) as HTMLStyleElement | null,
+        requests: requestHistory(stored.revisions).map(({ requestId, reason, at }) => ({ requestId, reason, at })),
       };
     },
   };
