@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "e82534336e7c21ae0f883c999bdc88cf932c42c2",
-  "last_run": "2026-11-14T05:54:36Z",
-  "last_sha": "663e64972d36d8518217e57ab132304446c8b4f3",
+  "last_comms_sha": "55d466f4bb5d653bdfb7a8837ea0c366d78c6d6a",
+  "last_run": "2026-11-14T05:56:23Z",
+  "last_sha": "e51ba63f763980795cdfb4c001c838ab563ef0c0",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -150,8 +150,8 @@
     },
     "121": {
       "head": "c-c4-randuri-stabile",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T05:56:14Z",
+      "state": "MERGED"
     },
     "122": {
       "head": "a-fallback-sonnet",
