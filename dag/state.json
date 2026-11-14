@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "a905291fda4e32f3fe61b6797c5ded1bd6f414d5",
-  "last_run": "2026-11-14T04:03:06Z",
+  "last_comms_sha": "6985948e728f9a07dd4c485c04408776379b135a",
+  "last_run": "2026-11-14T04:04:08Z",
   "last_sha": "b255cd91d5e98c7f24db3cc7d6ca6f7f8fcceb7d",
   "prs": {
     "1": {
@@ -42,6 +42,11 @@
       "head": "a-fundalul-paginii",
       "merged_at": "2026-11-14T04:02:56Z",
       "state": "MERGED"
+    },
+    "102": {
+      "head": "d-demo-esec-reparat",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "11": {
       "head": "d4-panou",
