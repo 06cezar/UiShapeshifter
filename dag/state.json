@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "6936a13aadb01410c860a425a6148f323db9463a",
-  "last_run": "2026-11-14T00:51:07Z",
-  "last_sha": "8ba5124fb9512a2c975e2370b04abc4b8664e885",
+  "last_run": "2026-11-14T00:51:18Z",
+  "last_sha": "cb84f0c8239205733f42fd851a8b289aed83d8c2",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -345,13 +345,13 @@
     },
     "68": {
       "head": "a-startrun-page",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:51:09Z",
+      "state": "MERGED"
     },
     "69": {
       "head": "d-demo-pas3",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:51:15Z",
+      "state": "MERGED"
     },
     "7": {
       "head": "b1-store-layout",
