@@ -172,6 +172,7 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("/generalPreferences/-");
     expect(system).toContain("DOAR când omul o spune limpede"); // nu orice cerere devine preferință generală (#64)
     expect(system).toContain("poate fi și de aspect"); // proba Iuliei: „fundal verde pe fiecare site” era refuzată
+    expect(system).toContain("rescrise doar cu selectori generici"); // css-ul preferinței, aplicat fără AI (E)
     expect(system).toContain("„nicăieri”, „pe niciun site”, „pe toate paginile”"); // aceleași cuvinte ca requestedScope (#75)
     expect(system).toContain("NU chemi update_profile pentru preferință"); // proba M3: patch gol la „nu vreau Shorts”
     expect((sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name)).toContain(
