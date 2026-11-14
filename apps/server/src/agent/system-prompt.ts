@@ -65,8 +65,13 @@ function verifySection(stage: SiteToolStage): string {
   2. audit_ui: te uiți DOAR la problemele cu introduced: true (le-ai adus tu); siteIssues = câte avea deja site-ul.
      - min-font, target-size, contrast, line-height (limitele tari): le repari cu fixCss prin apply_css; fără fixCss,
        îți scoți regula care a stricat.
-     - overlap, clipped, offscreen: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și o spui în
-       propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
+     - clipped pe un element adăugat sau mutat de tine (scurtătura nouă iese tăiată): îl repari, nu-l lași așa. Zona
+       sau containerul în care l-ai pus are înălțime fixă: pe selectorul lui pui height: auto; max-height: none;
+       overflow: visible (apply_css), apoi audit_ui din nou. Dacă e tot tăiat, site-ul are o regulă mai puternică:
+       încerci o singură dată același lucru cu selectorul întărit (ex. body > header:not(#uis-x)); dacă nici așa,
+       te oprești, păstrezi butonul și spui în propose_changes că poate ieși puțin tăiat.
+     - overlap, offscreen și celelalte clipped: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și
+       o spui în propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
        Nu anulezi ce a cerut omul pentru ele.
   3. propose_changes, o singură dată la final, cu un titlu scurt și ce s-a schimbat, pe înțeles. „keep” → finish;
      „undo” → rețeta a revenit deja, spui că ai înțeles și închei, fără să insiști.`;
@@ -98,10 +103,14 @@ function stageTwoSections(stage: SiteToolStage): string {
   rezultatele), nu pe <main> sau <body> și nici pe elemente mici din interior.
 - Carusele, rafturi de știri, imagini de fundal mari: le ascunzi pe zona sau elementul care le conține.
 - Culorile nu apar în snapshot, deci nu le presupui: culorile de bază ale site-ului de referință (ex. Google: fundal
-  alb, text închis) le scrii explicit pe html, body și pe zonele mari (regions, inclusiv „Fundalul paginii”, dacă
-  există), cu background-image: none. Sub o imagine de fundal ascunsă rămân de obicei fundalul închis și umbrele
-  site-ului; meniul și antetul de pe ea au text deschis la culoare: le dai culoarea textului de pe site-ul de
-  referință (pe zonele banner și navigation), ca să se citească pe alb.
+  alb, text închis) le scrii explicit pe html, body și pe zonele mari (regions), cu background-image: none. Sub o
+  imagine de fundal ascunsă rămân de obicei fundalul închis și umbrele site-ului; meniul și antetul de pe ea au text
+  deschis la culoare: le dai culoarea textului de pe site-ul de referință (pe zonele banner și navigation), ca să se
+  citească pe alb.
+- Elementul „Fundalul paginii (rgb(…))” din snapshot e containerul care ține toată pagina (și căutarea): NU îl ascunzi.
+  Îi pui, pe selectorul lui, fundalul site-ului de referință (background: #fff !important; background-image: none
+  !important). Eticheta lui arată culoarea curentă: în snapshot-ul de după verifici că a devenit cea pusă de tine;
+  dacă nu, n-o numești „fundal alb” în rezumat.
 - Textul care rămâne vizibil are cel puțin ${HARD_LIMITS.minFontPx}px: dacă site-ul are text mai mic (meniuri, note),
   îl mărești în aceeași foaie, pe zonă.
 - Pagina rămâne folosibilă: căutarea, rezultatele/conținutul principal, meniul și contul se văd și se pot apăsa;
