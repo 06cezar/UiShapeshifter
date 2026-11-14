@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "f155f51faad8b4c4d58e51e12b7b68a1c5c87052",
-  "last_run": "2026-11-14T04:17:25Z",
-  "last_sha": "c30829a9b65f20dc1143372bb63e52e670bffec5",
+  "last_run": "2026-11-14T04:18:51Z",
+  "last_sha": "8d7fb8145efb47a086c74b9c74d7c9bbca2b752d",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -60,8 +60,8 @@
     },
     "105": {
       "head": "a-repara-taierea",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T04:18:48Z",
+      "state": "MERGED"
     },
     "11": {
       "head": "d4-panou",
