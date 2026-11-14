@@ -25,8 +25,8 @@
       }
     }
   },
-  "last_comms_sha": "f4309ae639c849c6ebda902ccf48c1acb610021d",
-  "last_run": "2026-11-14T08:49:26Z",
+  "last_comms_sha": "c3504e59bb63948983bf2f711b718071ef0e8b7e",
+  "last_run": "2026-11-14T09:03:26Z",
   "last_sha": "442c69de372b669a08130347044e380bdd00efc8",
   "prs": {
     "1": {
@@ -286,6 +286,11 @@
     },
     "145": {
       "head": "e-reia-pas-cu-pas",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "146": {
+      "head": "d-pitch-orice",
       "merged_at": null,
       "state": "OPEN"
     },
