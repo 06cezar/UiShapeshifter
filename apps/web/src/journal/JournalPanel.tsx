@@ -42,6 +42,7 @@ const TOOL_ICONS: Record<ToolName, string> = {
   say: "💬",
   get_profile: "📇",
   update_profile: "📝",
+  run_js: "⚡",
   finish: "🏁",
 };
 
