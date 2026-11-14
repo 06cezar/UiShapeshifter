@@ -26,7 +26,7 @@
     }
   },
   "last_comms_sha": "428b4550fdfcc370842c4a0e9f7d7e4f35c37b0e",
-  "last_run": "2026-11-14T09:54:03Z",
+  "last_run": "2026-11-14T09:54:35Z",
   "last_sha": "fb6f7626a35059e5612af0132f01e5f4c0dc31ad",
   "prs": {
     "1": {
@@ -321,6 +321,11 @@
     },
     "151": {
       "head": "d-chat-gandeste",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "152": {
+      "head": "x-mod-js",
       "merged_at": null,
       "state": "OPEN"
     },
