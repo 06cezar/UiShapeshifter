@@ -193,6 +193,53 @@ describe("„Anulez”: revertTo", () => {
   });
 });
 
+describe("Anulez pe o singură cerere: undoRequest", () => {
+  async function threeRequests() {
+    const storage = memoryStorage();
+    const engine = newEngine({ host: "a.ro", storage });
+    await engine.load();
+    await engine.applyCss({ css: "aside { display: none }", reason: "fără coloană", runId: "r1" });
+    await engine.applyCss({ css: "nav { display: none }", reason: "fără meniu", runId: "r2" });
+    await engine.applyCss({ css: "footer { display: none }", reason: "fără subsol", runId: "r3" });
+    return { storage, engine };
+  }
+
+  test("scoate doar cererea aleasă; cele de dinainte și de după rămân, iar rezultatul se salvează", async () => {
+    const { storage, engine } = await threeRequests();
+    const result = await engine.undoRequest("r2");
+    expect(result).toEqual({ ok: true, revision: 4, droppedOps: 0 });
+    expect(style()).toContain("aside");
+    expect(style()).toContain("footer");
+    expect(style()).not.toContain("nav");
+    const saved = await loadRecipe(storage, "a.ro", "now");
+    expect(saved.recipe.css).not.toContain("nav");
+  });
+
+  test("lista arată doar cererile care mai au efect; a doua anulare nu o readuce pe prima", async () => {
+    const { engine } = await threeRequests();
+    await engine.undoRequest("r2");
+    expect(engine.history().map((entry) => entry.reason)).toEqual(["fără coloană", "fără subsol"]);
+    await engine.undoRequest("r1");
+    expect(style()).not.toContain("nav");
+    expect(style()).not.toContain("aside");
+    expect(style()).toContain("footer");
+    expect(engine.history().map((entry) => entry.reason)).toEqual(["fără subsol"]);
+  });
+
+  test("Anulez al rulării (revertTo) merge și după o anulare de cerere", async () => {
+    const { engine } = await threeRequests();
+    await engine.undoRequest("r2");
+    await engine.revertTo(3);
+    expect(style()).toContain("nav");
+  });
+
+  test("o cerere necunoscută nu schimbă nimic", async () => {
+    const { engine } = await threeRequests();
+    expect((await engine.undoRequest("nu-exista")).ok).toBe(false);
+    expect(engine.view().revision).toBe(3);
+  });
+});
+
 describe("ops în stocare", () => {
   const ops = [{ op: "remove", target: { selector: "#banner" } }];
 
