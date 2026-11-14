@@ -26,8 +26,8 @@
     }
   },
   "last_comms_sha": "09da255d937691e0d69ac694ef28f46117339c0d",
-  "last_run": "2026-11-14T10:21:30Z",
-  "last_sha": "cc5f27bdd1f2dc5196849179932cb0e321c01c63",
+  "last_run": "2026-11-14T10:24:15Z",
+  "last_sha": "254c64b47e4f32a5493b7d1a694e50100bb8b86f",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -321,8 +321,8 @@
     },
     "151": {
       "head": "d-chat-gandeste",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T10:24:01Z",
+      "state": "MERGED"
     },
     "152": {
       "head": "x-mod-js",
