@@ -44,6 +44,7 @@ export interface RunIO {
 
 const MAX_STEPS_SUMMARY = "M-am oprit după prea mulți pași. Am păstrat ce am reușit până acum.";
 const CANCELLED_SUMMARY = "Am oprit, cum ai cerut.";
+const EMPTY_REPLY_SUMMARY = "N-am reușit să încep: modelul n-a răspuns. Încearcă din nou, te rog.";
 const UNDONE_SUMMARY = "Am pus pagina înapoi, cum ai ales.";
 
 /** „keep” / „undo” dacă ultimul pas a fost o propunere la care omul a răspuns. */
@@ -121,7 +122,12 @@ export async function runAgent(
       const decision = await decider.decide(previous);
       // „Oprește” apăsat cât gândea modelul: unealta decisă nu mai pleacă spre interfață
       if (io.isCancelled()) return await end("cancelled", CANCELLED_SUMMARY, "idle");
-      if (decision.kind === "text") return await end("succeeded", decision.content.trim() || "Am terminat.", "happy");
+      if (decision.kind === "text") {
+        // Un răspuns gol (fără text și fără unealtă) e un refuz sau o eroare a modelului, nu o rulare reușită
+        // (Opus 5.5 refuza tot la început, iar panoul arăta „Am terminat.”).
+        const text = decision.content.trim();
+        return text ? await end("succeeded", text, "happy") : await end("failed", EMPTY_REPLY_SUMMARY, "confused");
+      }
 
       const startedAt = Date.now();
       // un eșec deja văzut nu mai pleacă spre pagină; modelul primește în loc ce să facă altfel
