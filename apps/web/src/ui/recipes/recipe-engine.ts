@@ -20,7 +20,9 @@ import {
   type RequestEntry,
 } from "../../validation";
 import type { RecipeView } from "../page-registry/registry";
-import { checkOps, createDomOpsApplier } from "./dom-ops";
+import { BASE_STYLE_ID } from "../../a11y/base-preferences";
+import { DISLIKES_STYLE_ID } from "../../a11y/dislike-rules";
+import { checkOps, createDomOpsApplier, HIDDEN_STYLE_ID } from "./dom-ops";
 import { fadeOut, measureLeaving } from "./fade";
 import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRecipe } from "./recipe-store";
 
@@ -28,6 +30,11 @@ import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRec
 export const RECIPE_STYLE_ID = "uishapeshifter-recipe";
 /** Foile extensiei (rețeta, preferințele de bază, ce te deranjează) au id-uri cu prefixul ăsta. */
 const OUR_STYLE_ID_PREFIX = "uishapeshifter-";
+/**
+ * Foile noastre care trebuie să vină după rețetă: ascunderile motorului, ce te deranjează, mișcarea redusă. Foaia
+ * preferințelor generale (`uishapeshifter-general`, #137) NU e aici: ea stă înaintea rețetei, ca agentul s-o poată bate.
+ */
+const AFTER_RECIPE_STYLE_IDS = [HIDDEN_STYLE_ID, DISLIKES_STYLE_ID, BASE_STYLE_ID];
 
 /** Pagina a adăugat o foaie de stil (`<style>` sau `<link rel="stylesheet">`)? Doar atunci verificăm ordinea. */
 function addsStyleSheet(record: MutationRecord): boolean {
@@ -205,7 +212,17 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     );
     const last = siteSheets.at(-1);
     if (!last?.parentElement || !(style.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
+    // Foile care trebuie să rămână ultimele (AFTER_RECIPE_STYLE_IDS) vin după rețetă, în ordinea lor din pagină,
+    // altfel le-ar bate rețeta mutată peste ele.
+    const afterRecipe = [...doc.querySelectorAll("style[id]")].filter((sheet) =>
+      AFTER_RECIPE_STYLE_IDS.includes(sheet.id),
+    );
+    let previous: Element = style;
     last.parentElement.insertBefore(style, last.nextSibling);
+    for (const sheet of afterRecipe) {
+      previous.after(sheet);
+      previous = sheet;
+    }
   }
 
   const domOps = createDomOpsApplier({ doc, askAgent: (goal) => options.askAgent?.(goal) });
