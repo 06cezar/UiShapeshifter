@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "51f6fcc260adf80f3e055b073656ababddfe5cde",
-  "last_run": "2026-11-14T01:00:27Z",
+  "last_run": "2026-11-14T01:00:40Z",
   "last_sha": "f26fd09ba0464af7e46a9b5ac16f05f0bd657fbb",
   "prs": {
     "1": {
@@ -255,8 +255,8 @@
     },
     "51": {
       "head": "d2-bula",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T01:00:25Z",
+      "state": "MERGED"
     },
     "52": {
       "head": "a3-etapa-2-implicita",
