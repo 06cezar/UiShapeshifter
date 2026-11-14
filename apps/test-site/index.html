@@ -175,5 +175,45 @@
     </footer>
 
     <button type="button" class="chat-bubble" aria-label="Asistent virtual">💬 Ai nevoie de ajutor?</button>
+    <script>
+      // Eșecul pregătit pentru demo (specs/12): antetul și secțiunea Facturi au înălțimea fixă exact cât conținutul și
+      // overflow: hidden, ca pe multe site-uri reale. Un buton adăugat de agent acolo iese tăiat, auditul îl prinde,
+      // iar agentul repară (height: auto). Înălțimea urmează conținutul (și fontul minim al extensiei) până când agentul
+      // adaugă ceva în cutie; de atunci rămâne fixă.
+      const FIT_EVERY_MS = 300;
+      function tightBox(selector, layout = "") {
+        const box = document.querySelector(selector);
+        if (!box) return;
+        // Regula stă într-o foaie cu :where (prioritate zero), nu pe element: orice CSS al agentului o bate.
+        const rule = document.createElement("style");
+        document.head.append(rule);
+        let frozen = false;
+        let height = 0;
+        function fit() {
+          if (frozen) return;
+          // Cu overflow hidden, scrollHeight e înălțimea conținutului: schimbăm regula doar când acesta crește.
+          const content = box.scrollHeight + (box.offsetHeight - box.clientHeight); // plus bordurile
+          if (content === height) return;
+          height = content;
+          // Aranjarea bate stilul site-ului (selectorul dublat); înălțimea rămâne în :where, ca agentul s-o poată repara.
+          const arrange = layout ? `${selector}${selector} { ${layout} }
+` : "";
+          rule.textContent = `${arrange}:where(${selector}) { height: ${height}px; overflow: hidden; box-sizing: border-box; }`;
+        }
+        // Agentul își marchează elementele adăugate cu data-shape, oriunde le pune în cutie (și mai adânc): atunci
+        // înălțimea rămâne fixă. Alte noduri trecătoare (ex. măsurătorile fontului minim) nu o fixează.
+        new MutationObserver(() => {
+          if (box.querySelector("[data-shape]")) frozen = true;
+        }).observe(box, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-shape"] });
+        // Fontul minim mărește textul după încărcare, în mai mulți pași: refacem potrivirea des, până la îngheț.
+        setInterval(fit, FIT_EVERY_MS);
+        addEventListener("resize", fit);
+        fit();
+      }
+      // Antetul pe grilă cu exact patru coloane (logo, meniu, căutare, unelte): orice element nou trece pe rândul al
+      // doilea, sub marginea tăiată; pus în meniu sau în unelte, meniul se înghesuie pe mai multe rânduri și tot iese tăiat.
+      tightBox(".site-header", "display: grid; grid-template-columns: auto 1fr auto auto; align-items: center;");
+      tightBox("#facturi");
+    </script>
   </body>
 </html>
