@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "70407edc22364422e832fb5be8a01b25ef3e484a",
-  "last_run": "2026-11-14T05:37:10Z",
+  "last_comms_sha": "8110a30c0a3e5feec86b608573add05602133a07",
+  "last_run": "2026-11-14T05:41:15Z",
   "last_sha": "c010f0d4583bed019f25bae3531566f6899a1e41",
   "prs": {
     "1": {
@@ -127,6 +127,11 @@
       "head": "a-model-opus",
       "merged_at": "2026-11-14T05:35:59Z",
       "state": "MERGED"
+    },
+    "118": {
+      "head": "a-pastrat-oriunde",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "12": {
       "head": "e1-tmp-unic",
