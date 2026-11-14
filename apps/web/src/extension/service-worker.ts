@@ -4,6 +4,7 @@
 
 import { SERVER_PORT, type ServerMessage } from "@uishapeshifter/contracts";
 import { ONBOARDING_KEY } from "./base-needs";
+import { fetchRun } from "../journal/run-api";
 import { PAGE_PORT, POPUP_PORT, parseToWorker, type FromWorker } from "./messages";
 import { normalizeHost } from "./page-info";
 import { createRunRouter } from "./run-router";
@@ -142,6 +143,15 @@ chrome.runtime.onConnect.addListener((port) => {
     const message = parseToWorker(raw);
     if (!message) return console.warn("extensie: mesaj nerecunoscut de la", port.name, raw);
     if (message.type === "get_status") return post(port, statusMessage());
+    if (message.type === "load_run") {
+      // „Reia pas cu pas”: citim rularea în locul paginii (CORS) și răspundem pe portul ei.
+      const { requestId, runId } = message;
+      void fetchRun(SERVER_API_URL, runId).then(
+        (run) => post(port, { type: "run_loaded", requestId, run }),
+        (error: unknown) => post(port, { type: "run_loaded", requestId, error: (error as Error).message }),
+      );
+      return;
+    }
     if (port.name === PAGE_PORT && message.message.type === "user_message") router.requestedBy(port);
     if (
       port.name === PAGE_PORT &&

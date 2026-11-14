@@ -8,7 +8,7 @@ import { mountMascot, type MascotController } from "../mascot";
 import { mountJournal } from "../journal/mount-journal";
 import { proposeChanges } from "../journal/proposal";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
-import type { ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
+import type { AgentRun, ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
 import { runAuditUi } from "../a11y";
 import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
 import { applyDislikes, dislikesFromStored } from "../a11y/dislike-rules";
@@ -43,6 +43,8 @@ let excluded = false;
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
 /** Ce vede omul în chat când tab-ul are codul vechi al extensiei (după ↻): doar reîncărcarea paginii ajută. */
 const RELOAD_PAGE_TEXT = "Extensia s-a actualizat. Reîncarcă pagina (F5) și scrie din nou.";
+/** „Reia pas cu pas”: cât așteptăm rularea de la service worker înainte să spunem că n-a mers. */
+const LOAD_RUN_TIMEOUT_MS = 10_000;
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
 const RECONNECT_PORT_MS = 1000;
 
@@ -199,7 +201,21 @@ function start() {
       send({ type: "to_server", message: { type: "suggestion_decision", suggestionId, decision } }),
     onShow: () => mascot.setState("speaking"),
   });
+  /** Cererile „Reia pas cu pas” trimise service worker-ului, după requestId. */
+  const runRequests = new Map<string, { resolve(run: AgentRun): void; reject(error: Error): void }>();
+  function loadRun(runId: string): Promise<AgentRun> {
+    const requestId = `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    return new Promise((resolve, reject) => {
+      runRequests.set(requestId, { resolve, reject });
+      send({ type: "load_run", requestId, runId });
+      setTimeout(() => {
+        if (runRequests.delete(requestId)) reject(new Error("Serverul n-a răspuns la timp."));
+      }, LOAD_RUN_TIMEOUT_MS);
+    });
+  }
+
   const panel = mountJournal(ourRoot, {
+    loadRun,
     send: (message) => {
       if (message.type !== "hello") send({ type: "to_server", message });
     },
@@ -353,6 +369,13 @@ function start() {
       if (!message) return;
       if (message.type === "status") {
         chat.setLinkStatus(message.status);
+        return;
+      }
+      if (message.type === "run_loaded") {
+        const waiting = runRequests.get(message.requestId);
+        runRequests.delete(message.requestId);
+        if (message.run) waiting?.resolve(message.run);
+        else waiting?.reject(new Error(message.error ?? "Rularea nu s-a putut citi."));
         return;
       }
       const server = message.message;
