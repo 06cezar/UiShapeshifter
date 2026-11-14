@@ -75,6 +75,12 @@ export interface GeneralPreference {
   createdAt: string;
   /** Pe ce site-uri s-a aplicat deja (host); o preferință nu se mai propune acolo. */
   appliedOn: string[];
+  /**
+   * Preferință de aspect cerută „peste tot” (ex. fundal verde): CSS-ul aplicat de agent, pe care extensia îl pune
+   * singură pe orice site, fără AI (trece prin aceeași validare ca rețetele, C5). Fără selectori de site, doar
+   * `html`, `body`, `*` și elemente generice. Lipsește la preferințele de ascuns (acelea le aplică regulile C4).
+   */
+  css?: string;
 }
 
 /** Un site pe care omul îl cunoaște bine: sursă pentru „fă-l să arate ca site-ul cu care sunt obișnuit”. */

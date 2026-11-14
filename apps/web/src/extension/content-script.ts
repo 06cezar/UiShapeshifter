@@ -21,6 +21,7 @@ import { SHAPE_ATTR } from "../ui/recipes/dom-ops";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { isExcluded } from "./excluded-sites";
+import { applyGeneralStyle, generalCssFrom } from "./general-style";
 import { keepClearOfSiteFixed } from "./keep-clear";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
@@ -114,6 +115,9 @@ async function refreshDislikes(): Promise<void> {
   const userId = first[USER_ID_KEY];
   const profile = typeof userId === "string" ? await chrome.storage.local.get(userId) : {};
   applyDislikes(dislikesFromStored({ ...first, ...profile }, ONBOARDING_KEY, USER_ID_KEY));
+  // Preferințele de aspect „peste tot” (ex. fundal verde), cu CSS-ul lor; apoi fontul minim și contrastul, ultimele.
+  applyGeneralStyle(generalCssFrom({ ...first, ...profile }, USER_ID_KEY));
+  base?.refresh();
 }
 
 /** Ce face mascota la mesajele serverului: se gândește cât rulează agentul, se bucură sau se încurcă la final. */
