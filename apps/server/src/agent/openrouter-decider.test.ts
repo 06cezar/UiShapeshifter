@@ -118,6 +118,7 @@ describe("createOpenRouterDecider", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("arăți cu point_at elementul cu care se face X"); // demo, pasul 4: mascota merge la buton
     expect(system).toContain("benzi și oferte"); // limit testing: banda promoțională rămânea la „ascunde reclamele”
     expect(system).toContain("nu despre el („omul a păstrat”)"); // rezumatele vorbeau despre om la persoana a treia
     expect(system).toContain("Culorile nu apar în snapshot"); // „ca Google” pe pagina de start Bing rămânea gri
