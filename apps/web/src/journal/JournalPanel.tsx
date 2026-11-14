@@ -54,41 +54,39 @@ const STATUS_TEXT: Record<RunStatus, string> = {
 
 export function JournalPanel(props: JournalPanelProps) {
   const { journal } = props;
-  /** Ce a ales omul cu „Arată / Ascunde”; până alege, panoul e deschis cât lucrează agentul și strâns altfel. */
-  const [chosenOpen, setChosenOpen] = useState<boolean | null>(null);
+  /**
+   * Ce era în panou când omul a apăsat „Ascunde”: panoul dispare de tot, iar o rulare, o propunere sau o reluare
+   * nouă îl aduce înapoi. „Revino la original” rămâne în popup, iar o cerere veche se anulează și din chat.
+   */
+  const [hiddenFor, setHiddenFor] = useState<string | null>(null);
   const runs = useStore(journal, (s) => s.runs);
   const replay = useStore(journal, (s) => s.replay);
   const proposal = useStore(journal, (s) => s.proposal);
   const current = activeRun(runs) ?? runs[runs.length - 1];
-  const activeNow = Boolean(current || proposal || replay);
-  // După F5 nu e nicio rulare în pagină, dar site-ul poate avea cereri de ieri: „Ce ai cerut aici” trebuie să se vadă.
-  const hasHistory = (props.requestHistory?.().length ?? 0) > 0;
+  const shownFor = `${current?.runId ?? ""}|${proposal?.proposalId ?? ""}|${replay?.run.runId ?? ""}`;
 
-  // Pe un site unde agentul n-a lucrat niciodată, panoul nu ocupă loc.
-  if (!activeNow && !hasHistory) return null;
-  const open = chosenOpen ?? activeNow;
-  const setOpen = (next: boolean) => setChosenOpen(next);
+  // Panoul apare doar cât are ce arăta în pagina asta (nu și după F5, doar pentru istoric) și cât omul nu l-a ascuns.
+  if (!current && !proposal && !replay) return null;
+  if (hiddenFor === shownFor) return null;
 
   return (
     <aside className="journal" data-agent-id="journal-panel" aria-label="Panoul de control">
       <div className="journal-header">
         <h2>Ce face ratonul</h2>
-        <button type="button" data-agent-id="journal-panel.toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
-          {open ? "Ascunde" : "Arată"}
+        <button type="button" data-agent-id="journal-panel.toggle" onClick={() => setHiddenFor(shownFor)}>
+          Ascunde
         </button>
       </div>
-      {open && (
-        <div className="journal-body">
-          <ProposalBar journal={journal} />
-          {replay ? <ReplayView journal={journal} /> : current ? <RunSection run={current} {...props} /> : null}
-          {props.requestHistory && props.undoRequest && (
-            <RequestHistory journal={journal} history={props.requestHistory} undo={props.undoRequest} />
-          )}
-          {props.revertToOriginal && (
-            <RevertToOriginal journal={journal} send={props.send} revert={props.revertToOriginal} />
-          )}
-        </div>
-      )}
+      <div className="journal-body">
+        <ProposalBar journal={journal} />
+        {replay ? <ReplayView journal={journal} /> : current ? <RunSection run={current} {...props} /> : null}
+        {props.requestHistory && props.undoRequest && (
+          <RequestHistory journal={journal} history={props.requestHistory} undo={props.undoRequest} />
+        )}
+        {props.revertToOriginal && (
+          <RevertToOriginal journal={journal} send={props.send} revert={props.revertToOriginal} />
+        )}
+      </div>
     </aside>
   );
 }
