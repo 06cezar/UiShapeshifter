@@ -440,6 +440,11 @@ function start() {
     port.onDisconnect.addListener(() => {
       port = null;
       if (!extensionAlive()) return retire();
+      // Chrome a oprit service worker-ul: odată cu el s-a dus legătura cu serverul și `run_finished` al rulării în
+      // curs. Spunem că s-a pierdut legătura (chatul iese din „Mă gândesc…”), apoi ne reconectăm.
+      const wasWorking = chat.state().working;
+      chat.setLinkStatus("closed");
+      if (wasWorking) mascot.think(null);
       chat.setLinkStatus("connecting");
       setTimeout(connect, RECONNECT_PORT_MS);
     });
