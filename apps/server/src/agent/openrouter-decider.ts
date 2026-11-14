@@ -11,7 +11,7 @@ import {
 import { compactResult } from "./compact-result";
 import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
-import { buildSystemPrompt, userMessage } from "./system-prompt";
+import { buildSystemPrompt, userMessage, type ProfileContext } from "./system-prompt";
 
 const TEMPERATURE = 0.2; // mică, pentru un demo previzibil (specs/05)
 const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
@@ -47,6 +47,8 @@ export interface OpenRouterDeciderOptions {
   /** Site-ul de pe care a scris omul; lipsește pe pagina de probă. */
   page?: PageInfo;
   retryDelaysMs?: readonly number[]; // testele le pun pe 0
+  /** Profilul omului pentru prompt (etapa 3); se încarcă la primul pas, ca rularea să pornească imediat. */
+  loadProfile?: () => Promise<ProfileContext>;
 }
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
@@ -54,15 +56,22 @@ export function createOpenRouterDecider(goal: string, options: OpenRouterDecider
   const definitions = options.definitions ?? siteToolDefinitions(stage);
   const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
-  const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ page, stage }) },
-    { role: "user", content: userMessage(goal, page) },
-  ];
+  const messages: ChatMessage[] = [];
   let pendingCallId: string | null = null;
 
   return {
     model,
     async decide(previous): Promise<Decision> {
+      if (messages.length === 0) {
+        const profile = await options.loadProfile?.().catch((error: unknown) => {
+          console.warn("agent: profilul pentru prompt n-a putut fi încărcat:", error);
+          return undefined;
+        });
+        messages.push(
+          { role: "system", content: buildSystemPrompt({ page, stage, profile }) },
+          { role: "user", content: userMessage(goal, page) },
+        );
+      }
       if (previous && pendingCallId) {
         messages.push({
           role: "tool",
