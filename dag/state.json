@@ -26,7 +26,7 @@
     }
   },
   "last_comms_sha": "bdcd58e58cd25be319cd11e0338a7c3ba19174cb",
-  "last_run": "2026-11-14T10:32:40Z",
+  "last_run": "2026-11-14T10:34:11Z",
   "last_sha": "4ae22716efcbc811bfdc27aa81774a30e964fdf7",
   "prs": {
     "1": {
@@ -346,6 +346,11 @@
     },
     "156": {
       "head": "d-pitch-future",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "157": {
+      "head": "d-aprobare-reala",
       "merged_at": null,
       "state": "OPEN"
     },
