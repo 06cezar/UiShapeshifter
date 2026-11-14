@@ -2,7 +2,7 @@
 // Fără cont nimic nu pleacă nicăieri în afară de serverul agentului; cu cont, profilul și rețetele trec pe alt dispozitiv.
 // Token-ul stă în chrome.storage.local; parola nu se păstrează nicăieri în extensie.
 
-import type { AuthResult, SiteRecipe, SyncBundle, UserProfile } from "@uishapeshifter/contracts";
+import type { AuthResult, SiteRecipe, SiteRecipeHistory, SyncBundle, UserProfile } from "@uishapeshifter/contracts";
 import { RECIPE_KEY_PREFIX, recipeKey, type StoredRecipe } from "../ui/recipes/recipe-store";
 
 /** Cheia contului în chrome.storage.local: { token, account, userId }. */
@@ -76,18 +76,21 @@ export async function signOut(storage: SyncStorage): Promise<void> {
   await storage.remove(ACCOUNT_KEY);
 }
 
-/** Datele locale: profilul (sub userId) și rețetele (recipe:<host>). */
+/** Datele locale: profilul (sub userId), rețetele (recipe:<host>) și istoricul lor (pentru „Anulez” pe o cerere). */
 async function localBundle(
   storage: SyncStorage,
   userId: string,
-): Promise<{ profile?: UserProfile; recipes: SiteRecipe[] }> {
+): Promise<{ profile?: UserProfile; recipes: SiteRecipe[]; history: SiteRecipeHistory[] }> {
   const all = await storage.get(null);
   const profile = isRecord(all[userId]) ? (all[userId] as unknown as UserProfile) : undefined;
-  const recipes = Object.entries(all)
+  const stored = Object.entries(all)
     .filter(([key, value]) => key.startsWith(RECIPE_KEY_PREFIX) && isRecord(value) && isRecord(value.recipe))
-    .map(([, value]) => (value as unknown as StoredRecipe).recipe)
-    .filter((recipe) => recipe.revision > 0);
-  return { profile, recipes };
+    .map(([, value]) => value as unknown as StoredRecipe)
+    .filter((entry) => entry.recipe.revision > 0);
+  const history = stored
+    .filter((entry) => Array.isArray(entry.revisions) && entry.revisions.length > 0)
+    .map((entry) => ({ host: entry.recipe.host, revisions: entry.revisions }));
+  return { profile, recipes: stored.map((entry) => entry.recipe), history };
 }
 
 /** Înainte de login: rețetele anonime ajung pe server (A5), ca îmbinarea să le găsească. */
@@ -121,7 +124,8 @@ export async function pull(options: SyncOptions): Promise<boolean> {
   for (const recipe of bundle.recipes ?? []) {
     const mine = local.recipes.find((r) => r.host === recipe.host);
     if (mine && Date.parse(mine.updatedAt) >= Date.parse(recipe.updatedAt)) continue; // cea locală e mai nouă
-    items[recipeKey(recipe.host)] = { recipe, revisions: [] } satisfies StoredRecipe;
+    const revisions = bundle.history?.find((entry) => entry.host === recipe.host)?.revisions ?? [];
+    items[recipeKey(recipe.host)] = { recipe, revisions } satisfies StoredRecipe;
   }
   await options.storage.set(items);
   return true;
@@ -131,14 +135,14 @@ export async function pull(options: SyncOptions): Promise<boolean> {
 export async function push(options: SyncOptions): Promise<boolean> {
   const auth = await currentAccount(options.storage);
   if (!auth) return false;
-  const { profile, recipes } = await localBundle(options.storage, auth.userId);
+  const { profile, recipes, history } = await localBundle(options.storage, auth.userId);
   if (!profile) return false;
   const fetchFn = options.fetchFn ?? fetch;
   try {
     const response = await fetchFn(`${options.apiUrl}/sync`, {
       method: "PUT",
       headers: { authorization: `Bearer ${auth.token}`, "content-type": "application/json" },
-      body: JSON.stringify({ profile, recipes, updatedAt: new Date().toISOString() } satisfies SyncBundle),
+      body: JSON.stringify({ profile, recipes, history, updatedAt: new Date().toISOString() } satisfies SyncBundle),
     });
     return response.ok;
   } catch {

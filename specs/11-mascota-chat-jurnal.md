@@ -16,7 +16,7 @@ Un **animal animat** (nu neapărat vulpe), din asset-uri cu licență liberă; l
 | `thinking` | rulare în curs, între pași | privește în sus, „…” |
 | `speaking` | `agent_message`, `say` | gura se mișcă, bula apare |
 | `pointing` | `point_at` | merge lângă element, arată spre el |
-| `happy` | `finish` cu succes, „Păstrez” | sare puțin |
+| `happy` | `finish` cu succes, „Păstrez” | dansează: se învârte în cerc pe un disc, în ritm, câteva secunde |
 | `confused` | eroare, `TIMEOUT`, cerere neclară | capul înclinat |
 
 - Stă în colțul de jos, nu acoperă navigația site-ului; se poate trage în alt colț. Cu `reducedMotion`, doar schimbări statice.

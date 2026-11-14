@@ -12,6 +12,8 @@ declare namespace chrome {
       onDisconnect: { addListener(listener: (port: Port) => void): void };
     }
     function connect(info?: { name?: string }): Port;
+    /** Adresa unui fișier al extensiei, ex. chrome-extension://<id>/onboarding.html. */
+    function getURL(path: string): string;
     const onConnect: { addListener(listener: (port: Port) => void): void };
     const onInstalled: { addListener(listener: (details: { reason: string }) => void): void };
     const onStartup: { addListener(listener: () => void): void };
@@ -43,6 +45,7 @@ declare namespace chrome {
       url?: string;
     }
     function query(query: { active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
+    function create(properties: { url: string; active?: boolean }): Promise<Tab>;
     const onActivated: { addListener(listener: (info: { tabId: number; windowId: number }) => void): void };
   }
 }

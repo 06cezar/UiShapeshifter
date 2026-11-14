@@ -51,9 +51,16 @@ function server(bundle: SyncBundle, loginStatus = 200) {
   return { fetchFn, calls };
 }
 
+const revision = {
+  revision: 2,
+  css: "#shorts{display:none}",
+  reason: "ascunde Shorts",
+  at: "2026-11-14T01:00:00.000Z",
+};
 const bundle: SyncBundle = {
   profile: profile as unknown as SyncBundle["profile"],
   recipes: [recipe("video.example", "#shorts{display:none}", "2026-11-14T01:00:00.000Z")],
+  history: [{ host: "video.example", revisions: [revision] }],
   updatedAt: "x",
 };
 
@@ -66,7 +73,10 @@ describe("contul în extensie", () => {
     expect(calls.find((c) => c.url.endsWith("/accounts/login"))?.body).toMatchObject({ anonymousUserId: "u-telefon" });
     expect(storage.data.userId).toBe("u-laptop");
     expect(storage.data["u-laptop"]).toEqual(profile);
-    expect(storage.data["recipe:video.example"]).toMatchObject({ recipe: { css: "#shorts{display:none}" } });
+    expect(storage.data["recipe:video.example"]).toMatchObject({
+      recipe: { css: "#shorts{display:none}" },
+      revisions: [revision],
+    });
     expect(JSON.stringify(storage.data)).not.toContain("parola-test-1");
   });
 
@@ -90,13 +100,16 @@ describe("contul în extensie", () => {
   });
 
   test("push trimite profilul și rețetele locale; fără cont nu trimite nimic", async () => {
-    const local = { recipe: recipe("a.example", "a{}", "2026-11-14T00:00:00.000Z"), revisions: [] };
+    const local = { recipe: recipe("a.example", "a{}", "2026-11-14T00:00:00.000Z"), revisions: [revision] };
     const anonymous = memory({ userId: "u-laptop", "u-laptop": profile, "recipe:a.example": local });
     expect(await push({ apiUrl: "http://s/api", storage: anonymous, fetchFn: server(bundle).fetchFn })).toBe(false);
     const signed = memory({ [ACCOUNT_KEY]: auth, userId: "u-laptop", "u-laptop": profile, "recipe:a.example": local });
     const { fetchFn, calls } = server(bundle);
     expect(await push({ apiUrl: "http://s/api", storage: signed, fetchFn })).toBe(true);
-    expect(calls[0]).toMatchObject({ method: "PUT", body: { profile, recipes: [local.recipe] } });
+    expect(calls[0]).toMatchObject({
+      method: "PUT",
+      body: { profile, recipes: [local.recipe], history: [{ host: "a.example", revisions: [revision] }] },
+    });
   });
 
   test("ieșirea din cont scoate doar token-ul; ce se trimite: rețete și profil, nu sesiunea", async () => {
