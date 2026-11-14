@@ -36,15 +36,36 @@ export interface AuthResult {
   userId: string;
 }
 
-/** Tot ce se sincronizează: ce are omul și ce a refăcut pe site-uri. */
+export const SYNC_LIMITS = {
+  /**
+   * Mărimea maximă a unui `SyncBundle` (JSON, în octeți UTF-8). Sub limita de 1 MB a corpurilor primite de server
+   * (`express.json` în apps/server/src/server.ts), cu loc pentru antete și rotunjiri. Fiecare revizie poartă foaia
+   * întreagă (până la `RECIPE_LIMITS.maxCssBytes`), deci istoricul e partea care crește; peste limită se scurtează el.
+   */
+  maxBundleBytes: 900_000,
+} as const;
+
+/**
+ * Tot ce se sincronizează: ce are omul și ce a refăcut pe site-uri.
+ * Mărimea: cel mult `SYNC_LIMITS.maxBundleBytes`. Dacă ar trece, clientul scurtează `history` (reviziile cu `revision`
+ * cel mai mic întâi) înainte să renunțe la sincronizare; `profile` și `recipes` au prioritate și nu se taie.
+ */
 export interface SyncBundle {
   profile: UserProfile;
   recipes: SiteRecipe[];
-  /** Istoricul rețetelor pe site, ca „Anulez” pe o cerere din istoric să meargă și pe alt dispozitiv. Lipsește la clienții vechi. */
+  /**
+   * Istoricul rețetelor pe site, ca „Anulez” pe o cerere din istoric să meargă și pe alt dispozitiv.
+   * Absent la `PUT /api/sync` (client vechi): serverul păstrează istoricul pe care îl are. Prezent: se îmbină pe gazdă (mai jos).
+   * Invarianți: cel mult o intrare pe `host`; fiecare `host` are rețetă în `recipes` (istoricul unei gazde fără rețetă,
+   * ex. după „Revino la original”, se aruncă); cel mult `RECIPE_LIMITS.maxRevisions` revizii pe gazdă.
+   * Îmbinarea: istoricul urmează rețeta. Câștigă rețeta cu `updatedAt` mai nou, iar istoricul gazdei se ia întreg din
+   * aceeași parte; nu se amestecă revizii de pe două dispozitive.
+   */
   history?: SiteRecipeHistory[];
   updatedAt: string;
 }
 
+/** Reviziile unei gazde; cea mai veche are `revision` cel mai mic. Invarianții: `SyncBundle.history`. */
 export interface SiteRecipeHistory {
   host: string;
   revisions: RecipeRevision[];
