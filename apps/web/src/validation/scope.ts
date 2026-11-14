@@ -12,9 +12,12 @@ export const DEFAULT_SCOPE: RequestScope = "page";
 
 /**
  * Doar aici: bate orice altă mențiune din aceeași cerere („doar pe pagina asta, nu pe tot site-ul”).
- * Textul e deja fără diacritice și cu litere mici (`normalize`).
+ * „Nu doar aici” spune invers, deci nu se socotește. Textul e deja fără diacritice și cu litere mici (`normalize`).
  */
-const ONLY_HERE_PATTERNS = [/\bdoar (pe |in )?(pagina|aici)\b/, /\bnumai (pe |in )?(pagina|aici)\b/];
+const ONLY_HERE_PATTERNS = [
+  /(?<!\bnu )\bdoar (pe |in )?(pagina|aici)\b/,
+  /(?<!\bnu )\bnumai (pe |in )?(pagina|aici)\b/,
+];
 
 /** Tot site-ul de acum: toate paginile lui, nu doar cea deschisă. */
 const SITE_PATTERNS = [
@@ -28,6 +31,7 @@ const SITE_PATTERNS = [
 /** Toate site-urile: doar când omul o spune limpede. */
 const ALL_PATTERNS = [
   /\b(pe |in )?(toate|orice|fiecare|celelalte|alte) (site-?uri(le)?|site)\b/,
+  /\b(in|pe) site-?uri\b/, // „nu vreau AI în site-uri”; „pe site-urile de știri” nu (descrie, nu cere un loc)
   /\bpeste tot\b/,
   /\boriunde\b/,
   /\b(pe |in )?toate paginile\b/,

@@ -26,6 +26,7 @@ describe("requestedScope: cât de larg a cerut omul", () => {
     expect(requestedScope("oriunde intru, fără clipuri scurte")).toBe("all");
     expect(requestedScope("și pe celelalte site-uri")).toBe("all");
     expect(requestedScope("pe orice site")).toBe("all");
+    expect(requestedScope("nu vreau AI în site-uri")).toBe("all"); // exemplul din specs/08 (găsit de B pe #64)
   });
 
   it("merge fără diacritice și cu majuscule", () => {
@@ -37,6 +38,11 @@ describe("requestedScope: cât de larg a cerut omul", () => {
   it("„doar aici” bate orice altă mențiune din cerere", () => {
     expect(requestedScope("doar pe pagina asta, nu pe tot site-ul")).toBe("page");
     expect(requestedScope("numai aici, nu peste tot")).toBe("page");
+  });
+
+  it("„nu doar aici” spune invers: nu se socotește ca „doar aici” (găsit de B pe #64)", () => {
+    expect(requestedScope("fă textul mai mare pe toate site-urile, nu doar aici")).toBe("all");
+    expect(requestedScope("nu numai pe pagina asta, pe tot site-ul")).toBe("site");
   });
 });
 
