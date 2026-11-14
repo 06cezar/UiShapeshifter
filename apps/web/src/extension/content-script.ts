@@ -22,6 +22,7 @@ import { isHelpRequest, startSignalCollector, type SignalCollector } from "../si
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { isExcluded } from "./excluded-sites";
 import { applyGeneralStyle, generalCssFrom } from "./general-style";
+import { pageBackgroundFrom, startPageBackground } from "./page-background";
 import { keepClearOfSiteFixed } from "./keep-clear";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
@@ -116,9 +117,21 @@ async function refreshDislikes(): Promise<void> {
   const profile = typeof userId === "string" ? await chrome.storage.local.get(userId) : {};
   applyDislikes(dislikesFromStored({ ...first, ...profile }, ONBOARDING_KEY, USER_ID_KEY));
   // Preferințele de aspect „peste tot” (ex. fundal verde), cu CSS-ul lor; apoi fontul minim și contrastul, ultimele.
-  applyGeneralStyle(generalCssFrom({ ...first, ...profile }, USER_ID_KEY));
+  const generalCss = generalCssFrom({ ...first, ...profile }, USER_ID_KEY);
+  applyGeneralStyle(generalCss);
+  // Fundalul cerut se vede și pe site-urile care își pun cutii albe peste el (Bilibili): le colorăm și pe ele.
+  const color = pageBackgroundFrom(generalCss);
+  if (color !== pageBackgroundColor) {
+    stopPageBackground?.();
+    stopPageBackground = color ? startPageBackground(color, { ourHostId: HOST_ID }) : null;
+    pageBackgroundColor = color;
+  }
   base?.refresh();
 }
+
+/** Culoarea de fundal „peste tot” pusă acum pe cutiile paginii și cum o scoatem (preferința schimbată sau ștearsă). */
+let pageBackgroundColor: string | null = null;
+let stopPageBackground: (() => void) | null = null;
 
 /** Ce face mascota la mesajele serverului: se gândește cât rulează agentul, se bucură sau se încurcă la final. */
 function moveMascot(mascot: MascotController, server: ServerMessage) {
