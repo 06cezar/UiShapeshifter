@@ -26,6 +26,15 @@ describe("createFailureGuard (specs/05, „Eșecuri”)", () => {
     expect((blocked as { error: { message: string } }).error.message).toContain("Schimbă planul");
   });
 
+  it("argumentele greșite (INVALID_ARGS) nu consumă limita: apelul corectat trece", () => {
+    const guard = createFailureGuard(2);
+    const invalid = { ok: false as const, error: { code: "INVALID_ARGS" as const, message: "lipsește summary" } };
+    guard.record("propose_changes", { title: "a</title>" }, invalid);
+    guard.record("propose_changes", { title: "b</title>" }, invalid);
+    expect(guard.check("propose_changes", { title: "b", summary: "s", risk: "low" })).toBeNull();
+    expect(guard.check("propose_changes", { title: "b</title>" })).toMatchObject({ ok: false }); // identic: tot oprit
+  });
+
   it("după un TIMEOUT, același apel e permis din nou (trecător), dar se numără la eșecuri", () => {
     const guard = createFailureGuard(2);
     const timeout = { ok: false as const, error: { code: "TIMEOUT" as const, message: "n-a răspuns" } };
