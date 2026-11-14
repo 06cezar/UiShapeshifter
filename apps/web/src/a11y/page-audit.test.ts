@@ -143,6 +143,21 @@ describe("auditPage pe un site", () => {
     expect(validateCss(clipped[0]!.fixCss!).dropped).toEqual([]);
   });
 
+  it("linkurile împinse complet sub o secțiune strâmtă ies tăiate; un acordeon închis nu (găsit de A pe #facturi)", () => {
+    page(`
+      <section data-t="facturi" style="height: 450px; overflow: hidden" data-rect="0,0,1000,450">
+        <a data-t="sus" href="/d1" style="display: block; font-size: 18px" data-rect="0,10,100,44">Descarcă</a>
+        <a data-t="jos" href="/d6" style="display: block; font-size: 18px" data-rect="0,470,100,44">Descarcă</a>
+      </section>
+      <div data-t="acordeon" style="max-height: 0; overflow: hidden" data-rect="0,600,1000,0">
+        <a data-t="ascuns" href="/x" style="display: block; font-size: 18px" data-rect="0,600,100,44">Detalii</a>
+      </div>`);
+    const { report } = withFixCss(auditPage(THRESHOLDS, OPTIONS));
+    const clipped = report.issues.filter((issue) => issue.rule === "clipped");
+    expect(clipped.map((issue) => issue.elementId)).toEqual(["jos"]);
+    expect(clipped[0]!.fixCss).toContain('[data-t="facturi"]');
+  });
+
   it("textul pe gradient sau imagine nu e judecat la contrast: fundalul nu se poate măsura", () => {
     page(`<div style="background-color: #ffffff; background-image: linear-gradient(#0b3d91, #1e88e5)">
       <p data-t="pe-gradient" style="color: #ffffff; font-size: 20px; line-height: 1.6">Doar azi</p></div>`);
