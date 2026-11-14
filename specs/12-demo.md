@@ -89,6 +89,14 @@ agentul repară → audit 0 → Păstrez, 26–40 s. Videoul rămâne doar rezer
   Doar dacă `x-mod-js` e unit pe `main` (DECISIONS.md, 14 nov. 11:45). În demo arătăm fereastra de aprobare cu codul la
   vedere. Spunem cinstit: codul rulat nu intră în rețetă, nu se reaplică la reîncărcare și „Anulez” nu îl dă înapoi.
   Altfel, Modul expert e direcție viitoare, la fel ca mobilul.
+- **Direcție viitoare: butoanele cu cod care rămân după reîncărcare:** „Azi, un buton făcut în Modul expert (de pildă
+  «Descarcă toate facturile», care apasă pe rând fiecare «Descarcă») merge până reîncarci pagina. Pasul următor: codul
+  pe care l-ai aprobat se salvează în rețeta site-ului, cu amprenta lui, și pornește singur la fiecare încărcare, fără
+  AI. Îl vezi în «Ce ai cerut aici» și îl scoți cu «Anulez». Pentru operațiile simple (un buton care apasă mai multe
+  linkuri) nici nu e nevoie de cod: devin o operație nouă în rețetă, verificată ca toate celelalte.”
+  De ce nu e în demo (14 nov. 12:40): întâi aprobarea trebuie să poată fi dată doar de om (review B pe #152: pagina
+  poate apăsa singură «Rulează» prin shadow root-ul deschis). Fără asta, un cod salvat ar rula la fiecare încărcare
+  după o aprobare pe care n-a dat-o omul.
 - **Direcție viitoare: consilierul anti-înșelătorii:** „Pe aceeași buclă se pot adăuga abilități noi. De pildă, un
   consilier anti-înșelătorii: marchează pe pagină postările și ofertele suspecte și îți arată sursele găsite, fără să
   ascundă nimic în locul tău. Tu decizi ce crezi; agentul doar îți arată unde să te uiți.”
