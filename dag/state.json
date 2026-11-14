@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "1dae2f15d1b577c2c4ec6c61556628c175587379",
-  "last_run": "2026-11-14T01:17:20Z",
+  "last_comms_sha": "d9f64965915c03f526e55be2bf5e3d0d71dd9fbe",
+  "last_run": "2026-11-14T01:20:30Z",
   "last_sha": "52a8b611de956493909c0b9e36a6d37e71b44bed",
   "prs": {
     "1": {
@@ -415,8 +415,8 @@
     },
     "80": {
       "head": "a6-scope-toate-paginile",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T01:20:28Z",
+      "state": "MERGED"
     },
     "9": {
       "head": "c3-onboarding",
