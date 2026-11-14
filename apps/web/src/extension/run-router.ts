@@ -32,6 +32,8 @@ export interface RunRouter<P> {
 export interface RunRouterOptions<P> {
   /** Portul tab-ului activ acum (service worker-ul îl știe din chrome.tabs); pentru rulările fără tab. */
   activePort?(): P | undefined;
+  /** Site-ul (host normalizat) deschis în tab-ul portului: propunerile adaptării merg doar pe site-ul lor. */
+  hostOf?(port: P): string | undefined;
 }
 
 export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter<P> {
@@ -58,6 +60,14 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
         if (active !== undefined && openPorts.has(active)) return active;
         return lastRequester !== null && openPorts.has(lastRequester) ? lastRequester : undefined;
       };
+      // O propunere a adaptării (E3) e despre un site: doar tab-urile lui, întâi cel activ. Semnalele ajung cu câteva
+      // secunde întârziere, deci omul poate fi deja pe alt site (proba Iuliei: bula pentru sofiaman.ro pe Wikipedia).
+      if (message.type === "suggestion" && message.suggestion.host && options.hostOf) {
+        const host = message.suggestion.host;
+        const onSite = [...openPorts].filter((port) => options.hostOf?.(port) === host);
+        const active = options.activePort?.();
+        return onSite.includes(active as P) ? [active as P] : onSite.slice(0, 1);
+      }
       if (message.type === "run_started") {
         if (message.origin === "user") {
           // Rularea cerută de om e a tab-ului care a cerut (neschimbat).

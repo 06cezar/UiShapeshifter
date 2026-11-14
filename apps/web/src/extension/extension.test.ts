@@ -185,6 +185,28 @@ describe("rulările pornite de server (adaptare, test inițial)", () => {
     expect(router.targetsFor(toolCall("r-adapt"), open)).toEqual(["tab-b"]);
   });
 
+  test("propunerea adaptării merge doar în tab-ul site-ului ei, nu în cel activ (bula pentru sofiaman.ro pe Wikipedia)", () => {
+    const hosts: Record<string, string> = { "tab-wiki": "ro.wikipedia.org", "tab-sofia": "sofiaman.ro" };
+    const router = createRunRouter<string>({ activePort: () => "tab-wiki", hostOf: (port) => hosts[port] });
+    const open = new Set(["tab-wiki", "tab-sofia"]);
+    router.requestedBy("tab-wiki");
+    const suggestion = (host: string) =>
+      ({
+        type: "suggestion",
+        suggestion: {
+          id: "s",
+          trigger: "general-preferences",
+          text: "t",
+          goal: "g",
+          risk: "high",
+          host,
+          createdAt: "x",
+        },
+      }) as unknown as ServerMessage;
+    expect(router.targetsFor(suggestion("sofiaman.ro"), open)).toEqual(["tab-sofia"]);
+    expect(router.targetsFor(suggestion("alt.example"), open)).toEqual([]);
+  });
+
   test("fără tab activ cunoscut, merg la ultimul tab care a cerut ceva", () => {
     const router = createRunRouter<string>();
     const open = new Set(["tab-a", "tab-b"]);

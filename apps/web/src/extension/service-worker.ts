@@ -5,6 +5,7 @@
 import { SERVER_PORT, type ServerMessage } from "@uishapeshifter/contracts";
 import { ONBOARDING_KEY } from "./base-needs";
 import { PAGE_PORT, POPUP_PORT, parseToWorker, type FromWorker } from "./messages";
+import { normalizeHost } from "./page-info";
 import { createRunRouter } from "./run-router";
 import { startServerLink, type ServerLink } from "./server-link";
 import { getOrCreateSessionId, getOrCreateUserId } from "./storage";
@@ -61,6 +62,13 @@ chrome.tabs.onActivated.addListener(({ tabId }) => (activeTabId = tabId));
 void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => (activeTabId ??= tab?.id));
 const router = createRunRouter<chrome.runtime.Port>({
   activePort: () => [...pagePorts].find((port) => port.sender?.tab?.id === activeTabId),
+  hostOf: (port) => {
+    try {
+      return port.sender?.tab?.url ? normalizeHost(new URL(port.sender.tab.url).hostname) : undefined;
+    } catch {
+      return undefined;
+    }
+  },
 });
 let userId: string | null = null;
 let link: ServerLink | null = null;
