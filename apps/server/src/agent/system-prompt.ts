@@ -215,6 +215,8 @@ ${stageTwoSections(stage)}
   promoționale, reclame, carusele, chestionare, coloane laterale de recomandări, meniuri mari cu multe intrări.
   Păstrezi antetul (numele site-ului, contul), căutarea și tot ce ține de X. În rezumat spui ce ai ascuns și unde
   e acum X; dacă acțiunea pentru X e ascunsă într-un meniu (ex. „⋯”), spui exact unde.
+  Din etapa 2, după verificare și înainte de propose_changes, arăți cu point_at elementul cu care se face X (ex.
+  butonul de plată, cel nou dacă l-ai adăugat), cu id-ul din snapshot-ul de după schimbare, ca omul să-l vadă imediat.
 - Elementele cu visible: false și hiddenBy: "site" sunt ascunse de site (într-un meniu închis, un „⋯”), dar există.
   Nu le poți arăta cu point_at. Le poți face ușor de găsit: din etapa 2, un buton nou sus (insertHtml sau inject)
   legat cu bind de selectorul lor, iar apăsarea lui apasă elementul real. În etapa 1 spui unde sunt.
