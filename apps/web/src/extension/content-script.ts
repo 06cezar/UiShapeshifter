@@ -18,6 +18,7 @@ import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
+import { isExcluded } from "./excluded-sites";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
@@ -26,6 +27,8 @@ import { HOST_ID, mountOurRoot } from "./shadow-root";
 declare const __UIS_DEV__: boolean;
 
 const host = normalizeHost(location.hostname);
+/** Pornit doar pe site-urile pe care omul nu le-a exclus din popup („Nu schimba acest site”). */
+let started = false;
 /** Din chat se vede mereu una dintre ele: butonul (chat închis) sau panoul (chat deschis). */
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
@@ -54,7 +57,6 @@ const recipes = createRecipeEngine({
 // Doar în build-ul de dezvoltare: motorul în consolă, pentru probe manuale (cererea lui B). În DevTools alege contextul
 // „UI Shapeshifter” din lista de sus a consolei, apoi: uiRecipes.view(), uiRecipes.applyCss({ css, reason }).
 if (__UIS_DEV__) (globalThis as { uiRecipes?: typeof recipes }).uiRecipes = recipes;
-void recipes.load();
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 /** Preferințele de bază (C4): fontul minim, contrastul și țintele din profil, fără AI, aplicate ultimele. */
 let base: BasePreferences | null = null;
@@ -64,7 +66,7 @@ let needs: Partial<UserNeeds> = {};
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 // Testul inițial a salvat alte nevoi: preferințele de bază se refac după ele.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
+  if (area !== "local" || !started) return; // site exclus („Nu schimba acest site”): nu atingem nimic
   const recipeChange = changes[recipeKey(host)];
   if (recipeChange) {
     recipes.adopt(parseStoredRecipe(recipeChange.newValue, host, new Date().toISOString()));
@@ -262,5 +264,11 @@ function start() {
   connect();
 }
 
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-else start();
+void isExcluded(chrome.storage.local, host).then((excluded) => {
+  if (excluded) return;
+  started = true;
+  // Rețeta cât mai devreme (document_start), ca site-ul să nu apară întâi neschimbat.
+  void recipes.load();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+});
