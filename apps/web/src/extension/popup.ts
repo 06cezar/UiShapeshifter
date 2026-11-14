@@ -1,6 +1,8 @@
 // Popup-ul extensiei (butonul din bara browserului): legătura cu serverul, userId-ul anonim și „Revino la original”
 // pentru site-ul din tab-ul curent (B5). Contul vine cu E6.
 
+import { currentAccount, signIn, signOut } from "../sync/account-sync";
+import { loadDemoProfile, resetDemo } from "./demo-reset";
 import { clearRecipe, loadRecipe } from "../ui/recipes/recipe-store";
 import { isExcluded, toggleExcluded } from "./excluded-sites";
 import { POPUP_PORT, parseFromWorker, type LinkStatus } from "./messages";
@@ -63,6 +65,69 @@ resetButton.addEventListener("click", async () => {
 
 void showSite();
 
+// ---------- Contul opțional (E6): fără cont totul rămâne local; cu cont, datele te urmează pe alt dispozitiv ----------
+
+const API_URL = "http://localhost:8787/api";
+const accountForm = document.getElementById("account-form") as HTMLFormElement;
+const accountSigned = document.getElementById("account-signed")!;
+const accountStatus = document.getElementById("account-status")!;
+const signOutButton = document.getElementById("sign-out") as HTMLButtonElement;
+const registerButton = document.getElementById("register") as HTMLButtonElement;
+const usernameInput = document.getElementById("username") as HTMLInputElement;
+const passwordInput = document.getElementById("password") as HTMLInputElement;
+
+async function showAccount() {
+  const account = await currentAccount(chrome.storage.local);
+  accountForm.hidden = account !== null;
+  accountSigned.hidden = signOutButton.hidden = account === null;
+  if (account)
+    accountSigned.textContent = `Ești în cont ca ${account.account.username}. Preferințele se sincronizează.`;
+}
+
+async function submit(mode: "register" | "login") {
+  if (!accountForm.reportValidity()) return;
+  accountStatus.textContent = mode === "register" ? "Creez contul…" : "Intru în cont…";
+  const result = await signIn(mode, usernameInput.value, passwordInput.value, {
+    apiUrl: API_URL,
+    storage: chrome.storage.local,
+  });
+  passwordInput.value = ""; // parola nu rămâne nici în pagină
+  accountStatus.textContent = result.ok ? "Gata: preferințele tale sunt aici." : result.error;
+  await showAccount();
+}
+
+accountForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void submit("login");
+});
+registerButton.addEventListener("click", () => void submit("register"));
+signOutButton.addEventListener("click", async () => {
+  await signOut(chrome.storage.local);
+  accountStatus.textContent = "Ai ieșit din cont. Datele rămân pe acest calculator.";
+  await showAccount();
+});
+
+void showAccount();
+
+// ---------- Pentru demo (E4): totul de la zero și profilul de demo din specs/08 ----------
+
+const demoStatus = document.getElementById("demo-status")!;
+const demoOptions = { apiUrl: API_URL, storage: chrome.storage.local };
+
+document.getElementById("demo-reset")!.addEventListener("click", async () => {
+  if (!confirm("Ștergi rețetele, profilul și contul de pe acest calculator, ca la instalare?")) return;
+  const { recipes, server } = await resetDemo(demoOptions);
+  demoStatus.textContent = `Gata: ${recipes} site-uri revenite la original${server ? "" : " (serverul nu a răspuns: doar local)"}. Reîncarcă paginile deschise.`;
+  await showSite();
+  await showAccount();
+});
+
+document.getElementById("demo-profile")!.addEventListener("click", async () => {
+  const ok = await loadDemoProfile(demoOptions);
+  demoStatus.textContent = ok
+    ? "Profilul de demo e încărcat: text de 20px, contrast mare, fără AI și fără clipuri scurte."
+    : "Profilul de demo e doar local: serverul nu a răspuns.";
+});
 // ---------- „Nu schimba acest site”: fontul minim, ascunderile și rețeta se opresc pe site ----------
 
 const excludeButton = document.getElementById("exclude") as HTMLButtonElement;

@@ -97,6 +97,11 @@ function stageTwoSections(stage: SiteToolStage): string {
 - Așezarea (lățime maximă, centrare, coloane) o pui pe zonele din snapshot (regions, cu selectorul lor, ex. zona cu
   rezultatele), nu pe <main> sau <body> și nici pe elemente mici din interior.
 - Carusele, rafturi de știri, imagini de fundal mari: le ascunzi pe zona sau elementul care le conține.
+- Culorile nu apar în snapshot, deci nu le presupui: culorile de bază ale site-ului de referință (ex. Google: fundal
+  alb, text închis) le scrii explicit pe html, body și pe zonele mari (regions, inclusiv „Fundalul paginii”, dacă
+  există), cu background-image: none. Sub o imagine de fundal ascunsă rămân de obicei fundalul închis și umbrele
+  site-ului; meniul și antetul de pe ea au text deschis la culoare: le dai culoarea textului de pe site-ul de
+  referință (pe zonele banner și navigation), ca să se citească pe alb.
 - Textul care rămâne vizibil are cel puțin ${HARD_LIMITS.minFontPx}px: dacă site-ul are text mai mic (meniuri, note),
   îl mărești în aceeași foaie, pe zonă.
 - Pagina rămâne folosibilă: căutarea, rezultatele/conținutul principal, meniul și contul se văd și se pot apăsa;
@@ -168,7 +173,8 @@ ${profileSection(context.profile, context.page)}
 - O singură unealtă pe pas.
 - Observă înainte să schimbi: cheamă întâi get_page_snapshot.
 ${verifySection(stage)}
-- Termini mereu cu finish și un rezumat de 1–2 propoziții: ce ai schimbat și ce a rămas.
+- Termini mereu cu finish și un rezumat de 1–2 propoziții: ce ai schimbat și ce a rămas. Rezumatul și mesajele
+  i le scrii omului, cu „tu” („ai păstrat”, „poți anula”), nu despre el („omul a păstrat”).
 
 ## Cum schimbi aspectul: CSS (apply_css)
 - Ca să scoți ceva: <selector> { display: none !important; }. Poți și ajusta: culori, fonturi, spațiere, ordine (flex, grid).
@@ -196,7 +202,8 @@ ${stageTwoSections(stage)}
 ## Cum înțelegi cererea
 - Omul nu știe cum se numesc elementele. Înțelegi ce vrea, nu cuvintele exacte: „șterge”, „scoate”, „ascunde”,
   „elimină”, „dă jos”, „nu-mi mai arăta” cer același lucru.
-- Cauți după sens, nu după text identic: „reclamele” sunt bannere, „Sponsorizat”, „Publicitate”, „Promovat”;
+- Cauți după sens, nu după text identic: „reclamele” sunt tot ce vinde sau promovează: bannere, benzi și oferte
+  promoționale („Doar azi: -15%”), „Sponsorizat”, „Publicitate”, „Promovat”;
   „chestiile cu AI” sunt rezumate AI, butoane „Întreabă AI”, asistenți; „clipurile scurte” sunt Shorts, Reels.
 - Omul descrie și după loc, rol sau formă: „bara de sus” e antetul, „coloana din dreapta”, „butonul mare”, „meniul”.
   Folosește regions (cu selectorul lor), role, top și mărimea din snapshot.

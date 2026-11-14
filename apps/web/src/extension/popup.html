@@ -55,6 +55,33 @@
         border-radius: 999px;
         cursor: pointer;
       }
+      h2 {
+        font-size: 16px;
+        margin: calc(var(--uis-space) * 2) 0 var(--uis-space);
+      }
+      label {
+        display: block;
+        margin-top: var(--uis-space);
+      }
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 44px;
+        padding: 0 var(--uis-space);
+        font: inherit;
+        border-radius: 8px;
+        border: 1px solid var(--uis-muted);
+      }
+      summary {
+        min-height: 44px;
+        line-height: 44px;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--uis-fg);
+        outline: 2px solid var(--uis-muted);
+      }
       button:disabled {
         opacity: 0.6;
         cursor: default;
@@ -74,6 +101,35 @@
     <p id="reset-status" role="status" class="muted"></p>
     <button type="button" id="exclude" data-agent-id="popup.exclude">Nu schimba acest site</button>
     <p id="exclude-status" role="status" class="muted"></p>
+
+    <section aria-labelledby="account-title" class="account">
+      <h2 id="account-title">Cont (opțional)</h2>
+      <p id="account-signed" class="muted" hidden></p>
+      <button type="button" id="sign-out" class="secondary" data-agent-id="popup.sign-out" hidden>Ieși din cont</button>
+      <form id="account-form">
+        <p class="muted">
+          Fără cont totul rămâne pe acest calculator. Cu cont, preferințele te urmează pe alt dispozitiv.
+        </p>
+        <label for="username">Nume</label>
+        <input id="username" autocomplete="username" required minlength="3" maxlength="32" />
+        <label for="password">Parolă</label>
+        <input id="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" />
+        <button type="submit" id="sign-in" data-agent-id="popup.sign-in">Intră în cont</button>
+        <button type="button" id="register" class="secondary" data-agent-id="popup.register">Creează cont</button>
+      </form>
+      <p id="account-status" role="status" class="muted"></p>
+    </section>
+
+    <details class="demo">
+      <summary>Pentru demo</summary>
+      <button type="button" id="demo-profile" class="secondary" data-agent-id="popup.demo-profile">
+        Încarcă profilul de demo
+      </button>
+      <button type="button" id="demo-reset" class="secondary" data-agent-id="popup.demo-reset">
+        Resetează demo-ul
+      </button>
+      <p id="demo-status" role="status" class="muted"></p>
+    </details>
     <script src="popup.js"></script>
   </body>
 </html>

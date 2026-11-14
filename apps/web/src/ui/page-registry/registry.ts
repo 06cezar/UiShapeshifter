@@ -102,6 +102,34 @@ const NOT_KIND_ATTRIBUTES = new Set(["id", "class", "style", "hidden", "tabindex
 /** Câte elemente ascunse de site (din meniuri închise) intră cel mult în rezumat; au locuri rezervate. */
 const MAX_SITE_HIDDEN = 15;
 
+/** Un fundal decorativ (background-image) acoperă cel puțin atâta din ecran, ca imaginea de pe pagina de start Bing. */
+const BACKGROUND_MIN_VIEWPORT_SHARE = 0.4;
+/** Câte fundaluri intră cel mult în rezumat; au locuri rezervate, ca restul paginii să nu le împingă afară. */
+const MAX_BACKGROUNDS = 3;
+/** Fundalul n-are text sau rol: îi dăm noi un nume, ca agentul să-l găsească la „scoate imaginea”. */
+const BACKGROUND_LABEL = "Imagine de fundal";
+/**
+ * Culoarea de sub imaginea de fundal: după „ascunde imaginea”, pagina rămânea gri pe Bing (div.hp_body, #555). O dăm
+ * agentului ca element separat, ca la „fă-l alb / ca Google” să schimbe culoarea, nu doar să scoată imaginea.
+ */
+const BACKDROP_LABEL = "Fundalul paginii";
+/** Peste atâta opacitate, culoarea de fundal a unui strămoș se vede (sub ea nu mai contează ce e). */
+const OPAQUE_ALPHA = 0.5;
+
+/** O coloană a conținutului principal e cel puțin atât de lată (rezultatele, coloana din dreapta). */
+const COLUMN_MIN_WIDTH_PX = 200;
+/** Măcar o coloană din rând e atât de înaltă: un rând de carduri scurte nu e o așezare pe coloane. */
+const MAIN_COLUMN_MIN_HEIGHT_PX = 600;
+/** Cât coborâm sub <main> după coloane (la Bing: main > #b_mcw > #b_results). */
+const COLUMN_SEARCH_DEPTH = 3;
+/** Cu display inline sau contents, cutia elementului nu spune unde e conținutul: îl iau din copii. */
+const BOXLESS_DISPLAYS = new Set(["inline", "contents"]);
+
+/** De la atâția frați cu aceeași etichetă și clasă e o listă care se repetă (carusel, rezultate, meniu lung). */
+const REPEAT_MIN_SIBLINGS = 4;
+/** Din fiecare listă care se repetă, primii atâția au loc înaintea restului paginii; ceilalți vin după, pe rând. */
+const REPEAT_KEEP = 3;
+
 function isInteractive(element: Element): boolean {
   const tag = element.tagName.toLowerCase();
   if (INTERACTIVE_TAGS.has(tag)) return true;
@@ -123,6 +151,132 @@ const INPUT_ROLES: Record<string, string> = {
 function rectOf(element: Element): Rect {
   const r = element.getBoundingClientRect();
   return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+}
+
+/**
+ * Dreptunghiul unei zone. La Bing, <main> și <aside> au display inline: cutia lor e o linie de 16px de la sfârșitul
+ * paginii, iar coloanele reale sunt copiii. Atunci zona ocupă cât copiii ei care se văd.
+ */
+function regionRectOf(element: Element): Rect {
+  if (!BOXLESS_DISPLAYS.has(getComputedStyle(element).display)) return rectOf(element);
+  const boxes = [...element.children].map(regionRectOf).filter((r) => r.width > 0 && r.height > 0);
+  if (boxes.length === 0) return rectOf(element);
+  const left = Math.min(...boxes.map((r) => r.x));
+  const top = Math.min(...boxes.map((r) => r.y));
+  const right = Math.max(...boxes.map((r) => r.x + r.width));
+  const bottom = Math.max(...boxes.map((r) => r.y + r.height));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function sideBySide(a: Rect, b: Rect): boolean {
+  const apart = a.x + a.width <= b.x || b.x + b.width <= a.x;
+  const sameRow = a.y < b.y + b.height && b.y < a.y + a.height;
+  return apart && sameRow;
+}
+
+/**
+ * Coloanele conținutului principal (rezultatele | coloana din dreapta): primul nivel sub <main> unde copii lați stau unul
+ * lângă altul. Fără ele, „coloana din dreapta” sau „lista de rezultate” n-ar avea o zonă și un selector.
+ */
+function columnsOf(main: Element): Element[] {
+  let level = [main];
+  for (let depth = 0; depth < COLUMN_SEARCH_DEPTH && level.length > 0; depth++) {
+    const next: Element[] = [];
+    for (const parent of level) {
+      const wide = [...parent.children]
+        .map((element) => ({ element, rect: regionRectOf(element) }))
+        .filter(({ rect }) => rect.width >= COLUMN_MIN_WIDTH_PX && rect.height > 0);
+      const columns = wide.filter((c) => wide.some((other) => other !== c && sideBySide(c.rect, other.rect)));
+      if (columns.length >= 2 && columns.some(({ rect }) => rect.height >= MAIN_COLUMN_MIN_HEIGHT_PX)) {
+        return columns.map(({ element }) => element);
+      }
+      next.push(...wide.map(({ element }) => element));
+    }
+    level = next;
+  }
+  return [];
+}
+
+/**
+ * Cât de adânc e elementul într-o listă care se repetă: 0 dacă e printre primii REPEAT_KEEP din fiecare listă care îl
+ * conține, altfel poziția cea mai mare. Pe Bing, un carusel de 45 de rețete umplea singur rezumatul și rezultatele
+ * (li.b_algo) nu mai intrau deloc.
+ */
+function createRepeatDepth(): (element: Element) => number {
+  const positions = new WeakMap<Element, { index: number; size: number }>();
+  const indexed = new WeakSet<Element>();
+  function positionOf(item: Element) {
+    const parent = item.parentElement;
+    if (parent && !indexed.has(parent)) {
+      indexed.add(parent);
+      const bySignature = new Map<string, Element[]>();
+      for (const child of parent.children) {
+        const signature = `${child.tagName}.${child.getAttribute("class") ?? ""}`;
+        const group = bySignature.get(signature);
+        if (group) group.push(child);
+        else bySignature.set(signature, [child]);
+      }
+      for (const group of bySignature.values()) {
+        group.forEach((child, index) => positions.set(child, { index, size: group.length }));
+      }
+    }
+    return positions.get(item);
+  }
+  return (element) => {
+    let depth = 0;
+    for (let item: Element | null = element; item?.parentElement; item = item.parentElement) {
+      const position = positionOf(item);
+      if (position && position.size >= REPEAT_MIN_SIBLINGS && position.index >= REPEAT_KEEP) {
+        depth = Math.max(depth, position.index);
+      }
+    }
+    return depth;
+  };
+}
+
+/** Cât din ecran acoperă dreptunghiul (0–1). */
+function viewportShare(rect: DOMRect, viewport: { width: number; height: number }): number {
+  const width = Math.max(0, Math.min(rect.x + rect.width, viewport.width) - Math.max(rect.x, 0));
+  const height = Math.max(0, Math.min(rect.y + rect.height, viewport.height) - Math.max(rect.y, 0));
+  return (width * height) / (viewport.width * viewport.height);
+}
+
+/**
+ * Fundalurile mari decorative: div-uri fără text și fără rol, cu o imagine de fundal pe mare parte din ecran. Nu sunt
+ * printre elementele obișnuite ale rezumatului, deci agentul nu avea ce să ascundă la „fă-l să arate ca Google”.
+ */
+function findBackgrounds(doc: Document, ourHostId: string, viewport: { width: number; height: number }): Element[] {
+  if (viewport.width === 0 || viewport.height === 0) return [];
+  const found: Element[] = [];
+  for (const element of doc.body?.querySelectorAll("*") ?? []) {
+    if (found.length >= MAX_BACKGROUNDS) break;
+    if (viewportShare(element.getBoundingClientRect(), viewport) < BACKGROUND_MIN_VIEWPORT_SHARE) continue;
+    if (!getComputedStyle(element).backgroundImage.includes("url(") || isOurs(element, ourHostId)) continue;
+    found.push(element);
+  }
+  return found;
+}
+
+/** O culoare de fundal care se vede: nu `transparent`, nu rgba cu alfa mică. Hex și numele de culori sunt opace. */
+function isOpaqueColor(color: string): boolean {
+  if (!color || color === "transparent") return false;
+  const rgba = /^rgba?\(([^)]*)\)$/.exec(color.trim());
+  if (!rgba) return true;
+  const parts = rgba[1]!.split(/[\s,/]+/).filter(Boolean);
+  return parts.length < 4 || parseFloat(parts[3]!) > OPAQUE_ALPHA;
+}
+
+/** Cel mai apropiat strămoș cu fundal opac: culoarea care rămâne când imaginea dispare. */
+function opaqueBackdropOf(element: Element, ourHostId: string): Element | undefined {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    if (isOurs(node, ourHostId)) return undefined;
+    if (isOpaqueColor(getComputedStyle(node).backgroundColor)) return node;
+  }
+  return undefined;
+}
+
+function byDocumentOrder(a: Element, b: Element): number {
+  return a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
 }
 
 function cleanText(text: string): string {
@@ -241,6 +395,9 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
   const ids = new WeakMap<Element, string>();
   const byId = new Map<string, WeakRef<Element>>();
   let nextElement = 1;
+  // Coloanele găsite o dată rămân zone cât timp sunt în pagină: după ce rețeta ascunde coloana din dreapta, #b_results
+  // nu mai are vecină și n-ar mai fi găsită, deși agentul tocmai lucrează pe ea.
+  const columnsSeen = new Set<Element>();
 
   function remember(element: Element, id: string): string {
     ids.set(element, id);
@@ -254,8 +411,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
 
   /** Zonele în ordinea din DOM; id-ul după rol și numărul de ordine (r.nav, r.nav-2), deci același la reîncărcare. */
   function findRegions(): { element: Element; id: string; role: string }[] {
-    const seen = new Map<string, number>();
-    const regions: { element: Element; id: string; role: string }[] = [];
+    const found: { element: Element; role: string }[] = [];
     for (const element of doc.querySelectorAll(REGION_SELECTOR)) {
       if (isOurs(element, options.ourHostId)) continue;
       // Un <header>/<footer> dintr-un articol sau dintr-o secțiune e antetul acelui bloc, nu al paginii (regula ARIA).
@@ -263,7 +419,27 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       if ((tag === "header" || tag === "footer") && !element.hasAttribute("role")) {
         if (element.parentElement?.closest("article, aside, main, nav, section")) continue;
       }
-      const role = element.getAttribute("role") ?? TAG_REGION_ROLE[element.tagName.toLowerCase()] ?? "region";
+      found.push({ element, role: element.getAttribute("role") ?? TAG_REGION_ROLE[tag] ?? "region" });
+    }
+    for (const { element } of found.filter(({ role }) => role === "main")) {
+      for (const column of columnsOf(element)) columnsSeen.add(column);
+    }
+    const known = new Set(found.map(({ element }) => element));
+    for (const column of columnsSeen) {
+      if (!doc.contains(column)) {
+        columnsSeen.delete(column);
+        continue;
+      }
+      if (known.has(column) || isOurs(column, options.ourHostId)) continue;
+      known.add(column);
+      found.push({ element: column, role: "region" });
+    }
+    // În ordinea DOM: regionOf ia ultima zonă care conține elementul, adică pe cea mai adâncă.
+    found.sort((a, b) => byDocumentOrder(a.element, b.element));
+
+    const seen = new Map<string, number>();
+    const regions: { element: Element; id: string; role: string }[] = [];
+    for (const { element, role } of found) {
       const short = ROLE_SHORT[role] ?? "region";
       const count = (seen.get(short) ?? 0) + 1;
       seen.set(short, count);
@@ -299,9 +475,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       }
     }
     const directSet = new Set(direct);
-    const all = [...direct, ...[...blocks].filter((b) => !directSet.has(b))].sort((a, b) =>
-      a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
-    );
+    const all = [...direct, ...[...blocks].filter((b) => !directSet.has(b))].sort(byDocumentOrder);
     for (const element of all) idOf(element);
     const candidates = scope ? all.filter((element) => scope.contains(element)) : all;
 
@@ -361,14 +535,73 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
     // Ce a ascuns rețeta întâi: sunt puține și fără ele agentul nu-și poate verifica munca (pe o pagină aglomerată,
     // elementele vizibile ar umple singure limita). Apoi ce e în viewport, apoi restul, în ordinea paginii.
     // Ce a ascuns site-ul are locuri rezervate (cel mult MAX_SITE_HIDDEN), ca să nu fie împins afară de restul paginii.
-    const rank = (e: PageElement) => (e.hiddenBy === "recipe" ? 0 : e.inViewport ? 1 : 2);
-    const ordered = elements
-      .map((e, index) => ({ e, index }))
-      .sort((a, b) => rank(a.e) - rank(b.e) || a.index - b.index)
-      .map(({ e }) => e);
+    // Dintr-o listă care se repetă intră întâi primii REPEAT_KEEP; restul vin la urmă, pe rând din fiecare listă
+    // (al 4-lea din fiecare, apoi al 5-lea…), ca o listă lungă să nu le împingă afară pe celelalte.
+    const repeatDepth = createRepeatDepth();
+    const ranked = elements.map((e, index) => {
+      const depth = repeatDepth(listed[index]!);
+      const tier = e.hiddenBy === "recipe" ? 0 : depth > 0 ? 3 : e.inViewport ? 1 : 2;
+      return { e, index, tier, depth };
+    });
+    const ordered = ranked.sort((a, b) => a.tier - b.tier || a.depth - b.depth || a.index - b.index).map(({ e }) => e);
+    // Fundalurile mari, și cele ascunse deja de rețetă (ca agentul să-și vadă munca), cu locuri rezervate.
+    const backgroundsShown = findBackgrounds(doc, options.ourHostId, viewport);
+    const backgroundsHidden: Element[] = [];
+    if (sheet) {
+      sheet.disabled = true;
+      for (const element of findBackgrounds(doc, options.ourHostId, viewport)) {
+        if (!backgroundsShown.includes(element)) backgroundsHidden.push(element);
+      }
+      sheet.disabled = false;
+    }
+    const listedSet = new Set(listed);
+    const backgrounds: PageElement[] = [...backgroundsShown, ...backgroundsHidden]
+      .filter((element) => !listedSet.has(element) && (!scope || scope.contains(element)))
+      .slice(0, MAX_BACKGROUNDS)
+      .map((element) => {
+        const visible = backgroundsShown.includes(element);
+        return {
+          id: idOf(element),
+          selector: buildSelector(element, doc),
+          tag: element.tagName.toLowerCase(),
+          role: "img",
+          label: BACKGROUND_LABEL,
+          regionId: regionOf(element)?.id,
+          rect: rectOf(element),
+          visible,
+          inViewport: visible,
+          interactive: false,
+          ...(visible ? {} : { hiddenBy: "recipe" as const }),
+        };
+      });
+
+    // Sub fiecare imagine mare, culoarea de fundal care rămâne după ce imaginea e ascunsă.
+    const backdropElements: Element[] = [];
+    for (const element of [...backgroundsShown, ...backgroundsHidden]) {
+      const backdrop = opaqueBackdropOf(element, options.ourHostId);
+      if (backdrop && !listedSet.has(backdrop) && !backdropElements.includes(backdrop)) backdropElements.push(backdrop);
+    }
+    const backdrops: PageElement[] = backdropElements.slice(0, MAX_BACKGROUNDS).map((element) => ({
+      id: idOf(element),
+      selector: buildSelector(element, doc),
+      tag: element.tagName.toLowerCase(),
+      role: "presentation",
+      label: `${BACKDROP_LABEL} (${getComputedStyle(element).backgroundColor})`,
+      regionId: regionOf(element)?.id,
+      rect: rectOf(element),
+      visible: true,
+      inViewport: true,
+      interactive: false,
+    }));
+
     const siteHidden = ordered.filter((e) => e.hiddenBy === "site").slice(0, MAX_SITE_HIDDEN);
     const others = ordered.filter((e) => e.hiddenBy !== "site");
-    const kept = [...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length), ...siteHidden];
+    const kept = [
+      ...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length - backgrounds.length - backdrops.length),
+      ...backgrounds,
+      ...backdrops,
+      ...siteHidden,
+    ];
 
     const regionList: PageRegion[] = regions.map(({ element, id, role }) => ({
       id,
@@ -376,7 +609,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       selector: buildSelector(element, doc),
       role,
       label: labelOf(element.querySelector("h1, h2, h3, [aria-label]") ?? element, doc),
-      rect: rectOf(element),
+      rect: regionRectOf(element),
       visible: isShown(element),
       elementCount: elements.filter((e) => e.regionId === id).length,
     }));
@@ -389,7 +622,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       viewport,
       regions: regionList,
       elements: kept,
-      truncated: elements.length > kept.length,
+      truncated: elements.length + backgrounds.length + backdrops.length > kept.length,
       recipe: {
         revision: recipe.revision,
         css:
