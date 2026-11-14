@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "84a2420076072b337fb3da5ca4ab00177a67668a",
-  "last_run": "2026-11-14T01:56:57Z",
+  "last_comms_sha": "be5446800d5c77f5bdb8c43e2427593a3958ed4e",
+  "last_run": "2026-11-14T01:58:34Z",
   "last_sha": "6f024ee416ae6d10a97f7eb3746980954784e1bd",
   "prs": {
     "1": {
@@ -445,6 +445,11 @@
     },
     "86": {
       "head": "b-wait-for-click",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "87": {
+      "head": "d-ask-user",
       "merged_at": null,
       "state": "OPEN"
     },
