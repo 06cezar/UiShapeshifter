@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "620ea363d29f2ac9889d0f3d2b952e9cea3e72d5",
-  "last_run": "2026-11-14T02:01:53Z",
+  "last_comms_sha": "bbe6e583437425442331c4f64d89555ec98730d0",
+  "last_run": "2026-11-14T02:02:37Z",
   "last_sha": "055b734069a5f1e62f5cce3bf05825415585b0c4",
   "prs": {
     "1": {
@@ -455,6 +455,11 @@
     },
     "88": {
       "head": "a-fara-ask-user",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "89": {
+      "head": "a-ca-google-culori",
       "merged_at": null,
       "state": "OPEN"
     },
