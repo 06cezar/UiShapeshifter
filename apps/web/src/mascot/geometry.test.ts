@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { clampToViewport, homePosition, needsScroll, pointPlacement, stepToward } from "./geometry";
+import { bubblePlacement, clampToViewport, homePosition, needsScroll, pointPlacement, stepToward } from "./geometry";
 
 const VIEWPORT = { width: 1000, height: 800 };
 const SIZE = { width: 150, height: 130 };
@@ -46,6 +46,33 @@ describe("lângă element", () => {
     const top = { x: 400, y: 0, width: 100, height: 20 };
     const place = pointPlacement(top, SIZE, VIEWPORT, { x: 842, y: 662 }, MARGIN, GAP);
     expect(place.y).toBe(MARGIN);
+  });
+});
+
+describe("bula", () => {
+  const BUBBLE = { width: 264, height: 60 };
+  const at = (x: number, y: number) => ({ x, y, ...SIZE });
+
+  test("acasă, în colțul de jos din dreapta: deasupra, întinsă spre stânga", () => {
+    expect(bubblePlacement(at(842, 662), BUBBLE, VIEWPORT, MARGIN)).toEqual({ below: false, alignLeft: false });
+  });
+
+  test("lângă marginea de sus: trece sub mascotă", () => {
+    expect(bubblePlacement(at(504, 8), BUBBLE, VIEWPORT, MARGIN).below).toBe(true);
+  });
+
+  test("un mesaj mai înalt decât locul de deasupra: trece dedesubt, unde e mai mult loc", () => {
+    const tall = { width: 264, height: 200 };
+    expect(bubblePlacement(at(504, 150), tall, VIEWPORT, MARGIN).below).toBe(true);
+  });
+
+  test("nu încape nici sus, nici jos: rămâne unde e mai mult loc", () => {
+    const huge = { width: 264, height: 700 };
+    expect(bubblePlacement(at(504, 500), huge, VIEWPORT, MARGIN).below).toBe(false);
+  });
+
+  test("mascota în stânga unui element lat: bula se întinde spre dreapta, nu iese prin stânga ecranului", () => {
+    expect(bubblePlacement(at(64, 300), BUBBLE, VIEWPORT, MARGIN).alignLeft).toBe(true);
   });
 });
 

@@ -322,6 +322,49 @@ describe("HTTP", () => {
     expect((await getJson("/api/config/demo-fresh")).body).toEqual(changed);
   });
 
+  it("/api/recipes: PUT → GET → listă → DELETE („Revino la original”)", async () => {
+    const recipe = {
+      host: "video.example",
+      revision: 2,
+      css: "section[aria-label='Shorts'] { display: none !important; }",
+      ops: [{ op: "move", selector: "form[role='search']", to: { selector: "header", position: "prepend" } }],
+      updatedAt: "2026-11-13T23:30:00.000Z",
+    };
+    const put = await fetch(`${baseUrl}/api/recipes/u-1/video.example`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(recipe),
+    });
+    expect(put.status).toBe(200);
+    expect(await put.json()).toEqual({ revision: 2 });
+
+    expect((await getJson("/api/recipes/u-1/video.example")).body).toEqual(recipe);
+    expect((await getJson("/api/recipes/u-1")).body).toEqual([recipe]);
+
+    const removed = await fetch(`${baseUrl}/api/recipes/u-1/video.example`, { method: "DELETE" });
+    expect(await removed.json()).toEqual({ ok: true });
+    expect((await getJson("/api/recipes/u-1/video.example")).status).toBe(404);
+    expect((await getJson("/api/recipes/u-1")).body).toEqual([]);
+  });
+
+  it("/api/recipes refuză host-uri care ar ieși din folder și rețete stricate", async () => {
+    // „..%2F…” trece de normalizarea URL-ului din client și ajunge la server ca „../…”
+    expect((await getJson("/api/recipes/u-1/..%2Fetc")).status).toBe(400);
+    expect((await getJson("/api/recipes/..%2Fu-1/video.example")).status).toBe(400);
+    expect((await getJson("/api/recipes/u-1/Video.Example")).status).toBe(400);
+    const put = (host: string, body: unknown) =>
+      fetch(`${baseUrl}/api/recipes/u-1/${host}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const ok = { host: "a.example", revision: 1, css: "", updatedAt: "2026-11-13T23:30:00.000Z" };
+    expect((await put("b.example", ok)).status).toBe(400); // host diferit de adresă
+    expect((await put("a.example", { ...ok, revision: -1 })).status).toBe(400);
+    expect((await put("a.example", { ...ok, css: "x".repeat(20001) })).status).toBe(400);
+    expect((await put("a.example", { ...ok, ops: [{ op: "eval" }] })).status).toBe(400);
+  });
+
   it("PUT /api/config cu un corp greșit → 400", async () => {
     const put = await fetch(`${baseUrl}/api/config/maria`, {
       method: "PUT",
