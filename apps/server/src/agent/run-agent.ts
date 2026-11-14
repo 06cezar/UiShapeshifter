@@ -99,6 +99,7 @@ export async function runAgent(
   options: RunOptions = {},
 ): Promise<AgentRun> {
   let previous: PreviousStep | null = null;
+  let lastAnswered: PreviousStep | null = null;
   let lastRevision: number | undefined;
   const guard = createFailureGuard();
 
@@ -167,11 +168,13 @@ export async function runAgent(
         return await end(success ? "succeeded" : "failed", summary, success ? "happy" : "confused");
       }
       previous = { name: decision.name, args: decision.args, result };
+      if (proposalDecision(previous)) lastAnswered = previous;
     }
-    // Pașii s-au terminat chiar după propunere: omul a ales deja Păstrez sau Anulez, deci rularea e încheiată, nu
-    // eșuată (repetiția demo-ului: reparația antetului lua pași, iar finish nu mai încăpea).
-    const decided = proposalDecision(previous);
-    if (decided === "keep") return await end("succeeded", proposalSummary(previous), "happy");
+    // Pașii s-au terminat după ce omul a ales deja Păstrez sau Anulez: rularea e încheiată, nu eșuată.
+    // Ultima propunere la care a răspuns omul, oriunde în rulare: după Păstrez agentul mai poate nota în profil
+    // (update_profile), iar pașii se pot termina înainte de finish (repetiția pe Opus, pasul 4).
+    const decided = proposalDecision(lastAnswered);
+    if (decided === "keep") return await end("succeeded", proposalSummary(lastAnswered), "happy");
     if (decided === "undo") return await end("succeeded", UNDONE_SUMMARY, "idle");
     return await end("failed", MAX_STEPS_SUMMARY, "confused");
   } catch (error) {
