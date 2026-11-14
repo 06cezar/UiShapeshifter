@@ -17,9 +17,11 @@ import { createPageRegistry } from "../ui/page-registry/registry";
 import { buildSelector } from "../ui/page-registry/selector";
 import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
+import { SHAPE_ATTR } from "../ui/recipes/dom-ops";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { isExcluded } from "./excluded-sites";
+import { startReservingSpace, type Placed } from "./reserve-space";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { measurePage, type PageMeasure } from "./measure";
@@ -122,6 +124,37 @@ function moveMascot(mascot: MascotController, server: ServerMessage) {
 
 let signals: SignalCollector | null = null;
 
+/**
+ * Unde stă interfața noastră acum: panoul, chatul (deschis sau doar butonul) și mascota. Mascota se plimbă când arată
+ * ceva; rezervăm locul ei de acasă (jos în dreapta), ca marginea paginii să nu sară după ea.
+ */
+function ourBoxes(shadow: ShadowRoot): Placed[] {
+  const placed: Placed[] = [];
+  const add = (selector: string, side: Placed["side"]) => {
+    const element = shadow.querySelector(selector);
+    if (element && element.getClientRects().length > 0) placed.push({ box: element.getBoundingClientRect(), side });
+  };
+  add(".journal", "right");
+  add(".chat-panel:not([hidden])", "left");
+  add(".chat-launcher", "bottom");
+  const mascot = shadow.querySelector<HTMLElement>(".mascot");
+  if (mascot && mascot.offsetWidth > 0) {
+    const box = {
+      left: innerWidth - mascot.offsetWidth,
+      right: innerWidth,
+      top: innerHeight - mascot.offsetHeight,
+      bottom: innerHeight,
+    };
+    placed.push({ box, side: "bottom" });
+  }
+  return placed;
+}
+
+/** Elementele adăugate de agent (insertHtml, inject, wrap) au SHAPE_ATTR; ce e nou față de începutul rulării. */
+function addedShapeIds(): Set<string> {
+  return new Set([...document.querySelectorAll(`[${SHAPE_ATTR}]`)].map((element) => element.getAttribute(SHAPE_ATTR)!));
+}
+
 function start() {
   let port: chrome.runtime.Port | null = null;
 
@@ -185,6 +218,24 @@ function start() {
   });
   /** Revizia rețetei de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
   const runStart = new Map<string, number>();
+  /** Elementele adăugate care existau la începutul rulării: la propunere arătăm doar ce e nou. */
+  const shapesAtStart = new Map<string, Set<string>>();
+
+  // Interfața noastră nu stă peste textul site-ului: pagina îi face loc pe margine (proba cu Iulia, 14 nov.).
+  startReservingSpace(() => ourBoxes(ourRoot.shadow), ourRoot.shadow);
+
+  /** Înainte de Păstrez / Anulez: omul trebuie să vadă ce s-a schimbat, deci mascota arată spre elementul nou. */
+  function showWhatChanged(runId: string | undefined) {
+    const before = runId ? shapesAtStart.get(runId) : undefined;
+    if (!before) return;
+    const added = [...document.querySelectorAll(`[${SHAPE_ATTR}]`)].find(
+      (element) => !before.has(element.getAttribute(SHAPE_ATTR)!) && element.getClientRects().length > 0,
+    );
+    if (!added) return;
+    // În mijlocul ecranului, nu la margine, unde poate sta sub chat: abia apoi mascota arată spre el.
+    added.scrollIntoView({ block: "center", behavior: "auto" });
+    void mascot.pointAt(added, "Aici e ce am schimbat.");
+  }
 
   /**
    * Readuce rețeta exact la revizia de la începutul rulării (B6: CSS și operațiile de structură, reviziile de după se
@@ -254,6 +305,7 @@ function start() {
     },
     pointAt: (element, message) => mascot.pointAt(element, message),
     proposeChanges: async (args, runId) => {
+      showWhatChanged(runId);
       const result = await proposeChanges(args, runId, {
         ask: panel.askProposal,
         revisionBefore: (id) => (id ? runStart.get(id) : undefined) ?? recipes.view().revision,
@@ -303,7 +355,10 @@ function start() {
         );
         return;
       }
-      if (server.type === "run_started") runStart.set(server.runId, recipes.view().revision);
+      if (server.type === "run_started") {
+        runStart.set(server.runId, recipes.view().revision);
+        shapesAtStart.set(server.runId, addedShapeIds());
+      }
       if (server.type === "suggestion") {
         suggestions.show(server.suggestion);
         return;
