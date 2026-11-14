@@ -1,7 +1,8 @@
 // Executorul uneltelor „web” în pagina unui site (etapa 1, specs/05 și 06): primește tool_call de la server, întoarce
 // tool_result. get_page_snapshot îl face registrul (B2), apply_css și apply_ops motorul de rețete (B5, B6),
 // say bula mascotei (D), point_at mascota (D2), care merge la elementul găsit în registru, wait_for_user_click
-// ascultă click-ul omului (ghidajul „arată-mi cum…”), propose_changes panoul (D9, Păstrez / Anulez).
+// ascultă click-ul omului (ghidajul „arată-mi cum…”), ask_user întrebarea în chat (D), propose_changes panoul
+// (D9, Păstrez / Anulez).
 
 import type {
   ApplyCssData,
@@ -40,6 +41,11 @@ export interface PageToolDeps {
   say?(message: string): void;
   /** Mascota merge la element și îl arată (D2); întoarce NOT_VISIBLE dacă elementul e ascuns. */
   pointAt?(element: Element, message: string): Promise<ToolResult<ToolData["point_at"]>>;
+  /**
+   * Întrebarea agentului în chat, cu variante ca butoane (D, chat.ask). `null` = omul n-a răspuns (2 min, rularea s-a
+   * terminat sau a venit altă întrebare).
+   */
+  askUser?(question: string, options?: string[]): Promise<string | null>;
   /** Gazda interfeței noastre: un click în panou sau pe mascotă nu e răspunsul omului la ghidaj. */
   ourHostId?: string;
   doc?: Document;
@@ -47,7 +53,7 @@ export interface PageToolDeps {
   proposeChanges?(args: unknown, runId?: string): Promise<ToolResult<ToolData["propose_changes"]>>;
 }
 
-function fail(code: "INVALID_ARGS" | "INTERNAL" | "ELEMENT_NOT_FOUND", message: string): ToolResult<never> {
+function fail(code: "INVALID_ARGS" | "INTERNAL" | "ELEMENT_NOT_FOUND" | "TIMEOUT", message: string): ToolResult<never> {
   return { ok: false, error: { code, message } };
 }
 
@@ -151,6 +157,20 @@ export async function runPageTool(
         const requested = typeof a.timeoutMs === "number" ? a.timeoutMs : DEFAULT_CLICK_TIMEOUT_MS;
         const timeoutMs = Math.min(MAX_CLICK_TIMEOUT_MS, Math.max(MIN_CLICK_TIMEOUT_MS, requested));
         return await waitForClick(element, timeoutMs, deps);
+      }
+      case "ask_user": {
+        if (typeof a.question !== "string" || !a.question.trim()) {
+          return fail("INVALID_ARGS", "ask_user cere question (o întrebare scurtă).");
+        }
+        if (a.options !== undefined && !(Array.isArray(a.options) && a.options.every((o) => typeof o === "string"))) {
+          return fail("INVALID_ARGS", "options e o listă de variante scurte (texte).");
+        }
+        if (!deps.askUser) return fail("INTERNAL", "Chatul nu e încă pornit în pagină.");
+        const answer = await deps.askUser(a.question, a.options as string[] | undefined);
+        if (answer === null) {
+          return fail("TIMEOUT", "Omul n-a răspuns. Continuă cu ce știi sau întreabă mai simplu.");
+        }
+        return { ok: true, data: { answer } };
       }
       case "propose_changes": {
         if (!deps.proposeChanges) return fail("INTERNAL", "Panoul de control nu e încă pornit în pagină.");

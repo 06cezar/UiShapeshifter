@@ -180,3 +180,30 @@ describe("wait_for_user_click: ghidajul „arată-mi cum…”", () => {
     expect(!result.ok && result.error.code).toBe("ELEMENT_NOT_FOUND");
   });
 });
+
+describe("ask_user: întrebarea agentului în chat", () => {
+  const registry = {} as PageRegistry;
+
+  test("răspunsul omului ajunge la agent", async () => {
+    const askUser = vi.fn().mockResolvedValue("Doar aici");
+    const result = await runPageTool(
+      "ask_user",
+      { question: "Pe tot site-ul sau doar aici?", options: ["Pe tot site-ul", "Doar aici"] },
+      { registry, askUser },
+    );
+    expect(askUser).toHaveBeenCalledWith("Pe tot site-ul sau doar aici?", ["Pe tot site-ul", "Doar aici"]);
+    expect(result).toEqual({ ok: true, data: { answer: "Doar aici" } });
+  });
+
+  test("fără răspuns: TIMEOUT, ca modelul să meargă mai departe", async () => {
+    const result = await runPageTool("ask_user", { question: "Care?" }, { registry, askUser: async () => null });
+    expect(!result.ok && result.error.code).toBe("TIMEOUT");
+  });
+
+  test("fără întrebare sau cu variante care nu sunt texte: INVALID_ARGS", async () => {
+    const askUser = vi.fn();
+    expect((await runPageTool("ask_user", {}, { registry, askUser })).ok).toBe(false);
+    expect((await runPageTool("ask_user", { question: "?", options: [1] }, { registry, askUser })).ok).toBe(false);
+    expect(askUser).not.toHaveBeenCalled();
+  });
+});
