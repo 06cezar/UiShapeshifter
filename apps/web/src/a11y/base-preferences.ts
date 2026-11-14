@@ -241,7 +241,9 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     if (ownText) planText(element, style, thresholds, writes, measured);
     if (!interactive) return;
     planBorder(element, writes);
-    if (!isLinkInSentence(element, style)) planTarget(element, style, rect, thresholds, writes, measured);
+    if (wantsBiggerTargets(needs) && !isLinkInSentence(element, style)) {
+      planTarget(element, style, rect, thresholds, writes, measured);
+    }
   }
 
   function planText(
@@ -368,6 +370,16 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     },
     adjustedCount: () => saved.size,
   };
+}
+
+/**
+ * Țintele le mărim doar când profilul cere mai mult decât minimul implicit: testul de atingere a arătat că omul ratează
+ * butoanele mici. Cu profilul implicit, 44px pe fiecare link din meniuri, liste și rezultate deforma orice site la
+ * prima vizită, fără ca omul să fi cerut ceva (găsit de Adelin). Auditul raportează țintele mici mai departe, iar
+ * agentul le mărește la cerere. Fontul minim (16px, cerința juriului) și contrastul se aplică oricum.
+ */
+function wantsBiggerTargets(needs: Partial<UserNeeds>): boolean {
+  return (needs.minTargetPx ?? 0) > HARD_LIMITS.minTargetPx;
 }
 
 /** Cele două dreptunghiuri se suprapun mai mult decât o atingere de margini. */
