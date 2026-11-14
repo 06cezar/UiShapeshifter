@@ -57,8 +57,12 @@ const TOOL_VERBS: Partial<Record<string, string>> = {
 /** Când modelul sare peste rândul „Observ / Fac / Pentru că”, panoul primește măcar ce face pasul. */
 export function withToolFallback(reasoning: Reasoning, tool: string, args: unknown): Reasoning {
   if (reasoning.decision) return reasoning;
+  // regionId („r.main”) nu e pentru om: panoul arăta „Mă uit la pagină: r.main”
   const { reason, message, summary, regionId } = (args ?? {}) as Record<string, unknown>;
-  const detail = [reason, message, summary, regionId].find((value) => typeof value === "string");
-  const verb = TOOL_VERBS[tool] ?? `Folosesc ${tool}`;
+  const detail = [reason, message, summary].find((value) => typeof value === "string");
+  const verb =
+    tool === "get_page_snapshot" && typeof regionId === "string"
+      ? "Mă uit mai atent la o parte a paginii"
+      : (TOOL_VERBS[tool] ?? "Lucrez la pagină");
   return { ...reasoning, decision: detail ? `${verb}: ${clean(detail as string)}` : `${verb}.` };
 }

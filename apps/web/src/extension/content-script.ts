@@ -222,6 +222,8 @@ function start() {
   addEventListener("pagehide", () => signals?.flush());
   const tools: PageToolDeps = {
     registry,
+    ourHostId: HOST_ID,
+    askUser: (question, options) => chat.ask(question, options),
     recipes: {
       // După fiecare CSS al agentului, fontul minim se verifică din nou (C4: „ultimele, peste tot ce a scris agentul”).
       async applyCss(args) {

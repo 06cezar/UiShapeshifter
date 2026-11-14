@@ -37,6 +37,9 @@ describe("withToolFallback", () => {
       "Îți spun ceva: Nu găsesc bara de sus.",
     );
     expect(withToolFallback(empty, "get_page_snapshot", {}).decision).toBe("Mă uit la pagină.");
+    expect(withToolFallback(empty, "get_page_snapshot", { regionId: "r.main" }).decision).toBe(
+      "Mă uit mai atent la o parte a paginii.",
+    ); // fără id-uri interne în panou
   });
 
   it("nu atinge un raționament scris de model", () => {

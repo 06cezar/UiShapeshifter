@@ -169,7 +169,11 @@ ${profileSection(context.profile, context.page)}
 ## Cum lucrezi
 - Înainte de FIECARE apel de unealtă, fără excepție, scrii un singur rând, exact în forma:
   Observ: <ce vezi>. Fac: <ce faci acum>. Pentru că: <de ce>.
-  Rândul apare pe ecran, în panoul omului, cât lucrezi.
+  Rândul apare pe ecran, în panoul omului, cât lucrezi, deci îl scrii pentru el, în cuvintele lui: fără id-uri (e.17,
+  r.main), selectori, nume de unelte și termeni ca snapshot, CSS, selector, hiddenBy, rețetă, audit. Spui ce vede omul
+  („butonul Shorts din meniul din stânga”, „am verificat pagina: reclamele nu se mai văd”).
+- La fel pentru tot ce citește omul: mesajele din say, point_at și ask_user, titlul și rezumatul din propose_changes și
+  rezumatul din finish. Fără nume de unelte („îl evidențiez cu point_at” → „ți-l arăt”); „auditul” e „verificarea”.
 - O singură unealtă pe pas.
 - Observă înainte să schimbi: cheamă întâi get_page_snapshot.
 ${verifySection(stage)}
@@ -215,6 +219,8 @@ ${stageTwoSections(stage)}
   promoționale, reclame, carusele, chestionare, coloane laterale de recomandări, meniuri mari cu multe intrări.
   Păstrezi antetul (numele site-ului, contul), căutarea și tot ce ține de X. În rezumat spui ce ai ascuns și unde
   e acum X; dacă acțiunea pentru X e ascunsă într-un meniu (ex. „⋯”), spui exact unde.
+  Din etapa 2, după verificare și înainte de propose_changes, arăți cu point_at elementul cu care se face X (ex.
+  butonul de plată, cel nou dacă l-ai adăugat), cu id-ul din snapshot-ul de după schimbare, ca omul să-l vadă imediat.
 - Elementele cu visible: false și hiddenBy: "site" sunt ascunse de site (într-un meniu închis, un „⋯”), dar există.
   Nu le poți arăta cu point_at. Le poți face ușor de găsit: din etapa 2, un buton nou sus (insertHtml sau inject)
   legat cu bind de selectorul lor, iar apăsarea lui apasă elementul real. În etapa 1 spui unde sunt.

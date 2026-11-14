@@ -28,11 +28,34 @@ function isToolName(name: string): name is ToolName {
   return Object.hasOwn(TOOL_RUNS_ON, name);
 }
 
+/** `</title>\n<parameter name="summary">`: sintaxa de unelte a modelului scăpată în valoarea unui câmp. */
+const LEAKED_PARAMETER = /<\/[\w-]+>\s*<parameter name="([\w-]+)">/;
+
+/**
+ * Uneori modelul lipește câmpul următor în valoarea unui string: `{"title": "X</title>\n<parameter name=\"summary\">Y"}`
+ * (repetiția demo-ului: propose_changes respins de două ori). Îl despărțim înapoi în câmpuri, fără să suprascriem un
+ * câmp trimis corect.
+ */
+export function repairLeakedParameters(args: Record<string, unknown>): Record<string, unknown> {
+  const repaired: Record<string, unknown> = { ...args };
+  for (const [key, value] of Object.entries(args)) {
+    if (typeof value !== "string" || !LEAKED_PARAMETER.test(value)) continue;
+    const parts = value.split(new RegExp(LEAKED_PARAMETER.source, "g"));
+    repaired[key] = parts[0]!.trim();
+    for (let i = 1; i + 1 < parts.length; i += 2) {
+      const name = parts[i]!;
+      const text = parts[i + 1]!.replace(/<\/(parameter|[\w-]+)>\s*$/, "").trim();
+      if (repaired[name] === undefined) repaired[name] = text;
+    }
+  }
+  return repaired;
+}
+
 function parseArgs(raw: string): Record<string, unknown> | null {
   try {
     const value: unknown = JSON.parse(raw || "{}");
     return typeof value === "object" && value !== null && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
+      ? repairLeakedParameters(value as Record<string, unknown>)
       : null;
   } catch {
     return null;
