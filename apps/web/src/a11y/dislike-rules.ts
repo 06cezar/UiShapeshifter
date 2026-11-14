@@ -34,6 +34,10 @@ export const DISLIKE_SELECTORS: Partial<Record<PreferenceCategory, readonly stri
     '[aria-label="AI Overview"]',
     '[aria-label="Prezentare generală AI"]',
     '[aria-label="Prezentare generală generată de AI"]',
+    '[aria-label="Rezumat generat de AI"]',
+    // Google în română: blocul „Rezumat generat de AI” n-are etichetă, dar e marcat ca răspuns al modelului
+    // (văzut pe google.com/search?hl=ro, 14 nov.; găsit de E)
+    '[data-scope-id="turn"]',
   ],
   stories: ['[aria-label="Stories"]', '[aria-label="Povești"]'],
   promos: [

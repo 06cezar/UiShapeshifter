@@ -53,6 +53,13 @@ const RESIZE_EPS_PX = 1;
 const OUT_OF_FLOW_DEPTH = 3;
 /** Ce numim „poză” în interiorul unei ținte: dacă se mărește odată cu ținta, mărirea țintei se anulează. */
 const MEDIA_SELECTOR = "img, svg, video, picture, canvas";
+/**
+ * La conținutul încărcat mai târziu (un link „Traducerea acestei pagini” lângă adresa unui rezultat Google), verificăm
+ * și vecinii: textele din cutia de atâtea niveluri deasupra, măsurate înainte de scriere.
+ */
+const NEIGHBORHOOD_DEPTH = 2;
+/** Cel mult atâția vecini măsurați la o trecere parțială, ca o listă lungă să nu încetinească pagina. */
+const MAX_NEIGHBORS = 300;
 /** Latura unui pătrat din grila cu textele paginii: căutăm suprapuneri doar printre textele din preajmă. */
 const GRID_CELL_PX = 128;
 /** Un text care acoperă mai multe pătrate decât atât (un container uriaș) se verifică separat, fără grilă. */
@@ -101,6 +108,8 @@ interface Measured {
   parents: Map<HTMLElement, DOMRect>;
   /** Prima poză din fiecare țintă pe care o mărim, cu mărimea ei de dinainte. */
   media: Map<HTMLElement, { media: Element; rect: DOMRect }>;
+  /** Vecinii cu fontul mărit la o trecere de dinainte: verificați din nou când conținutul nou îi împinge. */
+  grownBefore: Set<HTMLElement>;
 }
 
 /** Ce era în stilul inline al unui element înainte de noi, ca `stop()` să-l pună la loc exact. */
@@ -165,14 +174,40 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
       },
     });
     const writes: StyleWrite[] = [];
-    const measured: Measured = { rects: new Map(), parents: new Map(), media: new Map() };
+    const measured: Measured = { rects: new Map(), parents: new Map(), media: new Map(), grownBefore: new Set() };
     let visited = 0;
     for (let node: Node | null = root; node && visited < MAX_BASE_ELEMENTS; node = walker.nextNode()) {
       visited += 1;
       if (node instanceof HTMLElement && !isOurs(node)) planElement(node, writes, measured);
     }
+    if (root !== doc.body && root !== doc.documentElement) measureNeighbors(root, measured);
     for (const { element, property, value } of writes) setImportant(element, property, value);
     verifyGrowth(writes, measured);
+  }
+
+  /**
+   * Trecere parțială (conținut adăugat de site după încărcare): textele din jur, măsurate înainte de scriere, intră în
+   * verificare, iar cele mărite la o trecere de dinainte sunt verificate din nou. Altfel adresa unui rezultat Google,
+   * mărită la încărcare, rămânea sub linkul „Traducerea acestei pagini” apărut după (găsit de E).
+   */
+  function measureNeighbors(root: Element, measured: Measured): void {
+    let around: Element = root;
+    for (let depth = 0; depth < NEIGHBORHOOD_DEPTH && around.parentElement; depth++) around = around.parentElement;
+    if (around === doc.body || around === doc.documentElement) return;
+    let count = 0;
+    for (const element of around.querySelectorAll("*")) {
+      if (count >= MAX_NEIGHBORS) break;
+      if (!(element instanceof HTMLElement) || root.contains(element) || measured.rects.has(element)) continue;
+      if (!hasOwnText(element) || isOurs(element)) continue;
+      const rect = element.getBoundingClientRect();
+      if (!isVisible(element, rect)) continue;
+      count += 1;
+      measured.rects.set(element, rect);
+      if (saved.get(element)?.has("font-size")) {
+        measured.grownBefore.add(element);
+        if (element.parentElement) measured.parents.set(element, element.parentElement.getBoundingClientRect());
+      }
+    }
   }
 
   /**
@@ -192,6 +227,9 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
       grown.set(element, kind);
     }
     if (grown.size === 0) return;
+    // vecinii măriți mai demult: dacă acum acoperă un text nou, li se anulează mărirea, ca la o trecere întreagă
+    for (const element of measured.grownBefore)
+      if (!grown.has(element)) grown.set(element, { font: true, target: false });
     // Doar citim de aici până la anulări: browserul face layout-ul o dată, iar dreptunghiurile se refolosesc.
     const after = new Map<HTMLElement, DOMRect>();
     const afterOf = (element: HTMLElement): DOMRect => {
@@ -227,10 +265,17 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
         continue;
       }
       const now = afterOf(element);
+      // un vecin mărit mai demult e suspect oricum: dacă textul nou a ajuns peste el, cineva trebuie să cedeze, și
+      // cedează mărirea veche, ca la o trecere întreagă
       const textSuspect =
-        kind.font && (isOutOfFlow(element, outOfFlow) || spilled(element, before, now, measured.parents.get(element)));
+        kind.font &&
+        (measured.grownBefore.has(element) ||
+          isOutOfFlow(element, outOfFlow) ||
+          spilled(element, before, now, measured.parents.get(element)));
       if (!kind.target && !textSuspect) continue;
-      if (!overlapsNewText(element, before, now, texts, measured.rects, afterOf, linesOf)) continue;
+      // Un text mărit acoperă ceva doar cu rândurile lui; o țintă mărită, cu toată cutia (avatarul din Teams).
+      const covering = kind.target ? [now] : linesOf(element);
+      if (!overlapsNewText(element, before, now, covering, texts, measured.rects, afterOf, linesOf)) continue;
       undo.push([element, [...(kind.target ? TARGET_GROWTH : []), ...(textSuspect ? FONT_GROWTH : [])]]);
     }
     for (const [element, properties] of undo) restoreProperties(element, properties);
@@ -410,6 +455,21 @@ function overlaps(a: DOMRect, b: DOMRect): boolean {
   return width > OVERLAP_MIN_PX && height > OVERLAP_MIN_PX;
 }
 
+/** Partea comună a două dreptunghiuri (zero pe o axă unde nu se ating). */
+function intersection(a: DOMRect, b: DOMRect): { width: number; height: number } {
+  return {
+    width: Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)),
+    height: Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)),
+  };
+}
+
+/** Suprapunerea dintre element și text a crescut, pe lățime sau pe înălțime, mai mult decât o atingere de margini. */
+function overlapGrew(elementBefore: DOMRect, textBefore: DOMRect, elementNow: DOMRect, textNow: DOMRect): boolean {
+  const was = intersection(elementBefore, textBefore);
+  const is = intersection(elementNow, textNow);
+  return is.width > was.width + OVERLAP_MIN_PX || is.height > was.height + OVERLAP_MIN_PX;
+}
+
 /** `inner` iese din `outer` mai mult decât o atingere de margini. */
 function outside(inner: DOMRect, outer: DOMRect): boolean {
   return (
@@ -457,20 +517,27 @@ function overlapsNewText(
   element: HTMLElement,
   before: DOMRect,
   now: DOMRect,
+  covering: DOMRect[],
   texts: TextGrid,
   beforeRects: Map<HTMLElement, DOMRect>,
   afterOf: (element: HTMLElement) => DOMRect,
   linesOf: (element: HTMLElement) => DOMRect[],
 ): boolean {
+  // Cutia unui text pe mai multe rânduri cuprinde și ce stă înaintea primului rând (linkul „^ a b” din fața unei note
+  // Wikipedia), deci comparăm rândurile. Fără rânduri măsurabile, rămâne cutia.
+  const parts = covering.length > 0 ? covering : [now];
   for (const text of texts.near(now)) {
     if (text === element || !overlaps(now, afterOf(text))) continue;
+    // Ce se suprapunea deja înainte e alegerea site-ului, cât timp suprapunerea nu crește. Colțul unui mesaj WhatsApp
+    // editat («Editat 08:58») atinge deja cutia mesajului (cu spațiul lăsat pentru colț), dar mărit îi acoperă textul.
     const textBefore = beforeRects.get(text);
-    if (textBefore && overlaps(before, textBefore)) continue;
+    if (textBefore && overlaps(before, textBefore) && !overlapGrew(before, textBefore, now, afterOf(text))) continue;
     if (element.contains(text) || text.contains(element)) continue;
     // Cutia unui paragraf trece și pe sub un float (caseta din dreapta pe Wikipedia), dar rândurile lui îl ocolesc:
     // contează doar dacă elementul mărit acoperă rândurile de text. Fără rânduri măsurabile, rămâne cutia.
     const lines = linesOf(text);
-    if (lines.length > 0 && !lines.some((line) => overlaps(now, line))) continue;
+    const textParts = lines.length > 0 ? lines : [afterOf(text)];
+    if (!parts.some((part) => textParts.some((line) => overlaps(part, line)))) continue;
     return true;
   }
   return false;

@@ -12,6 +12,7 @@ describe("dislikeCss: ce ascundem, fără AI", () => {
     expect(css).toContain("ytd-reel-shelf-renderer");
     expect(css).toContain(':has(a[href^="/shorts/"])');
     expect(css).toContain("ins.adsbygoogle");
+    expect(css).toContain('[data-scope-id="turn"]'); // „Rezumat generat de AI” din Google în română
     expect(css).toContain("display: none !important");
   });
 

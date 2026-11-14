@@ -260,6 +260,30 @@ describe("verificarea de după scriere (Teams, WhatsApp, Instagram, găsite de A
     expect(fontOf("mesaj")).toBe(20);
   });
 
+  it("WhatsApp, mesaj editat: «Editat 08:58» atingea deja cutia mesajului, dar mărit îl acoperă: rămâne mic (găsit de E)", () => {
+    page(`
+      <div id="bula-editata" data-rect="300,40">
+        <span id="mesaj-lung" style="font-size: 14px">Ajung puțin mai târziu, pornesc acum de acasă</span>
+        <div id="meta-editat" style="position: absolute"><span id="editat" style="font-size: 11px">Editat</span><span id="ora-editat" style="font-size: 11px">08:58</span></div>
+      </div>`);
+    // cutia mesajului ține toată lățimea bulei (cu spațiul lăsat pentru colț), deci atinge colțul încă de la început;
+    // bula crește odată cu mesajul, iar colțul stă lipit de marginea ei de jos
+    const messageHeight = () => (40 * px(el("mesaj-lung").style.fontSize, 14)) / 14;
+    layout("bula-editata", () => new DOMRect(0, 0, 300, messageHeight()));
+    layout("mesaj-lung", () => new DOMRect(0, 0, 300, messageHeight()));
+    const corner = (id: string, offset: number, width: number) =>
+      layout(id, (e) => {
+        const scale = px(e.style.fontSize, 11) / 11;
+        return new DOMRect(300 - (offset + width) * scale, messageHeight() - 14 * scale, width * scale, 14 * scale);
+      });
+    corner("ora-editat", 0, 30);
+    corner("editat", 30, 34);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("editat")).toBe(11);
+    expect(fontOf("ora-editat")).toBe(11);
+    expect(fontOf("mesaj-lung")).toBe(20);
+  });
+
   it("Instagram: linkul din jurul unei poze nu se mărește dacă poza ar crește odată cu el", () => {
     page(
       `<p id="nume-ig" style="font-size: 20px">utilizator</p><a id="link" href="/u"><img id="poza" alt="profil"></a>`,
@@ -380,5 +404,32 @@ describe("etichetele pe un rând rămân la locul lor (YouTube și Instagram, g�
     base = startBasePreferences({ needs: { minFontPx: 16 }, ourHostId: HOST_ID });
     expect(fontOf("rand")).toBe(16);
     expect(ours("rand", "line-height")).toBe(false);
+  });
+});
+
+describe("conținutul încărcat mai târziu e verificat împreună cu vecinii (Google, găsit de E)", () => {
+  it("adresa mărită la încărcare revine când linkul «Traducerea acestei pagini» apare și crește peste ea", async () => {
+    page(
+      `<div id="rezultat"><div id="rand"><cite id="adresa" style="font-size: 12px">https://www.wikipedia.org</cite></div></div>`,
+    );
+    layout("adresa", (c) => new DOMRect(124, 334, (135 * px(c.style.fontSize, 12)) / 12, 18));
+    base = startBasePreferences({ needs: { minFontPx: 20 }, ourHostId: HOST_ID });
+    expect(fontOf("adresa")).toBe(20); // singură pe rând, la încărcare: nimic de acoperit
+
+    // linkul apare după încărcare, aliniat la dreapta rândului: crescut, se întinde spre stânga, peste adresă
+    const link = document.createElement("a");
+    link.id = "traducere";
+    link.href = "/t";
+    link.style.fontSize = "12px";
+    link.textContent = "Traducerea acestei pagini";
+    el("rand").append(link);
+    layout("traducere", (t) => {
+      const width = (120 * px(t.style.fontSize, 12)) / 12;
+      return new DOMRect(520 - width, 334, width, 18);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(fontOf("traducere")).toBe(20);
+    expect(fontOf("adresa")).toBe(12); // ca la o trecere întreagă: adresa nu mai stă sub link
   });
 });
