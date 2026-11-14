@@ -30,6 +30,15 @@
       p {
         margin: 0 0 var(--uis-space);
       }
+      .expert-toggle {
+        display: flex;
+        gap: var(--uis-space);
+        align-items: flex-start;
+      }
+      .expert-toggle input {
+        min-width: calc(var(--uis-space) * 3);
+        min-height: calc(var(--uis-space) * 3);
+      }
       .muted {
         color: var(--uis-muted);
       }
@@ -120,6 +129,14 @@
       <p id="account-status" role="status" class="muted"></p>
     </section>
 
+    <section aria-labelledby="expert-title">
+      <h2 id="expert-title">Mod expert</h2>
+      <label class="expert-toggle">
+        <input type="checkbox" id="expert-mode" data-agent-id="popup.expert-mode" />
+        Agentul poate rula cod în pagină, după ce îl vezi și apeși „Rulează”
+      </label>
+      <p id="expert-status" role="status" class="muted"></p>
+    </section>
     <details class="demo">
       <summary>Pentru demo</summary>
       <button type="button" id="demo-profile" class="secondary" data-agent-id="popup.demo-profile">
