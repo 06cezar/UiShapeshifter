@@ -89,3 +89,10 @@ agentul repară → audit 0 → Păstrez, 26–40 s. Videoul rămâne doar rezer
   Doar dacă `x-mod-js` e unit pe `main` (DECISIONS.md, 14 nov. 11:45). În demo arătăm fereastra de aprobare cu codul la
   vedere. Spunem cinstit: codul rulat nu intră în rețetă, nu se reaplică la reîncărcare și „Anulez” nu îl dă înapoi.
   Altfel, Modul expert e direcție viitoare, la fel ca mobilul.
+- **Direcție viitoare: consilierul anti-înșelătorii:** „Pe aceeași buclă se pot adăuga abilități noi. De pildă, un
+  consilier anti-înșelătorii: marchează pe pagină postările și ofertele suspecte și îți arată sursele găsite, fără să
+  ascundă nimic în locul tău. Tu decizi ce crezi; agentul doar îți arată unde să te uiți.”
+  De ce nu e în demo (14 nov. 12:10): verificarea surselor cere acces la web, iar agentul nu are încă așa ceva (nicio
+  unealtă de căutare pe server, niciun model OpenRouter `:online`). Ar fi însemnat o unealtă și un contract noi, prompt,
+  interfață și pași în jurnal după îngheț. Un verdict „adevărat/fals” pe care nu-l putem verifica live ar fi stricat
+  încrederea mai mult decât ajută. Dacă juriul întreabă, spunem exact asta.
