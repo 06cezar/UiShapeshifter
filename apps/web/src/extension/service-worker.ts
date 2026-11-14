@@ -59,7 +59,8 @@ const popupPorts = new Set<chrome.runtime.Port>();
 let activeTabId: number | undefined;
 chrome.tabs.onActivated.addListener(({ tabId }) => (activeTabId = tabId));
 // După o repornire a service worker-ului nu știm încă tab-ul activ: îl cerem o dată.
-void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => (activeTabId ??= tab?.id));
+// După o repornire a service worker-ului, „currentWindow” poate să nu existe: luăm fereastra folosită ultima.
+void chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(([tab]) => (activeTabId ??= tab?.id));
 const router = createRunRouter<chrome.runtime.Port>({
   activePort: () => [...pagePorts].find((port) => port.sender?.tab?.id === activeTabId),
   hostOf: (port) => {
@@ -142,6 +143,13 @@ chrome.runtime.onConnect.addListener((port) => {
     if (!message) return console.warn("extensie: mesaj nerecunoscut de la", port.name, raw);
     if (message.type === "get_status") return post(port, statusMessage());
     if (port.name === PAGE_PORT && message.message.type === "user_message") router.requestedBy(port);
+    if (
+      port.name === PAGE_PORT &&
+      message.message.type === "suggestion_decision" &&
+      message.message.decision === "accept"
+    ) {
+      router.acceptedSuggestionIn(port);
+    }
     void linkReady.then((ready) => ready.send(message.message));
   });
 

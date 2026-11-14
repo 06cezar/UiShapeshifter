@@ -10,7 +10,9 @@ export const SUGGESTION_TIMEOUT_MS = 45_000;
 
 const BUBBLE_CSS = `
 .suggestion {
-  position: fixed; left: 16px; bottom: 96px; width: min(360px, calc(100vw - 32px)); box-sizing: border-box;
+  /* în dreapta, deasupra mascotei care o propune; chatul stă în stânga, deci nu-i acoperim câmpul (nota lui B, D5) */
+  position: fixed; right: calc(var(--uis-space) * 2); bottom: calc(var(--uis-target) * 3);
+  width: min(calc(var(--uis-target) * 7), calc(100vw - var(--uis-space) * 4)); box-sizing: border-box;
   display: flex; flex-direction: column; gap: var(--uis-space);
   padding: calc(var(--uis-space) * 2); background: var(--uis-bg); color: var(--uis-fg);
   font: var(--uis-font-size)/1.5 var(--uis-font); border-radius: calc(var(--uis-space) * 2);

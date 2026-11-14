@@ -207,6 +207,15 @@ describe("rulările pornite de server (adaptare, test inițial)", () => {
     expect(router.targetsFor(suggestion("alt.example"), open)).toEqual([]);
   });
 
+  test("după „Da” la o propunere, rularea de adaptare lucrează în tab-ul unde s-a apăsat (D5, nota lui B)", () => {
+    // service worker-ul repornit: nu știe tab-ul activ și nici cine a cerut ultimul
+    const router = createRunRouter<string>({ activePort: () => undefined });
+    const open = new Set(["tab-test", "tab-alt"]);
+    router.acceptedSuggestionIn("tab-test");
+    router.targetsFor(started("r-adapt", "adaptation"), open);
+    expect(router.targetsFor(toolCall("r-adapt"), open)).toEqual(["tab-test"]);
+  });
+
   test("fără tab activ cunoscut, merg la ultimul tab care a cerut ceva", () => {
     const router = createRunRouter<string>();
     const open = new Set(["tab-a", "tab-b"]);

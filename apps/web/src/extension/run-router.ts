@@ -23,6 +23,8 @@ export function runIdOf(message: ServerMessage): string | undefined {
 export interface RunRouter<P> {
   /** Tab-ul a trimis un user_message: rularea care pornește acum e a lui. */
   requestedBy(port: P): void;
+  /** Omul a spus „Da” la o propunere a adaptării în tab-ul ăsta: rularea de adaptare care urmează e a lui. */
+  acceptedSuggestionIn(port: P): void;
   /** Porturile cărora le trimitem mesajul. */
   targetsFor(message: ServerMessage, openPorts: ReadonlySet<P>): P[];
   /** Tab închis: uităm rulările lui. */
@@ -42,11 +44,17 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
   const waitingForRun: P[] = [];
   /** Ultimul tab care a cerut ceva: primește mesajele fără runId (ex. „error”). */
   let lastRequester: P | null = null;
+  /** Tab-ul în care omul a spus „Da” la o propunere: acolo lucrează rularea de adaptare care pornește după. */
+  let suggestionAcceptedIn: P | null = null;
 
   return {
     requestedBy(port) {
       waitingForRun.push(port);
       lastRequester = port;
+    },
+
+    acceptedSuggestionIn(port) {
+      suggestionAcceptedIn = port;
     },
 
     targetsFor(message, openPorts) {
@@ -75,7 +83,11 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
           if (port !== undefined) portOfRun.set(message.runId, port);
         } else {
           // Adaptarea (E3) și testul inițial (C3) le pornește serverul: n-au tab, dar uneltele lor trebuie să ajungă undeva.
-          const port = fallback();
+          // Întâi tab-ul unde omul a spus „Da” (după o repornire a service worker-ului, tab-ul activ poate lipsi: D5, B).
+          const accepted =
+            suggestionAcceptedIn !== null && openPorts.has(suggestionAcceptedIn) ? suggestionAcceptedIn : undefined;
+          suggestionAcceptedIn = null;
+          const port = accepted ?? fallback();
           if (port !== undefined) portOfRun.set(message.runId, port);
         }
       }
@@ -95,6 +107,7 @@ export function createRunRouter<P>(options: RunRouterOptions<P> = {}): RunRouter
       for (const [runId, owner] of portOfRun) if (owner === port) portOfRun.delete(runId);
       for (let i = waitingForRun.length - 1; i >= 0; i--) if (waitingForRun[i] === port) waitingForRun.splice(i, 1);
       if (lastRequester === port) lastRequester = null;
+      if (suggestionAcceptedIn === port) suggestionAcceptedIn = null;
     },
   };
 }
