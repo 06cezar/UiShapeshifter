@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "793c001877e706dff82c9c9e822e73edd58546bc",
-  "last_run": "2026-11-14T03:51:53Z",
+  "last_comms_sha": "e8f75812d6e91a827e8eeac93a0a4cf6c4f3c12c",
+  "last_run": "2026-11-14T04:00:49Z",
   "last_sha": "7225ca0c9428fd1be34ee438dbe6a7585732bdaa",
   "prs": {
     "1": {
@@ -35,6 +35,11 @@
     },
     "100": {
       "head": "c-c4-etichete-fixe",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "101": {
+      "head": "a-fundalul-paginii",
       "merged_at": null,
       "state": "OPEN"
     },
