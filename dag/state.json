@@ -25,8 +25,8 @@
       }
     }
   },
-  "last_comms_sha": "745b7aaeb86fb710ba10af1c5811eae18f458d64",
-  "last_run": "2026-11-14T10:43:56Z",
+  "last_comms_sha": "c8bb84dd7863ea98b513da734819de0621d5cf94",
+  "last_run": "2026-11-14T10:44:47Z",
   "last_sha": "5ff25be9cbf24cd5a877da5e11ae5c5af8fa2498",
   "prs": {
     "1": {
@@ -381,6 +381,11 @@
     },
     "162": {
       "head": "d-chat-port-pierdut",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "163": {
+      "head": "a-fara-date-inventate",
       "merged_at": null,
       "state": "OPEN"
     },
