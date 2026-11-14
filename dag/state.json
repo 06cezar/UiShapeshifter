@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "30fc3c39dfe5fcebf4efea430ec9e46d3b21644b",
-  "last_run": "2026-11-14T00:25:02Z",
-  "last_sha": "8dbc7e16d34ba81f611679953fbb91d4d10cb6fd",
+  "last_run": "2026-11-14T00:28:00Z",
+  "last_sha": "7eb88a6a88272a15d330bffe161d31cdb559ecaf",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -320,8 +320,8 @@
     },
     "63": {
       "head": "e-onboarding-legat",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:27:46Z",
+      "state": "MERGED"
     },
     "64": {
       "head": "c-scope-cerere",
