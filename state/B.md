@@ -1,3 +1,3 @@
-2026-11-14 05:55
+2026-11-14 08:27
 
-05:55: comms wait oprit la cererea lui Ștefan. B4 și undoRequest sunt la C (#83, b-undo-request). Serverul și site-ul de test încă rulează local.
+gata: proba M3 (a, b, c trecute; d neprobata, Brave fara recunoastere vocala); urmeaza: doar reparatii de demo cu review D; blocat: nimic
