@@ -119,6 +119,7 @@ describe("createOpenRouterDecider", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("recipe.requests are"); // „anulează ce am cerut cu X” → undo_request (#126)
     expect(system).toContain("Acțiune de o singură dată"); // proba Iuliei: „dă-i play” lăsa un buton permanent
     expect(system).toContain("Nu legi (bind) de elemente care apar doar la hover"); // proba Iuliei pe YouTube
     expect(system).toContain("nu gândirea ta"); // Opus 5.5 refuza cererea de a-și scrie raționamentul (content_filter)

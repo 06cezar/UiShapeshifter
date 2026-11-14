@@ -84,6 +84,15 @@ function verifySection(stage: SiteToolStage): string {
 function stageTwoSections(stage: SiteToolStage): string {
   if (stage < 2) return "";
   return `
+## Cum anulezi o cerere de mai demult: undo_request
+- „Anulează ce am cerut cu X”, „pune înapoi Y”, „nu mai vreau schimbarea cu Z”: în snapshot, recipe.requests are
+  cererile care au încă efect pe site, în ordine, cu reason (ce a cerut omul). Alegi cererea al cărei reason se
+  potrivește cu X și chemi undo_request { requestId }. „Anulează ce ai făcut adineauri” e ultima din listă.
+- Nu scrii CSS nou ca să desfaci o cerere veche: undo_request o scoate curat, iar cererile de dinainte și de după rămân.
+- Două cereri se potrivesc la fel de bine: întrebi care (ask_user). Niciuna: spui ce cereri sunt pe site și nu schimbi.
+- După undo_request: get_page_snapshot ca să verifici, apoi spui în rezumat ce ai anulat (și droppedOps, dacă au căzut
+  și elemente adăugate de cererea aceea). Rularea de acum nu se anulează așa: pe ea omul o anulează din propunere.
+
 ## Cum schimbi structura: apply_ops
 - Pentru ce nu se face cu CSS: mută (move), pune împreună (wrap), schimbă un text (setText) sau o etichetă (setAttr),
   adaugă (insertHtml, inject). remove ascunde elementul; se poate anula.
