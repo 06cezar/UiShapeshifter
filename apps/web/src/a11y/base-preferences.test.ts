@@ -260,6 +260,30 @@ describe("verificarea de după scriere (Teams, WhatsApp, Instagram, găsite de A
     expect(fontOf("mesaj")).toBe(20);
   });
 
+  it("WhatsApp, mesaj editat: «Editat 08:58» atingea deja cutia mesajului, dar mărit îl acoperă: rămâne mic (găsit de E)", () => {
+    page(`
+      <div id="bula-editata" data-rect="300,40">
+        <span id="mesaj-lung" style="font-size: 14px">Ajung puțin mai târziu, pornesc acum de acasă</span>
+        <div id="meta-editat" style="position: absolute"><span id="editat" style="font-size: 11px">Editat</span><span id="ora-editat" style="font-size: 11px">08:58</span></div>
+      </div>`);
+    // cutia mesajului ține toată lățimea bulei (cu spațiul lăsat pentru colț), deci atinge colțul încă de la început;
+    // bula crește odată cu mesajul, iar colțul stă lipit de marginea ei de jos
+    const messageHeight = () => (40 * px(el("mesaj-lung").style.fontSize, 14)) / 14;
+    layout("bula-editata", () => new DOMRect(0, 0, 300, messageHeight()));
+    layout("mesaj-lung", () => new DOMRect(0, 0, 300, messageHeight()));
+    const corner = (id: string, offset: number, width: number) =>
+      layout(id, (e) => {
+        const scale = px(e.style.fontSize, 11) / 11;
+        return new DOMRect(300 - (offset + width) * scale, messageHeight() - 14 * scale, width * scale, 14 * scale);
+      });
+    corner("ora-editat", 0, 30);
+    corner("editat", 30, 34);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("editat")).toBe(11);
+    expect(fontOf("ora-editat")).toBe(11);
+    expect(fontOf("mesaj-lung")).toBe(20);
+  });
+
   it("Instagram: linkul din jurul unei poze nu se mărește dacă poza ar crește odată cu el", () => {
     page(
       `<p id="nume-ig" style="font-size: 20px">utilizator</p><a id="link" href="/u"><img id="poza" alt="profil"></a>`,

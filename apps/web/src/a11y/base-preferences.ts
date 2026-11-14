@@ -273,7 +273,9 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
           isOutOfFlow(element, outOfFlow) ||
           spilled(element, before, now, measured.parents.get(element)));
       if (!kind.target && !textSuspect) continue;
-      if (!overlapsNewText(element, before, now, texts, measured.rects, afterOf, linesOf)) continue;
+      // Un text mărit acoperă ceva doar cu rândurile lui; o țintă mărită, cu toată cutia (avatarul din Teams).
+      const covering = kind.target ? [now] : linesOf(element);
+      if (!overlapsNewText(element, before, now, covering, texts, measured.rects, afterOf, linesOf)) continue;
       undo.push([element, [...(kind.target ? TARGET_GROWTH : []), ...(textSuspect ? FONT_GROWTH : [])]]);
     }
     for (const [element, properties] of undo) restoreProperties(element, properties);
@@ -453,6 +455,21 @@ function overlaps(a: DOMRect, b: DOMRect): boolean {
   return width > OVERLAP_MIN_PX && height > OVERLAP_MIN_PX;
 }
 
+/** Partea comună a două dreptunghiuri (zero pe o axă unde nu se ating). */
+function intersection(a: DOMRect, b: DOMRect): { width: number; height: number } {
+  return {
+    width: Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)),
+    height: Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)),
+  };
+}
+
+/** Suprapunerea dintre element și text a crescut, pe lățime sau pe înălțime, mai mult decât o atingere de margini. */
+function overlapGrew(elementBefore: DOMRect, textBefore: DOMRect, elementNow: DOMRect, textNow: DOMRect): boolean {
+  const was = intersection(elementBefore, textBefore);
+  const is = intersection(elementNow, textNow);
+  return is.width > was.width + OVERLAP_MIN_PX || is.height > was.height + OVERLAP_MIN_PX;
+}
+
 /** `inner` iese din `outer` mai mult decât o atingere de margini. */
 function outside(inner: DOMRect, outer: DOMRect): boolean {
   return (
@@ -500,20 +517,27 @@ function overlapsNewText(
   element: HTMLElement,
   before: DOMRect,
   now: DOMRect,
+  covering: DOMRect[],
   texts: TextGrid,
   beforeRects: Map<HTMLElement, DOMRect>,
   afterOf: (element: HTMLElement) => DOMRect,
   linesOf: (element: HTMLElement) => DOMRect[],
 ): boolean {
+  // Cutia unui text pe mai multe rânduri cuprinde și ce stă înaintea primului rând (linkul „^ a b” din fața unei note
+  // Wikipedia), deci comparăm rândurile. Fără rânduri măsurabile, rămâne cutia.
+  const parts = covering.length > 0 ? covering : [now];
   for (const text of texts.near(now)) {
     if (text === element || !overlaps(now, afterOf(text))) continue;
+    // Ce se suprapunea deja înainte e alegerea site-ului, cât timp suprapunerea nu crește. Colțul unui mesaj WhatsApp
+    // editat («Editat 08:58») atinge deja cutia mesajului (cu spațiul lăsat pentru colț), dar mărit îi acoperă textul.
     const textBefore = beforeRects.get(text);
-    if (textBefore && overlaps(before, textBefore)) continue;
+    if (textBefore && overlaps(before, textBefore) && !overlapGrew(before, textBefore, now, afterOf(text))) continue;
     if (element.contains(text) || text.contains(element)) continue;
     // Cutia unui paragraf trece și pe sub un float (caseta din dreapta pe Wikipedia), dar rândurile lui îl ocolesc:
     // contează doar dacă elementul mărit acoperă rândurile de text. Fără rânduri măsurabile, rămâne cutia.
     const lines = linesOf(text);
-    if (lines.length > 0 && !lines.some((line) => overlaps(now, line))) continue;
+    const textParts = lines.length > 0 ? lines : [afterOf(text)];
+    if (!parts.some((part) => textParts.some((line) => overlaps(part, line)))) continue;
     return true;
   }
   return false;
