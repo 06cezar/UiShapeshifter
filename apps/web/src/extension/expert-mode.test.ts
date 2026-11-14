@@ -22,10 +22,33 @@ describe("modul expert", () => {
   });
 
   test("codul învelit întoarce valoarea sau eroarea", async () => {
-    // eslint-disable-next-line no-new-func -- doar în test: verificăm învelitoarea pe care o rulează userScripts
-    const run = (code: string) => new Function(`return ${wrapCode(code)}`)() as Promise<unknown>;
+    // ca userScripts.execute: rezultatul e valoarea ultimei instrucțiuni a scriptului (eval indirect, doar în test)
+    const run = (code: string) => (0, eval)(wrapCode(code)) as Promise<unknown>;
     expect(await run("return 1 + 2;")).toBe(3);
     expect(runJsDataFrom(await run("throw new Error('nu merge')"))).toEqual({ status: "ran", error: "nu merge" });
+  });
+
+  test("al doilea strat: rețeaua, cookie-urile, stocarea și adresele noi sunt oprite; citirea paginii merge", async () => {
+    document.body.innerHTML = `<a href="https://site.example/plata">Plătește</a><img id="poza" src="https://site.example/a.png">`;
+    const run = async (code: string) => runJsDataFrom(await ((0, eval)(wrapCode(code)) as Promise<unknown>));
+    expect(await run(`return window["fe" + "tch"]`)).toMatchObject({
+      error: expect.stringMatching(/fetch nu e permis/),
+    });
+    expect(await run(`return document["coo" + "kie"]`)).toMatchObject({
+      error: expect.stringMatching(/cookie nu e permis/),
+    });
+    expect(await run(`return localStorage.getItem("x")`)).toMatchObject({
+      error: expect.stringMatching(/localStorage/),
+    });
+    expect(await run(`document.getElementById("poza").src = "https://rau.example/?d=1"`)).toMatchObject({
+      error: expect.stringMatching(/src nu e permis/),
+    });
+    expect(await run(`document.querySelector("a").setAttribute("href", "https://rau.example")`)).toMatchObject({
+      error: expect.stringMatching(/href nu e permis/),
+    });
+    expect(
+      await run(`return document.querySelector("a").textContent + " " + document.querySelectorAll("img").length`),
+    ).toEqual({ status: "ran", result: "Plătește 1" });
   });
 
   test("rezultatul ajunge la agent ca text, tăiat la limită", () => {

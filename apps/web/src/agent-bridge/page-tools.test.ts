@@ -249,6 +249,8 @@ describe("run_js: modul expert (experiment, specs/05): plasa și aprobarea omulu
     expect(question).toContain(CODE);
     expect(question).toContain("„Anulez” nu-l poate da înapoi");
     expect(options).toEqual(["Rulează", "Nu rula"]);
+    // aprobarea cere un om real: scriptul paginii nu poate apăsa „Rulează” (isTrusted)
+    expect(askUser.mock.calls[0]![2]).toEqual({ humanOnly: true });
     expect(executeJs).toHaveBeenCalledWith(CODE);
     expect(result).toEqual({ ok: true, data: ran });
   });

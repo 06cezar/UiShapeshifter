@@ -52,7 +52,7 @@ export interface PageToolDeps {
    * Întrebarea agentului în chat, cu variante ca butoane (D, chat.ask). `null` = omul n-a răspuns (2 min, rularea s-a
    * terminat sau a venit altă întrebare).
    */
-  askUser?(question: string, options?: string[]): Promise<string | null>;
+  askUser?(question: string, options?: string[], opts?: { humanOnly?: boolean }): Promise<string | null>;
   /**
    * Scoate o singură cerere din rețeta site-ului (motorul de rețete, `undoRequest`, #82); cele de dinainte și de după
    * rămân. Aceeași funcție ca „Anulez” din lista „Ce ai cerut aici” a panoului.
@@ -222,10 +222,12 @@ export async function runPageTool(
         if (!deps.executeJs || !deps.askUser || (deps.expertModeOn && !(await deps.expertModeOn()))) {
           return { ok: true, data: { status: "disabled" } };
         }
-        const answer = await deps.askUser(runJsApprovalText(checked.purpose, checked.code), [
-          RUN_JS_APPROVE,
-          RUN_JS_DECLINE,
-        ]);
+        // humanOnly: doar un click sau un Enter reale aprobă; scriptul paginii nu poate apăsa „Rulează” în locul omului
+        const answer = await deps.askUser(
+          runJsApprovalText(checked.purpose, checked.code),
+          [RUN_JS_APPROVE, RUN_JS_DECLINE],
+          { humanOnly: true },
+        );
         // doar „Rulează” pornește codul; orice alt răspuns, sau niciunul, înseamnă nu
         if (answer?.trim() !== RUN_JS_APPROVE) return { ok: true, data: { status: "declined" } };
         const ran = await deps.executeJs(checked.code);

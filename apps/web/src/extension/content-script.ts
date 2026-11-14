@@ -307,7 +307,7 @@ function start() {
   const tools: PageToolDeps = {
     registry,
     ourHostId: HOST_ID,
-    askUser: (question, options) => chat.ask(question, options),
+    askUser: (question, options, opts) => chat.ask(question, options, opts),
     // „anulează ce am cerut cu X” din chat: la fel ca „Anulez” din lista panoului, apoi limitele de bază din nou
     undoRequest: async (requestId) => {
       const result = await recipes.undoRequest(requestId);

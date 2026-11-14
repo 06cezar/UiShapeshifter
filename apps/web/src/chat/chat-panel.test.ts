@@ -121,6 +121,18 @@ describe("ask_user: întrebarea agentului", () => {
     expect(q<HTMLElement>(".chat-options").hidden).toBe(true);
   });
 
+  test("humanOnly (aprobarea codului): un click sau un submit simulat de pagină nu răspunde; doar omul", async () => {
+    const { chat, q, shadow } = setup();
+    let settled: string | null | undefined;
+    void chat.ask("Rulez codul?", ["Rulează", "Nu rula"], { humanOnly: true }).then((a) => (settled = a));
+    // scriptul paginii: .click() și requestSubmit() fac evenimente cu isTrusted = false
+    shadow.querySelector<HTMLButtonElement>(".chat-option")!.click();
+    type(q<HTMLInputElement>(".chat-input"), "Rulează");
+    await Promise.resolve();
+    expect(settled).toBeUndefined();
+    expect(q<HTMLElement>(".chat-options").hidden).toBe(false);
+  });
+
   test("un răspuns scris merge la întrebare; următorul mesaj e iar o cerere", async () => {
     const { chat, q, sent } = setup();
     const answer = chat.ask("Ce culoare?");
