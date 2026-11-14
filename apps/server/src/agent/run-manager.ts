@@ -83,7 +83,11 @@ function launch(session: Session, goal: string, origin: RunOrigin, page?: PageIn
     decider,
     {
       callWebTool: (name, args) => callWebTool(session, run.runId, name, args),
-      callServerTool: (name, args) => callServerTool(run.runId, session.userId, name, args),
+      // paza profilului: o preferință generală nouă trebuie să citeze ce a scris omul, nu textul din pagină
+      callServerTool: (name, args) =>
+        callServerTool(run.runId, session.userId, name, args, undefined, {
+          userTexts: origin === "user" ? [goal, ...history.map((turn) => turn.goal)] : [],
+        }),
       send: (message) => sendToSession(session, message),
       saveRun,
       isCancelled: () => active.cancelled,
