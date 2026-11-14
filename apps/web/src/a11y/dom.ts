@@ -54,6 +54,71 @@ export function factsOf(el: HTMLElement): DomFacts {
   return facts;
 }
 
+/** De la atâtea rânduri în sus, cutia elementului arată text pe mai multe rânduri (rezervă, fără `Range`). */
+const MULTI_LINE_BOX_FACTOR = 1.5;
+
+/** Dreptunghiurile rândurilor de text proprii ale elementului (fără copiii lui), cum le desenează browserul. */
+export function ownTextRects(el: Element): DOMRect[] {
+  const range = el.ownerDocument.createRange();
+  const rects: DOMRect[] = [];
+  for (const node of el.childNodes) {
+    if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) continue;
+    range.selectNodeContents(node);
+    rects.push(...Array.from(range.getClientRects()));
+  }
+  return rects;
+}
+
+/**
+ * Textul propriu al elementului stă pe un singur rând: o etichetă, un număr, un nume (nu un paragraf). Spațierea
+ * rândurilor (WCAG 1.4.12) n-are ce îmbunătăți acolo, iar un rând mai înalt mută eticheta față de vecinii ei.
+ * Numărăm rândurile desenate; unde motorul nu le dă (teste), judecăm după înălțimea cutiei.
+ */
+export function isSingleLineText(
+  el: HTMLElement,
+  cs: CSSStyleDeclaration = getComputedStyle(el),
+  rect: DOMRect = el.getBoundingClientRect(),
+): boolean {
+  const lines = ownTextRects(el)
+    .filter((line) => line.width > 0 && line.height > 0)
+    .sort((a, b) => a.top - b.top);
+  if (lines.length > 0) {
+    let lastTop = lines[0]!.top;
+    for (const line of lines) {
+      // alt rând = începe mai jos cu peste jumătate din înălțimea lui (bucățile aceluiași rând au același „top”)
+      if (line.top - lastTop > line.height / 2) return false;
+      lastTop = line.top;
+    }
+    return true;
+  }
+  const fontPx = parseFloat(cs.fontSize);
+  const lineHeightPx = cs.lineHeight === "normal" ? NORMAL_LINE_HEIGHT * fontPx : parseFloat(cs.lineHeight);
+  if (!(lineHeightPx > 0)) return false;
+  return rect.height < MULTI_LINE_BOX_FACTOR * lineHeightPx;
+}
+
+/** Cât urcăm de la text după cutia care îi limitează înălțimea (titlul unui card: span → a → h3). */
+const HEIGHT_LIMIT_DEPTH = 3;
+/** Valorile `overflow-y` cu care o cutie ascunde ce nu încape în ea. */
+const HIDING_OVERFLOW_Y = new Set(["hidden", "clip"]);
+
+/**
+ * Textul stă într-o cutie cu înălțimea socotită de site pe rândurile lui: un titlu tăiat la două rânduri
+ * (`-webkit-line-clamp`) sau o cutie cu `max-height` în px care ascunde restul. Rânduri mai înalte acolo n-ar aerisi
+ * textul, ci i-ar tăia ultimul rând (titlurile din lista de clipuri de pe YouTube: 2 × 20px într-o cutie de 40px).
+ */
+export function isInHeightLimitedBox(el: Element): boolean {
+  let node: Element | null = el;
+  for (let depth = 0; node && depth <= HEIGHT_LIMIT_DEPTH; depth++, node = node.parentElement) {
+    const cs = getComputedStyle(node);
+    const clamp = cs.getPropertyValue("-webkit-line-clamp");
+    if (clamp !== "" && clamp !== "none") return true;
+    // `overflow` scurt, unde motorul nu desface `overflow-y` (happy-dom în teste)
+    if (cs.maxHeight.endsWith("px") && HIDING_OVERFLOW_Y.has(cs.overflowY || cs.overflow)) return true;
+  }
+  return false;
+}
+
 /** Fundalul efectiv: fundalurile strămoșilor compuse de jos în sus, peste alb. */
 export function effectiveBackground(el: Element | null): Rgba {
   const layers: Rgba[] = [];

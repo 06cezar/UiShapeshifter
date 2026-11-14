@@ -24,7 +24,7 @@ niveluri, în ordinea asta:
 | `overlap` | două elemente interactive vizibile nu se suprapun (intersecție > 4px²) | – |
 | `clipped` | textul nu e tăiat (`scrollWidth > clientWidth + 1`, fără `text-overflow` intenționat) | WCAG 1.4.10 |
 | `offscreen` | niciun element interactiv în afara ecranului pe orizontală | WCAG 1.4.10 |
-| `line-height` | ≥ 1.5 pentru textul de conținut | WCAG 1.4.12 |
+| `line-height` | ≥ 1.5 pentru textul de conținut pe cel puțin două rânduri (nu pentru o etichetă pe un rând) | WCAG 1.4.12 |
 
 Toate sunt `error`, cu excepția `line-height` și `contrast` pe text decorativ, care sunt `warning`.
 Interfața noastră (mascota, chatul, panoul) se verifică separat și nu blochează.
@@ -66,6 +66,13 @@ au teste cu valori cunoscute (ex. `#777777` pe alb = 4.48:1).
 - Ieșire: o foaie de stil a extensiei, separată de rețeta agentului, care ridică fontul sub minim, țintele sub prag și
   contrastul sub prag pe orice site; se pune **după** rețetă și se actualizează când se schimbă profilul.
 - Ce nu face: nu schimbă structura și nu ascunde nimic; doar aduce pagina la limite.
+- **Rândurile, fără să mute pagina:** `line-height: 1.5` se pune doar pe textul de conținut care are cel puțin două
+  rânduri și nu stă într-o cutie cu înălțimea socotită de site (`-webkit-line-clamp`, sau `max-height` în px cu restul
+  ascuns: acolo rânduri mai înalte ar tăia ultimul rând). O etichetă pe un rând (un număr de aprecieri, numele unui canal,
+  o dată) își păstrează înălțimea rândului: când îi creștem fontul, rândul rămâne cel al site-ului, dar nu mai scund
+  decât fontul (doar pe elementele fără copii). Altfel eticheta se muta față de vecinii ei: pe YouTube, numărul de abonați
+  creștea de la 18 la 24px și împingea în sus numele canalului. Când verificarea anulează mărirea fontului, pleacă și
+  rândul scris pentru ea.
 - **Țintele doar la cerere:** C4 mărește țintele (`min-width`/`min-height`) doar când profilul cere mai mult decât
   implicitul (`minTargetPx` > 44, din testul de atingere). Cu profilul implicit, 44px pe fiecare link din meniuri și liste
   deforma orice site la prima vizită, fără ca omul să fi cerut ceva. Țintele mici rămân în audit (`target-size`), iar

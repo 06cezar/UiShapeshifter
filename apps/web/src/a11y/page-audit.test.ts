@@ -158,6 +158,13 @@ describe("auditPage pe un site", () => {
     expect(clipped[0]!.fixCss).toContain('[data-t="facturi"]');
   });
 
+  it("rândurile strânse se judecă doar la textul pe mai multe rânduri, nu la o etichetă pe un rând", () => {
+    page(`
+      <span data-t="numar" style="display: block; font-size: 18px; line-height: 20px" data-rect="0,0,80,20">1.234</span>
+      <p data-t="paragraf" style="font-size: 18px; line-height: 20px" data-rect="0,40,300,80">Un paragraf lung, pe patru rânduri</p>`);
+    expect(issuesOf("line-height")).toEqual(["paragraf"]);
+  });
+
   it("textul pe gradient sau imagine nu e judecat la contrast: fundalul nu se poate măsura", () => {
     page(`<div style="background-color: #ffffff; background-image: linear-gradient(#0b3d91, #1e88e5)">
       <p data-t="pe-gradient" style="color: #ffffff; font-size: 20px; line-height: 1.6">Doar azi</p></div>`);

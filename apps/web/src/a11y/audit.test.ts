@@ -191,6 +191,7 @@ describe("clipped, offscreen, line-height", () => {
       measured: 1.2,
     });
     expect(checkLineHeight(p, T, { lineHeight: 1.5 })).toHaveLength(0);
+    expect(checkLineHeight(p, T, { lineHeight: 1.2, singleLine: true })).toHaveLength(0); // o etichetă pe un rând
     expect(checkLineHeight(el({ id: "b" }), T, { lineHeight: 1.2 })).toHaveLength(0); // buton
     expect(checkLineHeight(el({ id: "h", role: "heading", interactive: false }), T, { lineHeight: 1.1 })).toHaveLength(
       0,

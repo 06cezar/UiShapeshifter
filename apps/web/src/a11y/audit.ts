@@ -18,6 +18,11 @@ import { contrastRatio, formatRatio, parseColor, requiredTextContrast } from "./
 export interface DomFacts {
   /** line-height / font-size, ex. 1.5. Doar pentru elementele cu text propriu. */
   lineHeight?: number;
+  /**
+   * Textul stă pe un singur rând (o etichetă, un număr): spațierea rândurilor nu se judecă acolo (WCAG 1.4.12 e despre
+   * rândurile unui paragraf).
+   */
+  singleLine?: boolean;
   /** `text-overflow: ellipsis`: tăierea e voită, nu e eroare. */
   intentionalOverflow?: boolean;
   /** `aria-hidden="true"` sau rol `presentation`: contrastul slab e doar avertisment. */
@@ -245,7 +250,7 @@ export function checkOffscreen(el: ElementInfo, viewport: UISnapshot["viewport"]
 }
 
 export function checkLineHeight(el: ElementInfo, t: AuditThresholds, f: DomFacts = {}): AuditIssue[] {
-  if (f.lineHeight === undefined || !isContentText(el)) return [];
+  if (f.lineHeight === undefined || f.singleLine || !isContentText(el)) return [];
   if (f.lineHeight >= t.minLineHeight - LINE_HEIGHT_EPS) return [];
   return [
     {

@@ -76,12 +76,13 @@ describe("preferințele de bază, cu profilul „20px, contrast mare”", () => 
 });
 
 describe("rândurile și marginile", () => {
-  it("rândurile prea înghesuite ajung la 1.5 (WCAG 1.4.12), și cele cu înălțime fixă după ce crește fontul", () => {
+  it("rândurile prea înghesuite ale unui paragraf ajung la 1.5 (WCAG 1.4.12), și cele cu înălțime fixă după ce crește fontul", () => {
+    // paragrafe pe mai multe rânduri: cutia e de cel puțin două ori cât un rând
     page(`
-      <p id="normal" style="font-size: 20px; line-height: normal">Text</p>
-      <p id="fix" style="font-size: 12px; line-height: 14px">Text mic, rânduri fixe</p>
-      <p id="aerisit" style="font-size: 20px; line-height: 32px">Deja aerisit</p>
-      <h2 id="titlu" style="font-size: 28px; line-height: 1.1">Titlu</h2>`);
+      <p id="normal" data-rect="300,90" style="font-size: 20px; line-height: normal">Text pe mai multe rânduri</p>
+      <p id="fix" data-rect="300,60" style="font-size: 12px; line-height: 14px">Text mic, rânduri fixe</p>
+      <p id="aerisit" data-rect="300,96" style="font-size: 20px; line-height: 32px">Deja aerisit</p>
+      <h2 id="titlu" data-rect="300,90" style="font-size: 28px; line-height: 1.1">Titlu</h2>`);
     base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
     expect(el("normal").style.getPropertyValue("line-height")).toBe("1.5");
     expect(el("fix").style.getPropertyValue("line-height")).toBe("1.5");
@@ -304,5 +305,80 @@ describe("profilul implicit nu deformează site-urile la prima vizită (găsit d
     page(`<button id="mic" data-rect="30,30" style="font-size: 20px">OK</button>`);
     base = startBasePreferences({ needs: { minFontPx: 16, minTargetPx: 56 }, ourHostId: HOST_ID });
     expect(el("mic").style.minHeight).toBe("56px");
+  });
+});
+
+describe("etichetele pe un rând rămân la locul lor (YouTube și Instagram, găsite de Adelin)", () => {
+  const ours = (id: string, property: string) => el(id).style.getPropertyPriority(property) === "important";
+
+  it("numărul de abonați de sub numele canalului: fontul crește, rândul își păstrează înălțimea", () => {
+    page(`
+      <div id="info" data-rect="103,42" style="height: 42px; overflow: hidden">
+        <a id="canal" href="/c" data-rect="44,22" style="display: block; font-size: 16px; line-height: 22px">jawed</a>
+        <span id="abonati" data-rect="99,18" style="display: block; font-size: 12px; line-height: 18px">6,74 mil. abonați</span>
+      </div>`);
+    base = startBasePreferences({ needs: { minFontPx: 16 }, ourHostId: HOST_ID });
+    expect(fontOf("abonati")).toBe(16);
+    // rândul rămâne de 18px, ca la site: 22 + 18 încap în cei 42px și numele canalului nu urcă
+    expect(el("abonati").style.getPropertyValue("line-height")).toBe("18px");
+    expect(ours("canal", "line-height")).toBe(false);
+  });
+
+  it("o etichetă pe un rând cu rânduri strânse, dar font destul de mare, nu e atinsă deloc", () => {
+    page(
+      `<span id="aprecieri" data-rect="60,18" style="display: block; font-size: 16px; line-height: 18px">1.234</span>`,
+    );
+    base = startBasePreferences({ needs: { minFontPx: 16 }, ourHostId: HOST_ID });
+    expect(ours("aprecieri", "line-height")).toBe(false);
+    expect(ours("aprecieri", "font-size")).toBe(false);
+  });
+
+  it("rândul nu rămâne mai scund decât fontul ridicat; cu line-height normal nu scriem nimic", () => {
+    page(`
+      <span id="strans" data-rect="60,14" style="display: block; font-size: 12px; line-height: 14px">Acum 2 ore</span>
+      <span id="normal" data-rect="60,14" style="display: block; font-size: 12px; line-height: normal">Acum 3 ore</span>`);
+    base = startBasePreferences({ needs: { minFontPx: 16 }, ourHostId: HOST_ID });
+    expect(el("strans").style.getPropertyValue("line-height")).toBe("16px");
+    expect(ours("normal", "line-height")).toBe(false);
+    expect(fontOf("normal")).toBe(16);
+  });
+
+  it("titlul tăiat la două rânduri (cutie cu max-height) nu primește rânduri mai înalte: i s-ar tăia ultimul rând", () => {
+    page(`
+      <a id="titlu-card" href="/v" data-rect="300,40" style="display: block; max-height: 40px; overflow: hidden; line-height: 20px">
+        <span id="titlu-text" data-rect="300,40" style="font-size: 14px; line-height: 20px">Un titlu lung de clip, pe două rânduri întregi</span>
+      </a>
+      <p id="paragraf" data-rect="300,60" style="font-size: 14px; line-height: 20px">Un paragraf liber, pe trei rânduri</p>`);
+    base = startBasePreferences({ needs: { minFontPx: 16 }, ourHostId: HOST_ID });
+    expect(fontOf("titlu-text")).toBe(16);
+    expect(ours("titlu-text", "line-height")).toBe(false); // 2 × 20px încap în cei 40px ai cutiei
+    expect(el("paragraf").style.getPropertyValue("line-height")).toBe("1.5"); // paragraful liber se aerisește
+  });
+
+  it("când mărirea fontului e anulată la verificare, pleacă și rândul scris pentru ea", () => {
+    page(`
+      <div id="bula" data-rect="300,40">
+        <span id="mesaj" style="font-size: 16px">Ne vedem mâine la 10</span>
+        <div id="meta" style="float: right"><span id="ora" style="font-size: 11px; line-height: 12px">12:34</span></div>
+      </div>`);
+    layout("bula", () => new DOMRect(0, 0, 300, 40));
+    layout("mesaj", () => new DOMRect(0, 0, 260, 20));
+    layout("ora", (o) => {
+      const scale = px(o.style.fontSize, 11) / 11;
+      return new DOMRect(300 - 30 * scale, 10, 30 * scale, 14 * scale);
+    });
+    base = startBasePreferences({ needs: { minFontPx: 20 }, ourHostId: HOST_ID });
+    expect(fontOf("ora")).toBe(11);
+    expect(el("ora").style.getPropertyValue("line-height")).toBe("12px"); // al site-ului, nu cel scris de noi
+    expect(ours("ora", "line-height")).toBe(false);
+  });
+
+  it("un rând cu elemente în el nu primește line-height fix: s-ar moșteni la copiii cu alt font", () => {
+    page(
+      `<div id="rand" data-rect="300,18" style="font-size: 12px; line-height: 18px">Apreciat de <b id="cine">ana</b></div>`,
+    );
+    base = startBasePreferences({ needs: { minFontPx: 16 }, ourHostId: HOST_ID });
+    expect(fontOf("rand")).toBe(16);
+    expect(ours("rand", "line-height")).toBe(false);
   });
 });
