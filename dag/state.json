@@ -26,8 +26,8 @@
     }
   },
   "last_comms_sha": "c3504e59bb63948983bf2f711b718071ef0e8b7e",
-  "last_run": "2026-11-14T09:03:26Z",
-  "last_sha": "442c69de372b669a08130347044e380bdd00efc8",
+  "last_run": "2026-11-14T09:04:20Z",
+  "last_sha": "d6c677653cec63482c2eb527d3b1528c61bbcca1",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -276,8 +276,8 @@
     },
     "143": {
       "head": "c-whatsapp-spatiu",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T09:04:16Z",
+      "state": "MERGED"
     },
     "144": {
       "head": "d-chat-buton",
@@ -286,8 +286,8 @@
     },
     "145": {
       "head": "e-reia-pas-cu-pas",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T09:04:11Z",
+      "state": "MERGED"
     },
     "146": {
       "head": "d-pitch-orice",
