@@ -197,7 +197,8 @@ export function auditIssueCounts(steps: readonly AgentStep[]): {
   return {
     before: errors(first.issues),
     after: last ? errors(last.issues) : undefined,
-    introduced: (last ?? first).issues.filter((i) => i.introduced === true).length,
+    // aceleași probleme ca în cifră: doar cele mari (nota lui B pe #160)
+    introduced: (last ?? first).issues.filter((i) => i.introduced === true && i.severity === "error").length,
   };
 }
 

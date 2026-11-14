@@ -53,6 +53,17 @@ describe("JournalPanel", () => {
     });
     expect(container.textContent).toContain("Probleme de accesibilitate: 50 → 30, niciuna nouă");
     expect(container.textContent).not.toContain("0 → 0");
+    await act(async () => {
+      journal.getState().handleServerMessage({
+        type: "step",
+        step: step(2, {
+          tool: "audit_ui",
+          args: {},
+          result: { ok: true, data: { score: 0, issues: [...errors(29), { severity: "error", introduced: true }] } },
+        }),
+      });
+    });
+    expect(container.textContent).toContain("Probleme de accesibilitate: 50 → 30, 1 nouă");
   });
 
   it("pe un site unde agentul n-a lucrat, panoul nu apare", async () => {

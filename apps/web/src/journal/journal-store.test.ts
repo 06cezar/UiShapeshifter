@@ -135,7 +135,10 @@ describe("auditIssueCounts", () => {
 
   it("problemele mari înainte → după, chiar când nota rămâne 0; câte a adus agentul", () => {
     const before = audit(0, [...Array(50)].map(() => issue("error")).concat([issue("warning")]));
-    const after = audit(3, [...Array(30)].map(() => issue("error")).concat([issue("error", true)]));
+    const after = audit(
+      3,
+      [...Array(30)].map(() => issue("error")).concat([issue("error", true), issue("warning", true)]),
+    );
     expect(auditIssueCounts([before, step(1), after])).toEqual({ before: 50, after: 31, introduced: 1 });
   });
 
