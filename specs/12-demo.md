@@ -19,6 +19,20 @@ rezultatul, și cel puțin un pas arată un **eșec reparat**.
 
 Dacă timpul nu ajunge, pașii 5 și 7 se taie; 1–4 și 6 rămân. Cu etapele 1–3 gata, demo-ul există și fără „wow”.
 
+## Eșecul reparat (sigur, nu la noroc)
+
+Din jurnalele de probă (A, 23+ rulări): live, un eșec reparat apare doar uneori (Shorts 1/3, pasul 4 1/8). Juriul trebuie
+să vadă cel puțin unul, deci îl pregătim pe **site-ul de test**, ca pe un site real care încarcă reclame târziu:
+
+- La pasul 4, după ce reclamele marcate (`.ad`) dispar, site-ul de test adaugă după ~1 s o reclamă nouă, „Sponsorizat”,
+  cu altă clasă și fără `aria-label` de reclamă (cum fac site-urile care reîncarcă reclamele).
+- Agentul o vede în snapshot-ul de verificare („încă se vede o reclamă”), o ascunde după text/rol și verifică din nou.
+  În panou: pasul de verificare care a găsit-o și reparația. Reîncarci: rețeta le ascunde pe amândouă de la început.
+- Live, dacă apare și un eșec natural (selector negăsit, operație sărită), îl arătăm pe acela; cazul pregătit rămâne
+  rezerva sigură. Videoul de rezervă îl conține.
+
+Cine: E pune comportamentul în `apps/test-site/` (doar date de test); A probează de 3 ori că agentul repară.
+
 ## Ce pregătim
 
 - **Site-ul de test** (E7): aglomerat intenționat, cu aspect de aplicație densă, un „plătește factura” îngropat, date de test.
