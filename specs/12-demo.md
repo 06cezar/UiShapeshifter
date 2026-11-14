@@ -19,6 +19,24 @@ rezultatul, și cel puțin un pas arată un **eșec reparat**.
 
 Dacă timpul nu ajunge, pașii 5 și 7 se taie; 1–4 și 6 rămân. Cu etapele 1–3 gata, demo-ul există și fără „wow”.
 
+## Bonus amuzant: „stalk-ul” pe propriul profil (opțional)
+
+Deschidere relaxantă sau încălzire, nu pas obligatoriu (se taie primul dacă timpul e scurt). **Pe contul propriu al unuia
+din echipă, logat, cu consimțământul lui** — nu pe un profil străin, nu cu date de altcineva. Pe pagina unui profil real
+de Facebook (al colegului), cererea: *„adună sus, într-un card, tot ce scrie pagina asta despre mine”* (varianta de râs:
+*„sunt single?”*).
+
+- Agentul vede pagina, găsește câmpurile **deja vizibile pe profilul curent** (stare relație, oraș, locul de muncă, contact
+  din „Despre”) și le `move`/`wrap`/`insertHtml` într-un card lizibil în capul paginii. Pașii apar în panou: observă, decide,
+  acționează, verifică. „Anulez” readuce pagina.
+- **Ce NU face, și spui asta cu voce tare:** nu citește de pe alte site-uri, nu traversează conturi, nu scoate nimic ascuns
+  în pagină, nu rulează cod. Rearanjează doar ce ochiul tău vede deja pe pagina pe care ești, și doar fiindcă tu ai cerut.
+  Aceeași poveste de siguranță ca „nu rulează JavaScript”: agentul lucrează pe pagina ta, nu adună date despre oameni.
+
+De ce prinde: e relatabil și amuzant, dar exact prin asta arată limita — „doar ce e pe pagina ta, doar la cererea ta”.
+Dacă un jurat întreabă *„deci îmi poate strânge datele de pe FB și Insta?”*, răspunsul e scurt: nu, mută doar ce e pe pagina
+pe care te uiți; un agregator peste site-uri n-am construit intenționat.
+
 ## Eșecul reparat (sigur, nu la noroc)
 
 Din jurnalele de probă (A, 23+ rulări): live, un eșec reparat apare doar uneori (Shorts 1/3, pasul 4 1/8). Juriul trebuie
