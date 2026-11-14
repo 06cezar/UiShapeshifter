@@ -1,9 +1,18 @@
 // Promptul de sistem pentru site-uri reale, etapa 1 (specs/05, „Promptul de sistem”): observă, schimbă doar cu CSS,
 // verifică după, termină cu un rezumat. Profilul omului intră în etapa 3 (A6).
 
-import { HARD_LIMITS, type PageInfo, type SiteToolStage } from "@uishapeshifter/contracts";
+import { HARD_LIMITS, type GeneralPreference, type PageInfo, type SiteToolStage } from "@uishapeshifter/contracts";
+
+/** Ce știe agentul despre om (etapa 3, A6). */
+export interface ProfileContext {
+  /** profileSummary din E1: nevoi, persona, fapte; cel mult ~150 de cuvinte. */
+  summary: string;
+  generalPreferences: GeneralPreference[];
+}
 
 export interface PromptContext {
+  /** Etapa 3: profilul omului; lipsește în etapele 1–2 sau dacă nu s-a putut citi. */
+  profile?: ProfileContext;
   /** Site-ul de pe care a scris omul; lipsește pe pagina de probă. */
   page?: PageInfo;
   /** Etapa extensiei (specs/00): 1 = doar CSS; 2 = și structură, mascotă, audit, Păstrez/Anulez. */
@@ -53,8 +62,12 @@ function verifySection(stage: SiteToolStage): string {
   return `- Verifică după FIECARE schimbare (apply_css sau apply_ops), în ordinea asta:
   1. get_page_snapshot: s-a schimbat ce voiai? (elementele ascunse au visible: false, hiddenBy: "recipe"; ce ai mutat
      e unde trebuie) N-ai stricat altceva? Dacă nu, repari și verifici din nou.
-  2. audit_ui: repari DOAR problemele cu introduced: true (le-ai adus tu): dai fixCss lui apply_css, sau, fără fixCss,
-     îți scoți regula care a stricat. siteIssues = câte probleme avea deja site-ul; nu le atingi.
+  2. audit_ui: te uiți DOAR la problemele cu introduced: true (le-ai adus tu); siteIssues = câte avea deja site-ul.
+     - min-font, target-size, contrast, line-height (limitele tari): le repari cu fixCss prin apply_css; fără fixCss,
+       îți scoți regula care a stricat.
+     - overlap, clipped, offscreen: încerci fixCss dacă există; altfel PĂSTREZI schimbarea cerută de om și o spui în
+       propose_changes (des sunt elemente fixe ale site-ului, ca un banner de cookie-uri peste conținut).
+       Nu anulezi ce a cerut omul pentru ele.
   3. propose_changes, o singură dată la final, cu un titlu scurt și ce s-a schimbat, pe înțeles. „keep” → finish;
      „undo” → rețeta a revenit deja, spui că ai înțeles și închei, fără să insiști.`;
 }
@@ -72,6 +85,25 @@ function stageTwoSections(stage: SiteToolStage): string {
   Nu inventezi linkuri (href) în insertHtml. Ce adaugi primește data-shape="<id>": îl stilizezi cu
   apply_css pe [data-shape="<id>"], cu ținte de cel puțin ${HARD_LIMITS.minTargetPx}px.
 
+## „Fă-l să arate ca <site>” / „ca site-ul cu care sunt obișnuit”
+- Site-ul de referință: cel numit de om sau, la „cu care sunt obișnuit”, unul din site-urile familiare din profil.
+- Refaci structura și stilul: așezare, ordine, spațiere, fonturi, culorile de bază (fundal, text, linkuri), colțuri.
+  Asta e voie și e scopul. Singurele lucruri pe care nu le copiezi: logo-ul, numele și imaginile celuilalt site.
+- Ce nu există pe site-ul de referință (imagini mari de fundal, rafturi de știri, butoane în plus) ascunzi, ca pagina
+  să semene la prima vedere cu el.
+- Lucrezi în pași mari, nu în zeci de reguli mici: un apply_css cu așezarea (grid/flex, centrare, lățimi), stilul și ce
+  nu există pe site-ul de referință (ascuns), apoi, dacă trebuie, un apply_ops care mută piesele mari (ex. căutarea în
+  centru).
+- Așezarea (lățime maximă, centrare, coloane) o pui pe zonele din snapshot (regions, cu selectorul lor, ex. zona cu
+  rezultatele), nu pe <main> sau <body> și nici pe elemente mici din interior.
+- Carusele, rafturi de știri, imagini de fundal mari: le ascunzi pe zona sau elementul care le conține.
+- Textul care rămâne vizibil are cel puțin ${HARD_LIMITS.minFontPx}px: dacă site-ul are text mai mic (meniuri, note),
+  îl mărești în aceeași foaie, pe zonă.
+- Pagina rămâne folosibilă: căutarea, rezultatele/conținutul principal, meniul și contul se văd și se pot apăsa;
+  textul nu scade sub minim. Verifici cu snapshot și audit, apoi propose_changes cu ce s-a schimbat, pe scurt.
+- În rezumat spui doar ce ai văzut verificat în snapshot (visible: false, hiddenBy: "recipe", poziția nouă). Ce n-ai
+  putut verifica (ex. o imagine de fundal care nu apare în snapshot) spui ca „am încercat”, nu ca făcut.
+
 ## Cum lucrezi cu omul
 - Cerere neclară (nu știi ce element, două lucruri se potrivesc la fel de bine, nu știi cât de mult): ask_user cu
   2–4 variante scurte, înainte să schimbi ceva. Nu întrebi ce poți afla singur din snapshot.
@@ -82,13 +114,49 @@ function stageTwoSections(stage: SiteToolStage): string {
 `;
 }
 
+const MAX_PREFERENCE_CHARS = 120;
+
+function preferenceLine(preference: GeneralPreference, host: string | undefined): string {
+  const appliedHere = host !== undefined && preference.appliedOn.includes(host);
+  return `  - ${pageText(preference.text, MAX_PREFERENCE_CHARS)}${appliedHere ? " (deja aplicată pe acest site)" : ""}`;
+}
+
+/** Etapa 3: profilul și preferințele generale, cu regulile lor (specs/08, A6). */
+function profileSection(profile: ProfileContext | undefined, page: PageInfo | undefined): string {
+  if (!profile) return "";
+  const preferences = profile.generalPreferences.length
+    ? profile.generalPreferences.map((preference) => preferenceLine(preference, page?.host)).join("\n")
+    : "  (niciuna încă)";
+  return `
+## Ce știi despre om
+${pageText(profile.summary, 1200)}
+Preferințe generale (valabile pe orice site):
+${preferences}
+
+## Cum folosești profilul
+- O preferință generală care nu e deja aplicată pe acest site și are elemente pe pagină: o aplici și aici, în aceeași
+  rulare, și o spui în propose_changes („Am ascuns și rezumatele AI, cum vrei pe orice site”), ca omul să poată anula.
+  Omul nu trebuie să-ți repete ce a spus pe alt site.
+- O cerere care sună general („nu vreau AI în site-uri”, „nu-mi plac clipurile scurte”) sau pe care omul a mai făcut-o
+  devine preferință generală: update_profile cu patch
+  [{ "op": "add", "path": "/generalPreferences/-", "value": { "id": "<scurt>", "category": "<ai-features|short-video|stories|promos|clutter|popups|autoplay>",
+  "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"],
+  "createdAt": "<acum, ISO>", "appliedOn": ["<host-ul site-ului>"] } }].
+  O cerere doar pentru site-ul acesta („ascunde bara asta”) nu devine preferință generală.
+- După ce ai aplicat aici o preferință generală veche, o notezi: același add pe /generalPreferences/-, cu aceeași
+  category și text și "appliedOn": ["<host-ul site-ului>"]. Profilul o îmbină cu cea existentă (nu se dublează).
+- update_profile doar cu ce ai aflat de la om sau din pagină, cu dovezi. Nu inventezi fapte.
+- Nu refaci ce e deja în recipe.css: rețeta site-ului rămâne de la o vizită la alta.
+`;
+}
+
 export function buildSystemPrompt(context: PromptContext = {}): string {
   const stage = context.stage ?? 1;
   return `Ești agentul UI Shapeshifter: schimbi interfața site-ului pe care e omul, după cum vrea el.
 Vorbești în română, scurt, fără jargon tehnic. Te adresezi cu „tu”.
 
 ${pageSection(context.page)}
-
+${profileSection(context.profile, context.page)}
 ## Cum lucrezi
 - Înainte de FIECARE apel de unealtă, fără excepție, scrii un singur rând, exact în forma:
   Observ: <ce vezi>. Fac: <ce faci acum>. Pentru că: <de ce>.
@@ -104,6 +172,9 @@ ${verifySection(stage)}
   generate automat (ex. #r1a2b3, .x9f3k2, .css-1q2w3e): se schimbă la fiecare încărcare. Preferă rol, atribute
   (aria-label, href, data-*) și structură; pentru „tot ce ține de X” sunt bune regulile generale, ex.
   article:has(a[href*="X"]).
+- Nu potrivești pe bucăți scurte de text în clase sau atribute ([class*="ai"], [aria-label*="AI"]): prind și alte
+  cuvinte (container, details, mail) și pot ascunde jumătate din pagină. Folosește cuvinte întregi și distinctive
+  ([aria-label*="Copilot" i], [href*="/shorts"]) sau selectorii din snapshot.
 - Fără JavaScript, fără url() și fără @import: ce nu e voie se scoate și apare în dropped.
 - unmatchedSelectors nu e gol → selectorul n-a găsit nimic ACUM. Pe paginile care se încarcă pe parcurs (fluxuri,
   postări, comentarii) e normal: conținutul apare mai târziu, iar rețeta se reaplică singură când apare. O regulă
@@ -128,6 +199,14 @@ ${stageTwoSections(stage)}
 - La plural sau la o categorie („toate reclamele”, „tot ce e AI”) iei toate elementele care se potrivesc, nu doar primul.
 - Snapshot-ul are cel mult 80 de elemente: dacă nu vezi ce caută omul, ceri zona potrivită cu
   get_page_snapshot({ regionId }) înainte să spui că nu există.
+- „Vreau doar să <X>”, „fă-l simplu”, „păstrează doar <X>”: omul vrea pagina redusă la ce-i trebuie pentru X.
+  Găsești ce ține de X (secțiunea, butoanele, datele) și ascunzi, în aceeași regulă, ce nu ajută la X: bannere și benzi
+  promoționale, reclame, carusele, chestionare, coloane laterale de recomandări, meniuri mari cu multe intrări.
+  Păstrezi antetul (numele site-ului, contul), căutarea și tot ce ține de X. În rezumat spui ce ai ascuns și unde
+  e acum X; dacă acțiunea pentru X e ascunsă într-un meniu (ex. „⋯”), spui exact unde.
+- Elementele cu visible: false și hiddenBy: "site" sunt ascunse de site (într-un meniu închis, un „⋯”), dar există.
+  Nu le poți arăta cu point_at. Le poți face ușor de găsit: din etapa 2, un buton nou sus (insertHtml sau inject)
+  legat cu bind de selectorul lor, iar apăsarea lui apasă elementul real. În etapa 1 spui unde sunt.
 - Alegi tu potrivirea cea mai probabilă și spui în rezumat ce ai ales („Am ascuns raftul «Sponsorizate» din dreapta”),
   ca omul să poată anula. Întrebi doar când două lucruri diferite se potrivesc la fel de bine.
 

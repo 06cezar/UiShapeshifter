@@ -15,12 +15,15 @@ import {
   type ChatAction,
   type ChatState,
 } from "./chat-state";
+import { browserRecognition, createVoiceInput, type RecognitionConstructor } from "./voice";
 
 export interface ChatOptions {
   /** Trimite un mesaj către server (prin service worker). */
   send(message: OutgoingClientMessage): void;
   /** Pe ce pagină e omul acum, ca agentul să știe pe ce site lucrează. */
   page(): PageInfo;
+  /** Recunoașterea vorbirii (D10); implicit cea a browserului. `null` = fără microfon (și în teste). */
+  recognition?: RecognitionConstructor | null;
 }
 
 export interface ChatController {
@@ -51,6 +54,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
       <form class="chat-form">
         <label class="visually-hidden" for="chat-input"></label>
         <input class="chat-input" id="chat-input" type="text" autocomplete="off" data-agent-id="chat.input" />
+        <button type="button" class="chat-voice" data-agent-id="chat.voice" aria-pressed="false" hidden>🎤</button>
         <button type="submit" class="chat-send" data-agent-id="chat.send"></button>
       </form>
     </section>`;
@@ -67,6 +71,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   const label = container.querySelector<HTMLLabelElement>("label")!;
   const input = container.querySelector<HTMLInputElement>(".chat-input")!;
   const sendButton = container.querySelector<HTMLButtonElement>(".chat-send")!;
+  const voiceButton = container.querySelector<HTMLButtonElement>(".chat-voice")!;
 
   // Textele fixe se pun o singură dată, cu textContent.
   launcher.textContent = CHAT_TEXT.launcher;
@@ -79,6 +84,8 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   sendButton.textContent = CHAT_TEXT.send;
 
   let state = initialChatState();
+  /** Ce spune microfonul (ascult / o eroare); se arată în rândul de sub chat, ca starea legăturii. */
+  let voiceHint = "";
   /** Id-ul ultimului mesaj desenat: la fel de bun ca lungimea, și prinde și cazul în care istoricul s-a tăiat. */
   let renderedLastId = 0;
 
@@ -110,7 +117,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
     }
 
     activity.textContent = state.activity ?? "";
-    hint.textContent = state.link === "closed" ? CHAT_TEXT.linkClosed : "";
+    hint.textContent = state.link === "closed" ? CHAT_TEXT.linkClosed : voiceHint;
   }
 
   function dispatch(action: ChatAction) {
@@ -131,14 +138,50 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   launcher.addEventListener("click", open);
   closeButton.addEventListener("click", close);
 
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const text = sendableText(input.value);
+  function sendRequest(raw: string, source: "text" | "voice") {
+    const text = sendableText(raw);
     if (!text) return;
     input.value = "";
     dispatch({ type: "user_sent", text });
-    options.send({ type: "user_message", text, source: "text", page: options.page() });
+    options.send({ type: "user_message", text, source, page: options.page() });
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    sendRequest(input.value, "text");
   });
+
+  // Vocea (D10): textul intermediar apare în câmp, fraza terminată pleacă singură, marcată „voice”.
+  const Recognition =
+    options.recognition === undefined ? browserRecognition(doc.defaultView ?? window) : options.recognition;
+  if (Recognition) {
+    const setListening = (listening: boolean) => {
+      voiceButton.setAttribute("aria-pressed", String(listening));
+      voiceButton.setAttribute("aria-label", listening ? CHAT_TEXT.voiceStop : CHAT_TEXT.voiceStart);
+    };
+    const voice = createVoiceInput(Recognition, {
+      interim: (text) => (input.value = text),
+      final: (text) => sendRequest(text, "voice"),
+      error: (message) => {
+        voiceHint = message;
+        render();
+      },
+      end: () => {
+        setListening(false);
+        if (voiceHint === CHAT_TEXT.voiceListening) voiceHint = "";
+        render();
+      },
+    });
+    voiceButton.hidden = false;
+    setListening(false);
+    voiceButton.addEventListener("click", () => {
+      if (voice.listening()) return voice.stop();
+      voiceHint = CHAT_TEXT.voiceListening;
+      setListening(true);
+      render();
+      voice.start();
+    });
+  }
 
   for (const type of KEY_EVENTS) {
     container.addEventListener(type, (event) => {
