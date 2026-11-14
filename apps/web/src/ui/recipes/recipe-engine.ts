@@ -26,6 +26,16 @@ import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRec
 
 /** Id-ul <style>-ului rețetei: conține „uishapeshifter”, deci CSS-ul agentului nu-l poate ținti. */
 export const RECIPE_STYLE_ID = "uishapeshifter-recipe";
+/** Foile extensiei (rețeta, preferințele de bază, ce te deranjează) au id-uri cu prefixul ăsta. */
+const OUR_STYLE_ID_PREFIX = "uishapeshifter-";
+
+/** Pagina a adăugat o foaie de stil (`<style>` sau `<link rel="stylesheet">`)? Doar atunci verificăm ordinea. */
+function addsStyleSheet(record: MutationRecord): boolean {
+  return [...record.addedNodes].some(
+    (node) =>
+      node instanceof HTMLStyleElement || (node instanceof HTMLLinkElement && node.relList.contains("stylesheet")),
+  );
+}
 /** Cel mult atâția selectori „care nu găsesc nimic” în răspunsul către agent (specs/02). */
 const MAX_UNMATCHED = 10;
 /** Cât așteptăm după ultima schimbare a paginii înainte să reaplicăm operațiile (site-urile schimbă în rafale). */
@@ -178,6 +188,24 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
   function renderCss() {
     const style = styleElement();
     if (style.textContent !== stored.recipe.css) style.textContent = stored.recipe.css;
+    // Și la aplicare: stilul site-ului poate fi deja în pagină, pus după foaia noastră încă goală.
+    if (stored.recipe.css) keepRecipeAfterSiteSheets();
+  }
+
+  /**
+   * La aceeași putere (`!important`, aceiași selectori) câștigă foaia de mai jos: Bing pune `<style id="iotd-lite-bg">`
+   * cu imaginea de fundal după rețetă și o bate. Dacă o foaie a site-ului a ajuns după a noastră, o mutăm după ea.
+   * Foile noastre (`uishapeshifter-*`, ex. preferințele de bază) rămân unde sunt: ele trebuie să vină ultimele.
+   */
+  function keepRecipeAfterSiteSheets() {
+    const style = doc.getElementById(RECIPE_STYLE_ID);
+    if (!style) return;
+    const siteSheets = [...doc.querySelectorAll('style, link[rel~="stylesheet"]')].filter(
+      (sheet) => !sheet.id.startsWith(OUR_STYLE_ID_PREFIX),
+    );
+    const last = siteSheets.at(-1);
+    if (!last?.parentElement || !(style.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
+    last.parentElement.insertBefore(style, last.nextSibling);
   }
 
   const domOps = createDomOpsApplier({ doc, askAgent: (goal) => options.askAgent?.(goal) });
@@ -226,8 +254,9 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
   }
 
   // Pagina se schimbă singură: foaia scoasă din <head> se pune la loc imediat (specs/02), operațiile după debounce.
-  const observer = new MutationObserver(() => {
+  const observer = new MutationObserver((records) => {
     if (stored.recipe.css && !doc.getElementById(RECIPE_STYLE_ID)) mutate(renderCss);
+    if (stored.recipe.css && records.some(addsStyleSheet)) mutate(keepRecipeAfterSiteSheets);
     if (stored.recipe.ops?.length) scheduleReapply();
   });
   observer.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
