@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 35/40 · **În lucru:** 0 · **Poate începe:** 2 · **Așteaptă:** 3 · **Blocat:** 0
+**Gata:** 36/40 · **În lucru:** 0 · **Poate începe:** 1 · **Așteaptă:** 3 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -40,7 +40,7 @@ flowchart LR
     t_D9["D9 · Panoul de control în extensie - pași live, Oprește, previzualizare cu Păstrez/Anulez, „Revino la original” (refolosește D4)<br/>✅ gata"]
     t_M2["M2 · PUNCT DE CONTROL 2 - „mută X sus” merge și rămâne, mascota merge la element, pașii se văd în panou, Anulez readuce pagina<br/>✅ gata"]
     t_D10["D10 · Vocea - cererea vorbită (Web Speech ro-RO) din bula mascotei<br/>✅ gata"]
-    t_M3["M3 · PUNCT DE CONTROL 3 - instalare proaspătă → test → profil; un site nou are fontul minim fără AI; o scurtătură generată merge; cererea vorbită merge<br/>🟢 poate începe"]
+    t_M3["M3 · PUNCT DE CONTROL 3 - instalare proaspătă → test → profil; un site nou are fontul minim fără AI; o scurtătură generată merge; cererea vorbită merge<br/>✅ gata"]
     t_M4["M4 · PUNCT DE CONTROL 4 - „fă-l să arate ca X” pe perechea din demo, propunerea automată după ratări, preferințele pe alt profil de browser după login<br/>🟢 poate începe"]
     t_D5["D5 · Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție<br/>⏳ așteaptă"]
     t_D6["D6 · Pitch de 5 minute, descrierea de o pagină, screenshot-uri, README final, trimiterea pe Slack<br/>⏳ așteaptă"]
@@ -145,14 +145,13 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_M2,t_C3,t_E8,t_A6,t_C4,t_B3,t_D10,t_B4,t_A4,t_A5,t_E3,t_E6 done
-  class t_M3,t_M4 ready
+  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_M2,t_C3,t_E8,t_A6,t_C4,t_B3,t_D10,t_M3,t_B4,t_A4,t_A5,t_E3,t_E6 done
+  class t_M4 ready
   class t_D5,t_E4,t_D6 wait
 ```
 
 ## Poate începe acum
 
-- **M3** (D) PUNCT DE CONTROL 3 - instalare proaspătă → test → profil; un site nou are fontul minim fără AI; o scurtătură generată merge; cererea vorbită merge _(sâm 03:30. Fără PR: D îl marchează prin comms după ce omul a văzut că merge.)_
 - **M4** (D) PUNCT DE CONTROL 4 - „fă-l să arate ca X” pe perechea din demo, propunerea automată după ratări, preferințele pe alt profil de browser după login _(sâm 06:30. Fără PR: D îl marchează prin comms. Ce nu merge la 07:00 se taie din demo; etapele 1-3 rămân.)_
 
 ## Blocat
