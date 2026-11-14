@@ -43,6 +43,53 @@ describe("selectorul", () => {
     expect(looksHumanId("a8f3k2")).toBe(false);
   });
 
+  test("respinge id-urile generate de framework-uri (altele la fiecare încărcare)", () => {
+    const generated = [
+      "mount_0_0_R4",
+      "mount_0_0_Rab",
+      ":r1:",
+      ":R2a6:",
+      "«r1»",
+      "_R_1_",
+      "x_1_R3k",
+      "ember123",
+      "ember7",
+      "react-select-2-input",
+      "react-aria-5",
+      "radix-:r3:",
+      "headlessui-menu-button-1",
+      "__next",
+      "__nuxt",
+      "C_1AACF49",
+      "slideexp0_AAAE3E",
+      "slideexp0_AAAE3Echevrons_nextbtn",
+    ];
+    for (const id of generated) expect(looksHumanId(id), id).toBe(false);
+  });
+
+  test("păstrează id-urile obișnuite", () => {
+    const human = [
+      "search",
+      "main-content",
+      "p-lang-btn",
+      "searchform",
+      "b_header",
+      "rhs",
+      "nav_Right",
+      "member",
+      "b_context",
+      "sb_form_q",
+      "ACCEPT",
+      "BADGE",
+    ];
+    for (const id of human) expect(looksHumanId(id), id).toBe(true);
+  });
+
+  test("buildSelector nu folosește #mount_0_0_R4, ci un atribut stabil", () => {
+    document.body.innerHTML = `<div id="mount_0_0_R4" aria-label="Profil">x</div>`;
+    expect(buildSelector(document.querySelector("div")!)).toBe('[aria-label="Profil"]');
+  });
+
   test("ordinea: #id → aria-label → href → cale structurală, fără clase", () => {
     document.body.innerHTML = `
       <button id="cauta">Caută</button>
@@ -80,16 +127,36 @@ describe("registrul și snapshot-ul", () => {
     expect(snap.recipe).toEqual({ revision: 3, css: "a { color: red }" });
   });
 
-  test("nu intră: interfața noastră, elementele ascunse de site, valorile câmpurilor", () => {
+  test("nu intră: interfața noastră și valorile câmpurilor; blocurile ascunse de site fără buton", () => {
     document.body.innerHTML = `
       <div id="${HOST}"><button>Al nostru</button></div>
       <button data-agent-id="gen.x">Generat</button>
-      <button style="display:none">Ascuns</button>
+      <section aria-label="Bloc ascuns" style="display:none">x</section>
       <label for="p">Parola</label><input id="p" type="password" value="secret123">`;
     const snap = registry().snapshot();
     const labels = snap.elements.map((e) => e.label);
     expect(labels).toEqual(["Parola"]);
     expect(JSON.stringify(snap)).not.toContain("secret123");
+  });
+
+  test("butoanele ascunse de site (meniul ⋯ închis) intră, cu hiddenBy site, ca agentul să le poată folosi", () => {
+    document.body.innerHTML = `
+      <button>Vizibil</button>
+      <details><summary aria-label="Mai multe acțiuni">⋯</summary>
+        <a href="/plata" id="plata" style="display:none">Plătește factura</a></details>`;
+    const snap = registry().snapshot();
+    const pay = snap.elements.find((e) => e.label === "Plătește factura");
+    expect(pay).toMatchObject({ visible: false, hiddenBy: "site", selector: "#plata" });
+  });
+
+  test("ascunsele de site au locuri rezervate (cel mult 15), chiar pe o pagină plină", () => {
+    document.body.innerHTML =
+      Array.from({ length: SNAPSHOT_LIMITS.maxElements + 20 }, (_, i) => `<a href="/v${i}">V${i}</a>`).join("") +
+      Array.from({ length: 30 }, (_, i) => `<button style="display:none">Ascuns ${i}</button>`).join("");
+    const snap = registry().snapshot();
+    expect(snap.elements).toHaveLength(SNAPSHOT_LIMITS.maxElements);
+    expect(snap.elements.filter((e) => e.hiddenBy === "site")).toHaveLength(15);
+    expect(snap.truncated).toBe(true);
   });
 
   test("pe o pagină plină, ce a ascuns rețeta intră totuși în rezumat (agentul își verifică munca)", () => {
