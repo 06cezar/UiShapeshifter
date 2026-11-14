@@ -108,6 +108,13 @@ const BACKGROUND_MIN_VIEWPORT_SHARE = 0.4;
 const MAX_BACKGROUNDS = 3;
 /** Fundalul n-are text sau rol: îi dăm noi un nume, ca agentul să-l găsească la „scoate imaginea”. */
 const BACKGROUND_LABEL = "Imagine de fundal";
+/**
+ * Culoarea de sub imaginea de fundal: după „ascunde imaginea”, pagina rămânea gri pe Bing (div.hp_body, #555). O dăm
+ * agentului ca element separat, ca la „fă-l alb / ca Google” să schimbe culoarea, nu doar să scoată imaginea.
+ */
+const BACKDROP_LABEL = "Fundalul paginii";
+/** Peste atâta opacitate, culoarea de fundal a unui strămoș se vede (sub ea nu mai contează ce e). */
+const OPAQUE_ALPHA = 0.5;
 
 /** O coloană a conținutului principal e cel puțin atât de lată (rezultatele, coloana din dreapta). */
 const COLUMN_MIN_WIDTH_PX = 200;
@@ -248,6 +255,24 @@ function findBackgrounds(doc: Document, ourHostId: string, viewport: { width: nu
     found.push(element);
   }
   return found;
+}
+
+/** O culoare de fundal care se vede: nu `transparent`, nu rgba cu alfa mică. Hex și numele de culori sunt opace. */
+function isOpaqueColor(color: string): boolean {
+  if (!color || color === "transparent") return false;
+  const rgba = /^rgba?\(([^)]*)\)$/.exec(color.trim());
+  if (!rgba) return true;
+  const parts = rgba[1]!.split(/[\s,/]+/).filter(Boolean);
+  return parts.length < 4 || parseFloat(parts[3]!) > OPAQUE_ALPHA;
+}
+
+/** Cel mai apropiat strămoș cu fundal opac: culoarea care rămâne când imaginea dispare. */
+function opaqueBackdropOf(element: Element, ourHostId: string): Element | undefined {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    if (isOurs(node, ourHostId)) return undefined;
+    if (isOpaqueColor(getComputedStyle(node).backgroundColor)) return node;
+  }
+  return undefined;
 }
 
 function byDocumentOrder(a: Element, b: Element): number {
@@ -550,11 +575,31 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
         };
       });
 
+    // Sub fiecare imagine mare, culoarea de fundal care rămâne după ce imaginea e ascunsă.
+    const backdropElements: Element[] = [];
+    for (const element of [...backgroundsShown, ...backgroundsHidden]) {
+      const backdrop = opaqueBackdropOf(element, options.ourHostId);
+      if (backdrop && !listedSet.has(backdrop) && !backdropElements.includes(backdrop)) backdropElements.push(backdrop);
+    }
+    const backdrops: PageElement[] = backdropElements.slice(0, MAX_BACKGROUNDS).map((element) => ({
+      id: idOf(element),
+      selector: buildSelector(element, doc),
+      tag: element.tagName.toLowerCase(),
+      role: "presentation",
+      label: `${BACKDROP_LABEL} (${getComputedStyle(element).backgroundColor})`,
+      regionId: regionOf(element)?.id,
+      rect: rectOf(element),
+      visible: true,
+      inViewport: true,
+      interactive: false,
+    }));
+
     const siteHidden = ordered.filter((e) => e.hiddenBy === "site").slice(0, MAX_SITE_HIDDEN);
     const others = ordered.filter((e) => e.hiddenBy !== "site");
     const kept = [
-      ...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length - backgrounds.length),
+      ...others.slice(0, SNAPSHOT_LIMITS.maxElements - siteHidden.length - backgrounds.length - backdrops.length),
       ...backgrounds,
+      ...backdrops,
       ...siteHidden,
     ];
 
@@ -577,7 +622,7 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
       viewport,
       regions: regionList,
       elements: kept,
-      truncated: elements.length + backgrounds.length > kept.length,
+      truncated: elements.length + backgrounds.length + backdrops.length > kept.length,
       recipe: {
         revision: recipe.revision,
         css:

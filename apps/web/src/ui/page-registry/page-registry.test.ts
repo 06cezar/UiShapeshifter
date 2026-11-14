@@ -351,6 +351,34 @@ describe("fundalurile mari decorative (imaginea de pe pagina de start Bing)", ()
   });
 });
 
+describe("fundalul paginii de sub imagine (Bing: pagina rămânea gri)", () => {
+  test("strămoșul cu fundal opac al imaginii intră în rezumat, ca agentul să-l poată face alb", () => {
+    layoutFromData();
+    document.body.innerHTML = `
+      <div class="hp_body" style="background-color: rgb(85, 85, 85)" data-x="0" data-y="0" data-w="1024" data-h="768">
+        <div class="transparent" data-x="0" data-y="0" data-w="1024" data-h="768">
+          <div id="hp_top_cover" style="background-image: url(fundal.jpg)" data-x="0" data-y="0" data-w="1024" data-h="700"></div>
+        </div>
+        <form><input aria-label="Caută" data-x="300" data-y="300" data-w="400" data-h="40" /></form>
+      </div>`;
+    const snap = registry().snapshot();
+    const backdrop = snap.elements.find((e) => e.label.startsWith("Fundalul paginii"));
+    expect(backdrop).toMatchObject({ role: "presentation", interactive: false });
+    expect(document.querySelector(backdrop!.selector)).toBe(document.querySelector(".hp_body"));
+    expect(backdrop?.label).toContain("85");
+  });
+
+  test("fără culoare opacă sub imagine, nu inventăm un fundal", () => {
+    layoutFromData();
+    document.body.innerHTML = `
+      <div id="hp_top_cover" style="background-image: url(fundal.jpg)" data-x="0" data-y="0" data-w="1024" data-h="700"></div>`;
+    const labels = registry()
+      .snapshot()
+      .elements.map((e) => e.label);
+    expect(labels.some((label) => label.startsWith("Fundalul paginii"))).toBe(false);
+  });
+});
+
 describe("coloanele rămân zone după ce rețeta ascunde vecina", () => {
   test("#b_results rămâne zonă după ce coloana din dreapta dispare", () => {
     layoutFromData();
