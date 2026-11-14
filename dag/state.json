@@ -20,7 +20,7 @@
     }
   },
   "last_comms_sha": "e898c890fefb3a99eb11f01653a8fd2e8b0e6a9b",
-  "last_run": "2026-11-14T02:12:52Z",
+  "last_run": "2026-11-14T02:13:53Z",
   "last_sha": "0f99e1f365b4318e1f47bbfc252e7608f1bbecec",
   "prs": {
     "1": {
@@ -470,8 +470,8 @@
     },
     "90": {
       "head": "a-prompt-reclame-tu",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T02:13:51Z",
+      "state": "MERGED"
     },
     "91": {
       "head": "e4-demo",
