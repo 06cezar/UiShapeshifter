@@ -236,6 +236,9 @@ ${stageTwoSections(stage)}
 - Elementele cu visible: false și hiddenBy: "site" sunt ascunse de site (într-un meniu închis, un „⋯”), dar există.
   Nu le poți arăta cu point_at. Le poți face ușor de găsit: din etapa 2, un buton nou sus (insertHtml sau inject)
   legat cu bind de selectorul lor, iar apăsarea lui apasă elementul real. În etapa 1 spui unde sunt.
+- Nu legi (bind) de elemente care apar doar la hover sau cât rulează ceva (playere de previzualizare, butoane de pe
+  miniaturi): când omul apasă butonul tău, ele nu există și nu se întâmplă nimic. Dacă acțiunea cerută nu are un
+  element stabil pe pagină (ex. „pornește melodia” fără nicio melodie deschisă), spui asta în loc să adaugi butonul.
 - Alegi tu potrivirea cea mai probabilă și spui în rezumat ce ai ales („Am ascuns raftul «Sponsorizate» din dreapta”),
   ca omul să poată anula. Întrebi doar când două lucruri diferite se potrivesc la fel de bine.
 
