@@ -11,6 +11,11 @@ const FADE_CLEANUP_MS = 50;
 const MAX_FADE_AREA_SHARE = 0.6;
 /** Id-ul copiilor conține „uishapeshifter”, ca motorul de rețete să nu le prindă cu selectorii agentului. */
 const FADE_ID_PREFIX = "uishapeshifter-fade-";
+/**
+ * Conținutul activ al site-ului: clonat, un `<iframe>` își încarcă din nou `src` (o reclamă numărată încă o dată,
+ * poate cu sunet), iar `<video autoplay>` sau `<audio>` pot porni. Copia doar se stinge: îl scoatem din ea (nota lui D).
+ */
+const ACTIVE_CONTENT = "iframe, frame, video, audio, object, embed";
 /** Foaia preferințelor de bază pentru mișcare redusă (a11y/base-preferences.ts, BASE_STYLE_ID). */
 const REDUCED_MOTION_STYLE_ID = "uishapeshifter-base";
 
@@ -42,7 +47,7 @@ export function measureLeaving(elements: Iterable<Element>): Leaving[] {
 
 /**
  * Pune peste locul fiecărui element ascuns o copie care se stinge. Elementul însuși e deja ascuns: copia e doar
- * imagine, fără id-uri ale site-ului (n-ar mai fi unice) și fără să primească click-uri.
+ * imagine, fără id-uri ale site-ului (n-ar mai fi unice), fără conținut activ și fără să primească click-uri.
  */
 export function fadeOut(leaving: readonly Leaving[], doc: Document): void {
   if (leaving.length === 0 || prefersReducedMotion(doc)) return;
@@ -52,7 +57,10 @@ export function fadeOut(leaving: readonly Leaving[], doc: Document): void {
     const parent = element.parentElement;
     if (!parent || !(element instanceof HTMLElement)) continue;
     if (viewportArea > 0 && (rect.width * rect.height) / viewportArea > MAX_FADE_AREA_SHARE) continue;
+    if (element.matches(ACTIVE_CONTENT)) continue;
     const ghost = element.cloneNode(true) as HTMLElement;
+    // scos cât copia nu e încă în pagină, deci înainte să apuce să încarce ceva
+    for (const active of ghost.querySelectorAll(ACTIVE_CONTENT)) active.remove();
     ghost.removeAttribute("data-uishapeshifter-hidden");
     for (const node of [ghost, ...ghost.querySelectorAll("[id]")]) node.removeAttribute("id");
     ghost.id = `${FADE_ID_PREFIX}${++fadeCount}`;

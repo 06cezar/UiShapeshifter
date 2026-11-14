@@ -647,6 +647,29 @@ describe("urma vizuală a ce ascunde agentul (specs/00, „Cât mai seamless”;
     expect(again.ok && again.data.skipped.map((skip) => skip.reason)).not.toContain("SELECTOR_AMBIGUOUS");
   });
 
+  test("urma unei reclame nu cuprinde iframe, video sau audio: nimic nu se încarcă sau pornește din nou (nota lui D)", async () => {
+    document.body.innerHTML = `<main><p id="text">Conținut</p><div id="ad" class="ad">Reclamă
+      <iframe src="https://reclame.example/banner"></iframe><video autoplay src="/clip.mp4"></video><audio src="/a.mp3"></audio>
+      <object data="/x"></object><embed src="/y"></div></main>`;
+    for (const el of document.querySelectorAll<HTMLElement>("*")) el.getBoundingClientRect = BOX;
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyOps({ ops: [{ op: "remove", selector: "#ad" }], reason: "fără reclame", runId: "r1" });
+    expect(ghosts()).toHaveLength(1);
+    expect(ghosts()[0]!.querySelectorAll("iframe, frame, video, audio, object, embed")).toHaveLength(0);
+    expect(ghosts()[0]!.textContent).toContain("Reclamă");
+  });
+
+  test("un iframe ascuns el însuși nu primește urmă", async () => {
+    document.body.innerHTML = `<main><p id="text">Conținut</p><iframe id="ad" src="https://reclame.example/b"></iframe></main>`;
+    for (const el of document.querySelectorAll<HTMLElement>("*")) el.getBoundingClientRect = BOX;
+    const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyOps({ ops: [{ op: "remove", selector: "#ad" }], reason: "fără reclame", runId: "r1" });
+    expect(ghosts()).toHaveLength(0);
+    expect(document.querySelectorAll("iframe")).toHaveLength(1);
+  });
+
   test("cu mișcare redusă (preferințele de bază), fără urmă", async () => {
     pageWithAd();
     const reduced = document.createElement("style");
