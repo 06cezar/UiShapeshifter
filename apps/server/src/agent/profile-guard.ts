@@ -18,18 +18,27 @@ export function normalizeQuote(text: string): string {
     .trim();
 }
 
-function isPreference(value: unknown): value is Pick<GeneralPreference, "text" | "category" | "evidence"> {
+/** `css` vine cu preferințele de aspect (E8, aplicat de extensie fără AI); îl citim fără să depindem de contract. */
+type PreferenceValue = Pick<GeneralPreference, "text" | "category" | "evidence"> & { css?: unknown };
+
+function isPreference(value: unknown): value is PreferenceValue {
   const preference = value as GeneralPreference | null;
   return typeof preference === "object" && preference !== null && typeof preference.text === "string";
 }
 
-/** Aceeași preferință ca una din profil: atunci e doar notarea unui site nou (appliedOn), nu o preferință nouă. */
-function isKnown(preference: Pick<GeneralPreference, "text" | "category">, existing: readonly GeneralPreference[]) {
-  return existing.some((known) =>
-    known.category && preference.category
-      ? known.category === preference.category
-      : normalizeQuote(known.text) === normalizeQuote(preference.text),
-  );
+/**
+ * Aceeași preferință ca una din profil și fără css nou: atunci e doar notarea unui site nou (appliedOn). Un css nou
+ * sau schimbat pe o preferință existentă („acum roz”) se pune pe orice site, deci cere și el citat de la om.
+ */
+function isKnown(preference: PreferenceValue, existing: readonly GeneralPreference[]) {
+  return existing.some((known) => {
+    const same =
+      known.category && preference.category
+        ? known.category === preference.category
+        : normalizeQuote(known.text) === normalizeQuote(preference.text);
+    const knownCss = (known as GeneralPreference & { css?: unknown }).css;
+    return same && (preference.css === undefined || preference.css === knownCss);
+  });
 }
 
 function quotesTheUser(evidence: unknown, userTexts: readonly string[]): boolean {

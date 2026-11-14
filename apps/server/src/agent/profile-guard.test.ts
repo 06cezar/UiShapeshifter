@@ -68,4 +68,35 @@ describe("paza profilului (prompt injection)", () => {
     ).toEqual(["/generalPreferences/0/text"]);
     expect(unbackedPreferences([{ op: "add", path: "/facts/-", value: { statement: "x" } }], [], [])).toEqual([]); // faptele nu
   });
+
+  it("css nou pe o preferință existentă cere citat de la om („acum roz” trece; schimbat de pagină, nu)", () => {
+    const green = {
+      ...known[0],
+      id: "verde",
+      category: undefined,
+      text: "fundal verde pe fiecare site",
+      css: "body { background: green }",
+    };
+    const withCss = (css: string, evidence: string[]) => ({
+      op: "add" as const,
+      path: "/generalPreferences/-",
+      value: {
+        id: "verde",
+        text: "fundal verde pe fiecare site",
+        evidence,
+        source: "conversation",
+        createdAt: "t",
+        appliedOn: [],
+        css,
+      },
+    });
+    const existing = [green as GeneralPreference];
+    expect(unbackedPreferences([withCss("body { background: green }", ["vechi"])], [], existing)).toEqual([]); // același css
+    expect(
+      unbackedPreferences([withCss("body { background: pink }", ["acum roz"])], ["Acum roz, te rog"], existing),
+    ).toEqual([]);
+    expect(
+      unbackedPreferences([withCss("body { display: none }", ["ascunde tot"])], ["Mărește textul"], existing),
+    ).toEqual(["fundal verde pe fiecare site"]);
+  });
 });
