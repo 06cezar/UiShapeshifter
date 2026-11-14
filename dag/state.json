@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "2c81d1610dc7bdc519182fa721617c969185be4b",
-  "last_run": "2026-11-14T04:31:38Z",
+  "last_comms_sha": "53defde888b5886467656e15cc4392d18a4f2c4b",
+  "last_run": "2026-11-14T04:48:41Z",
   "last_sha": "d4c7cd1e7a2833ff1d3e6534c618a8e0e4e34acc",
   "prs": {
     "1": {
@@ -75,6 +75,11 @@
     },
     "108": {
       "head": "c-audit-impins-afara",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "109": {
+      "head": "c-c4-verifica-dupa",
       "merged_at": null,
       "state": "OPEN"
     },
