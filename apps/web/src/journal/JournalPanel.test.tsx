@@ -190,6 +190,20 @@ describe("JournalPanel", () => {
     expect(container.textContent).toContain("Am scos: Ascunde reclamele");
   });
 
+  it("după rulare, pașii se strâng sub „Pașii (n)”; cât rulează, se văd", async () => {
+    const { journal, container, startRun } = await renderPanel();
+    await startRun();
+    await act(async () => journal.getState().handleServerMessage({ type: "step", step: step(0) }));
+    expect(container.querySelector(".journal-steps-done")).toBeNull();
+    expect(container.querySelector(".journal-steps")).not.toBeNull();
+    await act(async () =>
+      journal.getState().handleServerMessage({ type: "run_finished", runId: "r1", success: true, summary: "gata" }),
+    );
+    const done = container.querySelector<HTMLDetailsElement>(".journal-steps-done");
+    expect(done?.open).toBe(false);
+    expect(done?.querySelector("summary")?.textContent).toBe("Pașii (1)");
+  });
+
   it("se poate ascunde", async () => {
     const { container, byId, startRun } = await renderPanel();
     await startRun();

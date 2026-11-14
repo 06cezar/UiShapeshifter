@@ -21,7 +21,8 @@ export const JOURNAL_CSS = `
   /* sus în dreapta, peste site; jos rămâne loc pentru mascotă, în stânga pentru chat */
   position: fixed; top: calc(var(--uis-space) * 2); right: calc(var(--uis-space) * 2);
   width: min(calc(var(--uis-target) * 9), calc(100vw - var(--uis-space) * 4));
-  max-height: calc(100vh - var(--uis-target) * 4);
+  /* Cel mult jumătate din ecran: pagina rămâne la vedere (proba lui E). */
+  max-height: min(50vh, calc(100vh - var(--uis-target) * 4));
   overflow-y: auto; box-sizing: border-box;
   border-radius: calc(var(--uis-space) * 2); box-shadow: var(--uis-shadow);
 }
