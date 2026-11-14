@@ -1,7 +1,7 @@
 // Ce folosesc ceilalți din profil: serverul (rutele), agentul A3 (rezumatul, update_profile), adaptarea E3.
 
 export { createProfileRouter, ONBOARDING_GOAL, type ProfileRouterHooks } from "./routes";
-export { createProfileStore, DEFAULT_PROFILES_DIR, type ProfileStore } from "./store";
+export { createProfileStore, defaultProfilesDir, type ProfileStore } from "./store";
 
 import { createProfileStore } from "./store";
 

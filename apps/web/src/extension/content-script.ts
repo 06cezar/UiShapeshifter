@@ -19,14 +19,21 @@ import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
+import { isExcluded } from "./excluded-sites";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
+import { mountSuggestionBubble } from "./suggestion-bubble";
 
 /** Pus de build.mjs: true în build-ul de dezvoltare, false cu --prod. */
 declare const __UIS_DEV__: boolean;
 
 const host = normalizeHost(location.hostname);
+/**
+ * „Nu schimba acest site” (popup, specs/08): pe un site exclus nu aplicăm singuri nimic (fontul minim C4, ascunderile
+ * fără AI, rețeta salvată). Chatul și mascota rămân, ca omul să poată cere ceva sau să repornească din popup.
+ */
+let excluded = false;
 /** Din chat se vede mereu una dintre ele: butonul (chat închis) sau panoul (chat deschis). */
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
@@ -55,7 +62,6 @@ const recipes = createRecipeEngine({
 // Doar în build-ul de dezvoltare: motorul în consolă, pentru probe manuale (cererea lui B). În DevTools alege contextul
 // „UI Shapeshifter” din lista de sus a consolei, apoi: uiRecipes.view(), uiRecipes.applyCss({ css, reason }).
 if (__UIS_DEV__) (globalThis as { uiRecipes?: typeof recipes }).uiRecipes = recipes;
-void recipes.load();
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 /** Preferințele de bază (C4): fontul minim, contrastul și țintele din profil, fără AI, aplicate ultimele. */
 let base: BasePreferences | null = null;
@@ -65,7 +71,7 @@ let needs: Partial<UserNeeds> = {};
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 // Testul inițial a salvat alte nevoi: preferințele de bază se refac după ele.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
+  if (area !== "local" || excluded) return; // site exclus: nu reaplicăm nimic singuri
   const recipeChange = changes[recipeKey(host)];
   if (recipeChange) {
     recipes.adopt(parseStoredRecipe(recipeChange.newValue, host, new Date().toISOString()));
@@ -153,6 +159,12 @@ function start() {
     page: () => pageInfo(location, document.title),
   });
   const mascot = mountMascot(ourRoot);
+  // Propunerile adaptării automate (E3): bula discretă cu Da / Nu; răspunsul pleacă la server.
+  const suggestions = mountSuggestionBubble(ourRoot, {
+    decide: (suggestionId, decision) =>
+      send({ type: "to_server", message: { type: "suggestion_decision", suggestionId, decision } }),
+    onShow: () => mascot.setState("speaking"),
+  });
   const panel = mountJournal(ourRoot, {
     send: (message) => {
       if (message.type !== "hello") send({ type: "to_server", message });
@@ -188,9 +200,9 @@ function start() {
   // peste rețetă.
   void readNeeds().then((saved) => {
     needs = saved;
-    base = startBasePreferences({ needs, ourHostId: HOST_ID });
+    if (!excluded) base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
-  void refreshDislikes();
+  if (!excluded) void refreshDislikes();
 
   // Registrul paginii (B2), motorul de rețete (B5), bula chatului pentru `say` și mascota pentru `point_at` (D2).
   const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
@@ -238,13 +250,17 @@ function start() {
       mascot.setState("speaking");
     },
     pointAt: (element, message) => mascot.pointAt(element, message),
-    proposeChanges: (args, runId) =>
-      proposeChanges(args, runId, {
+    proposeChanges: async (args, runId) => {
+      const result = await proposeChanges(args, runId, {
         ask: panel.askProposal,
         revisionBefore: (id) => (id ? runStart.get(id) : undefined) ?? recipes.view().revision,
         currentRevision: () => recipes.view().revision,
         undoRun,
-      }),
+      });
+      // Păstrez / Anulez e și semnal (specs/09): din ele crește sau scade încrederea pentru aplicarea automată (E3).
+      if (result.ok) signals?.proposalDecision(result.data.proposalId, result.data.decision);
+      return result;
+    },
   };
 
   function connect() {
@@ -269,6 +285,10 @@ function start() {
         return;
       }
       if (server.type === "run_started") runStart.set(server.runId, recipes.view().revision);
+      if (server.type === "suggestion") {
+        suggestions.show(server.suggestion);
+        return;
+      }
       chat.handleServerMessage(server);
       moveMascot(mascot, server);
       panel.journal.getState().handleServerMessage(server);
@@ -284,5 +304,10 @@ function start() {
   connect();
 }
 
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-else start();
+void isExcluded(chrome.storage.local, host).then((isOff) => {
+  excluded = isOff;
+  // Rețeta cât mai devreme (document_start), ca site-ul să nu apară întâi neschimbat.
+  if (!excluded) void recipes.load();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+});

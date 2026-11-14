@@ -4,13 +4,15 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { UserProfile } from "@uishapeshifter/contracts";
+import { dataPath } from "../storage/json-files";
 import { createStartingProfile } from "./defaults";
 import { isValidUserId, parseProfile } from "./validate";
 
-/** apps/server/src/profile/ -> rădăcina repo-ului -> data/profiles/ */
-export const DEFAULT_PROFILES_DIR = fileURLToPath(new URL("../../../../data/profiles/", import.meta.url));
+/** data/profiles/ sub DATA_DIR, ca restul serverului (storage/json-files.ts); implicit data/ din rădăcina repo-ului. */
+export function defaultProfilesDir(): string {
+  return dataPath("profiles");
+}
 
 export interface ProfileStore {
   /** Profilul salvat; dacă lipsește (sau fișierul e stricat), îl creează pe cel de pornire și îl salvează. */
@@ -29,7 +31,7 @@ function isMissingFile(error: unknown): boolean {
 }
 
 export function createProfileStore(
-  dir: string = DEFAULT_PROFILES_DIR,
+  dir: string = defaultProfilesDir(),
   clock: () => Date = () => new Date(),
 ): ProfileStore {
   const fileOf = (userId: string) => join(dir, `${userId}.json`);

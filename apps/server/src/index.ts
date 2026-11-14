@@ -3,9 +3,12 @@
 
 import "./load-env";
 import { SERVER_PORT } from "@uishapeshifter/contracts";
+import { startAdaptation } from "./adaptation";
 import { createAppServer } from "./server";
 
 export const httpServer = createAppServer();
+// Adaptarea automată (E3): semnalele → reguli → propunerea mascotei → agentul, la „Da”.
+startAdaptation();
 
 httpServer.listen(SERVER_PORT, () => {
   console.log(`server: http://localhost:${SERVER_PORT}/api/health  ·  ws://localhost:${SERVER_PORT}/ws`);
