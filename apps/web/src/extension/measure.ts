@@ -9,7 +9,10 @@ import type { AuditThresholds } from "@uishapeshifter/contracts";
 export interface PageMeasure {
   /** Butoane, linkuri și câmpuri vizibile acum (fără interfața noastră). */
   visibleInteractive: number;
-  /** Câte dintre ele a ascuns rețeta agentului (vizibile cu rețeta oprită). */
+  /**
+   * Câte dintre ele a ascuns CSS-ul rețetei (vizibile cu foaia oprită). Elementele scoase cu operații DomOp (remove)
+   * nu intră aici (nota lui D pe #91); la pitch spunem „ascunse de CSS”.
+   */
   hiddenByRecipe: number;
   /** Click-uri până la elementul cerut: 1 dacă e la vedere, 2 dacă e într-un meniu închis, null dacă nu există. */
   clicksTo: number | null;

@@ -3,12 +3,13 @@
 // Token-ul stă în chrome.storage.local; parola nu se păstrează nicăieri în extensie.
 
 import type { AuthResult, SiteRecipe, SiteRecipeHistory, SyncBundle, UserProfile } from "@uishapeshifter/contracts";
+import { USER_ID_KEY } from "../extension/base-needs";
 import { RECIPE_KEY_PREFIX, recipeKey, type StoredRecipe } from "../ui/recipes/recipe-store";
 
 /** Cheia contului în chrome.storage.local: { token, account, userId }. */
 export const ACCOUNT_KEY = "account";
-/** userId-ul activ (E5): după login devine cel al contului. */
-export const USER_ID_KEY = "userId";
+/** userId-ul activ (E5): după login devine cel al contului. Aceeași cheie ca în base-needs.ts. */
+export { USER_ID_KEY };
 /** După o schimbare, așteptăm puțin înainte să trimitem (specs/08: „cu pauză de 2 s”). */
 export const PUSH_DELAY_MS = 2000;
 
