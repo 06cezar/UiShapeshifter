@@ -1,6 +1,6 @@
 // Interfața noastră nu acoperă textul paginii: cât timp panoul, chatul sau mascota stau peste site, pagina primește
 // margine (padding pe <html>) cât ocupă ele, iar site-ul se reașază în spațiul rămas în loc să stea sub noi.
-// Panoul ia o coloană în dreapta, chatul deschis una în stânga; butonul chatului și mascota iau loc jos.
+// Panoul ia o coloană în dreapta; butonul chatului și mascota iau loc jos (pagina se poate derula de sub ei).
 
 export interface Edges {
   left: number;

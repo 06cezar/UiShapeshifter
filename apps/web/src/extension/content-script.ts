@@ -135,7 +135,7 @@ function ourBoxes(shadow: ShadowRoot): Placed[] {
     if (element && element.getClientRects().length > 0) placed.push({ box: element.getBoundingClientRect(), side });
   };
   add(".journal", "right");
-  add(".chat-panel:not([hidden])", "left");
+  // Chatul deschis nu împinge pagina: e mic, stă jos și se închide după cerere; o coloană întreagă ar fi goală.
   add(".chat-launcher", "bottom");
   const mascot = shadow.querySelector<HTMLElement>(".mascot");
   if (mascot && mascot.offsetWidth > 0) {
