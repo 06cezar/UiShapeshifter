@@ -1,3 +1,3 @@
-2026-11-14 01:16
+2026-11-14 02:14
 
-gata: #9 aprobat (decizia lui Cezar), cerut lui C PR mic pentru profilul local după test; E: e-onboarding-legat (fără PR), A: #53; urmează: review PR-ul mic al lui C, #51, M3; blocat: nimic
+gata: verificat #63 (testul la instalare, merge adus la zi cu main); urmează: #63 unit de E, apoi proba M3 după PROBA-M3.md; blocat: M3 pas 1 până la #63
