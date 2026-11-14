@@ -30,6 +30,9 @@ export function fixCssFor(
     }
     case "line-height":
       return rule(selector, [`line-height: ${thresholds.minLineHeight}`]);
+    case "clipped":
+      // Tăiat de cutia părinte: o lăsăm să crească după conținut. Textul tăiat în propriul element rămâne la agent.
+      return facts.clippedBySelector ? rule(facts.clippedBySelector, ["height: auto", "max-height: none"]) : undefined;
     default:
       return undefined;
   }

@@ -148,6 +148,11 @@ function measurePage(
     const id = options.identity.idOf(element);
     result.elements[id] = describe(element, id, rect, inViewport);
     result.facts[id] = pageFactsOf(element, viewport.width);
+    const clipper = isInteractive(element) ? clippingAncestorOf(element, rect) : undefined;
+    if (clipper) {
+      result.elements[id]!.clipped = true;
+      result.facts[id]!.clippedBySelector = options.identity.selectorOf(clipper);
+    }
     result.selectors[id] = options.identity.selectorOf(element);
   }
   return result;
@@ -214,6 +219,28 @@ function isInHorizontalScroller(element: Element, viewportWidth: number): boolea
     return rect.left >= -OFFSCREEN_EPS_PX && rect.right <= viewportWidth + OFFSCREEN_EPS_PX;
   }
   return false;
+}
+
+/** Valorile `overflow-y` cu care o cutie ascunde ce iese din ea (fără bară de derulare). */
+const HIDING_OVERFLOW = new Set(["hidden", "clip"]);
+
+/**
+ * Cutia părinte care taie elementul pe verticală: se vede doar o parte din el (nu e ascuns de tot, ca într-un meniu
+ * închis). Doar pentru elementele interactive: un buton pe jumătate ascuns nu se poate apăsa sigur. Cazul de demo:
+ * scurtătura pusă de agent într-un antet cu înălțime fixă, crescută apoi la ținta minimă (specs/12, pasul 4).
+ */
+function clippingAncestorOf(element: Element, rect: DOMRect): Element | undefined {
+  const body = element.ownerDocument.body;
+  for (let node = element.parentElement; node && node !== body; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    // `overflow` scurt, unde motorul nu desface `overflow-y` (happy-dom în teste)
+    if (!HIDING_OVERFLOW.has(style.overflowY || style.overflow)) continue;
+    const box = node.getBoundingClientRect();
+    const cutBelow = rect.bottom > box.bottom + OFFSCREEN_EPS_PX && rect.top < box.bottom;
+    const cutAbove = rect.top < box.top - OFFSCREEN_EPS_PX && rect.bottom > box.top;
+    if (cutBelow || cutAbove) return node;
+  }
+  return undefined;
 }
 
 /**

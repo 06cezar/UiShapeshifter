@@ -113,6 +113,23 @@ describe("auditPage pe un site", () => {
     expect(clipped).toContain("lung");
   });
 
+  it("un buton tăiat de antetul cu înălțime fixă: clipped, cu fixCss care crește antetul (demo, pasul 4)", () => {
+    page(`
+      <header data-t="antet" style="height: 40px; overflow: hidden" data-rect="0,0,1000,40">
+        <a data-t="scurtatura" href="/plata" style="display: block; font-size: 18px" data-rect="0,0,200,56">Plătește factura</a>
+        <a data-t="intreg" href="/cont" style="display: block; font-size: 18px" data-rect="300,0,100,40">Cont</a>
+      </header>
+      <div style="height: 20px; overflow: hidden" data-rect="0,100,1000,20">
+        <p data-t="text" style="font-size: 18px" data-rect="0,100,1000,60">Un paragraf mai înalt decât cutia lui</p>
+      </div>`);
+    const { report } = withFixCss(auditPage(THRESHOLDS, OPTIONS));
+    const clipped = report.issues.filter((issue) => issue.rule === "clipped");
+    expect(clipped.map((issue) => issue.elementId)).toEqual(["scurtatura"]);
+    expect(clipped[0]!.message).toContain("tăiat de cutia în care stă");
+    expect(clipped[0]!.fixCss).toBe('[data-t="antet"] { height: auto !important; max-height: none !important; }');
+    expect(validateCss(clipped[0]!.fixCss!).dropped).toEqual([]);
+  });
+
   it("textul pe gradient sau imagine nu e judecat la contrast: fundalul nu se poate măsura", () => {
     page(`<div style="background-color: #ffffff; background-image: linear-gradient(#0b3d91, #1e88e5)">
       <p data-t="pe-gradient" style="color: #ffffff; font-size: 20px; line-height: 1.6">Doar azi</p></div>`);
