@@ -5,6 +5,7 @@ import { currentAccount, signIn, signOut } from "../sync/account-sync";
 import { loadDemoProfile, resetDemo } from "./demo-reset";
 import { clearRecipe, loadRecipe } from "../ui/recipes/recipe-store";
 import { isExcluded, toggleExcluded } from "./excluded-sites";
+import { isExpertMode, setExpertMode } from "./expert-mode";
 import { POPUP_PORT, parseFromWorker, type LinkStatus } from "./messages";
 import { normalizeHost } from "./page-info";
 import { savedChangesText } from "./popup-text";
@@ -157,3 +158,24 @@ excludeButton.addEventListener("click", async () => {
 });
 
 void showExcludeState();
+
+// ---------- Modul expert (run_js, experiment x-mod-js): oprit implicit ----------
+
+const expertBox = document.getElementById("expert-mode") as HTMLInputElement;
+const expertStatus = document.getElementById("expert-status")!;
+
+function showExpert(on: boolean) {
+  expertBox.checked = on;
+  if (!on) expertStatus.textContent = "Oprit: agentul schimbă pagina doar cu stil și structură, fără cod.";
+  else if (!chrome.userScripts?.execute) {
+    expertStatus.textContent =
+      "Mai trebuie un pas: chrome://extensions → UI Shapeshifter → Details → pornește „Allow User Scripts”.";
+  } else expertStatus.textContent = "Pornit: înainte de fiecare cod vezi ce face și alegi „Rulează” sau „Nu rula”.";
+}
+
+expertBox.addEventListener("change", async () => {
+  await setExpertMode(chrome.storage.local, expertBox.checked);
+  showExpert(expertBox.checked);
+});
+
+void isExpertMode(chrome.storage.local).then(showExpert);

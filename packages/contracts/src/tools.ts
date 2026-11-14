@@ -33,6 +33,7 @@ export type ToolName =
   | "say"
   | "get_profile"
   | "update_profile"
+  | "run_js"
   | "finish";
 
 /** Uneltele etapei 1, în ordinea în care le folosește de obicei agentul. */
@@ -57,6 +58,7 @@ export const TOOL_RUNS_ON: Record<ToolName, "web" | "server"> = {
   say: "web",
   get_profile: "server",
   update_profile: "server",
+  run_js: "web",
   finish: "server",
 };
 
@@ -107,6 +109,11 @@ export interface ToolArgs {
   say: { message: string; mascot?: MascotState };
   get_profile: Record<string, never>;
   update_profile: { facts?: Omit<ProfileFact, "id" | "createdAt">[]; patch?: JsonPatchOp[] };
+  /**
+   * Modul expert (experiment, specs/05 „run_js”): cod JavaScript scris de model, rulat o singură dată, doar dacă omul a
+   * pornit modul și apasă „Rulează” după ce vede codul. Nu intră în rețetă. `purpose`: ce face, pe înțeles, pentru om.
+   */
+  run_js: { code: string; purpose: string };
   finish: { summary: string; success: boolean };
 }
 
@@ -170,7 +177,26 @@ export interface ToolData {
   say: { shown: true };
   get_profile: UserProfile;
   update_profile: { updatedAt: string };
+  run_js: RunJsData;
   finish: { runId: string };
+}
+
+/** Limitele modului expert; peste ele extensia răspunde cu INVALID_ARGS, fără să arate codul omului. */
+export const RUN_JS_LIMITS = {
+  maxCodeChars: 4000,
+  /** Rezultatul (sau mesajul de eroare) se taie la atât înainte să ajungă la model. */
+  maxResultChars: 500,
+} as const;
+
+/**
+ * `disabled`: modul expert e oprit (sau Chrome nu permite scripturi); agentul îi spune omului cum îl pornește.
+ * `declined`: omul a văzut codul și a apăsat „Nu rula”. `ran`: a rulat; `error` dacă a aruncat o excepție.
+ */
+export interface RunJsData {
+  status: "ran" | "declined" | "disabled";
+  /** Valoarea întoarsă de cod, ca text, tăiată la `RUN_JS_LIMITS.maxResultChars`. */
+  result?: string;
+  error?: string;
 }
 
 // ---------- definițiile pentru model (format OpenAI / OpenRouter) ----------

@@ -33,7 +33,11 @@ export interface ChatController {
    * sau o variantă) se întoarce agentului în loc să plece ca cerere nouă. `null` dacă omul nu răspunde la timp sau
    * vine altă întrebare peste ea.
    */
-  ask(question: string, options?: readonly string[]): Promise<string | null>;
+  /**
+   * `humanOnly`: răspunsul contează doar dacă vine de la om (click sau Enter reale, `isTrusted`). Pentru aprobarea
+   * codului din modul expert: scriptul unei pagini ar putea altfel apăsa singur „Rulează” în interfața noastră.
+   */
+  ask(question: string, options?: readonly string[], opts?: { humanOnly?: boolean }): Promise<string | null>;
   setLinkStatus(status: LinkStatus): void;
   state(): ChatState;
 }
@@ -114,7 +118,13 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
   /** Id-ul ultimului mesaj desenat: la fel de bun ca lungimea, și prinde și cazul în care istoricul s-a tăiat. */
   let renderedLastId = 0;
   /** Întrebarea agentului care așteaptă răspuns (`ask_user`); cât e deschisă, ce scrie omul îi răspunde ei. */
-  let pendingAsk: { resolve(answer: string | null): void; timer: ReturnType<typeof setTimeout> } | null = null;
+  let pendingAsk: {
+    resolve(answer: string | null): void;
+    timer: ReturnType<typeof setTimeout>;
+    humanOnly: boolean;
+  } | null = null;
+  /** O acțiune simulată de scriptul paginii (`.click()`, `requestSubmit()`) nu răspunde la o întrebare humanOnly. */
+  const fromHumanIfNeeded = (event: Event) => !pendingAsk?.humanOnly || event.isTrusted;
 
   function render() {
     panel.hidden = !state.open;
@@ -183,7 +193,11 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
     resolve(answer);
   }
 
-  function ask(question: string, choices: readonly string[] = []): Promise<string | null> {
+  function ask(
+    question: string,
+    choices: readonly string[] = [],
+    opts: { humanOnly?: boolean } = {},
+  ): Promise<string | null> {
     finishAsk(null); // o întrebare nouă o înlocuiește pe cea rămasă fără răspuns
     dispatch({ type: "server", message: { type: "agent_message", text: question, mascot: "speaking" } });
     optionsBox.replaceChildren();
@@ -194,13 +208,19 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
       button.className = "chat-option";
       button.dataset.agentId = `chat.option.${i}`;
       button.textContent = choice;
-      button.addEventListener("click", () => sendRequest(choice, "text"));
+      button.addEventListener("click", (event) => {
+        if (fromHumanIfNeeded(event)) sendRequest(choice, "text");
+      });
       optionsBox.append(button);
     }
     optionsBox.hidden = optionsBox.childElementCount === 0;
     open();
     return new Promise((resolve) => {
-      pendingAsk = { resolve, timer: setTimeout(() => finishAsk(null), ASK_TIMEOUT_MS) };
+      pendingAsk = {
+        resolve,
+        timer: setTimeout(() => finishAsk(null), ASK_TIMEOUT_MS),
+        humanOnly: Boolean(opts.humanOnly),
+      };
       render();
     });
   }
@@ -217,7 +237,7 @@ export function mountChat(root: OurRoot, options: ChatOptions): ChatController {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    sendRequest(input.value, "text");
+    if (fromHumanIfNeeded(event)) sendRequest(input.value, "text");
   });
 
   // Vocea (D10): textul intermediar apare în câmp, fraza terminată pleacă singură, marcată „voice”.

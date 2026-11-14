@@ -108,3 +108,18 @@ Modelul primește uneltele etapei la care e extensia (`siteToolDefinitions(stage
 
 **Verificare după fiecare schimbare** (regula agentului): `apply_css` / `apply_ops` → `get_page_snapshot` (au dispărut elementele?
 se vede ce trebuia?) → `audit_ui` (nu s-a stricat nimic?) → abia apoi `propose_changes`. Fiecare pas intră în jurnal și se vede în panou.
+
+## Experiment: modul expert (`run_js`), până la 14 nov. 12:30
+
+Singura excepție de la „agentul nu rulează cod”, ca experiment pe branch-ul `x-mod-js`; dacă nu merge cap-coadă pe
+site-ul de test până la 12:30, nu se unește pe `main`. Tipurile: `ToolArgs.run_js`, `RunJsData`, `RUN_JS_LIMITS`,
+`RUN_JS_TOOL_DEFINITION`.
+
+- **Server (A):** dă unealta modelului doar cu `AGENT_JS=1` în `.env`; promptul o permite doar pentru comportamente
+  pe care CSS și `apply_ops` nu le pot face. Pasul intră în jurnal cu `purpose` și codul.
+- **Extensia (E):** comutatorul „Mod expert” (oprit implicit) și rularea prin `chrome.userScripts.execute`, care cere
+  ca omul să fi pornit „Allow User Scripts” în detaliile extensiei. Oprit sau API lipsă → `status: "disabled"`.
+- **Aprobarea (C):** înainte de rulare, panoul arată `purpose` și codul, cu „Rulează” și „Nu rula” (`declined`).
+  Codul cu `fetch`, `XMLHttpRequest`, `document.cookie`, `localStorage`, `sendBeacon` sau `WebSocket` e refuzat din
+  start (`INVALID_ARGS`), fără să i se arate omului. E o plasă, nu o garanție: garanția e aprobarea omului.
+- **Nu intră în rețetă** și nu se reaplică la reîncărcare; „Anulez” nu-l poate da înapoi, deci rularea spune asta.

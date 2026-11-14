@@ -4,7 +4,9 @@
 
 import { SERVER_PORT, type ServerMessage } from "@uishapeshifter/contracts";
 import { ONBOARDING_KEY } from "./base-needs";
+import type { RunJsData } from "@uishapeshifter/contracts";
 import { fetchRun } from "../journal/run-api";
+import { isExpertMode, runJsDataFrom, wrapCode } from "./expert-mode";
 import { PAGE_PORT, POPUP_PORT, parseToWorker, type FromWorker } from "./messages";
 import { normalizeHost } from "./page-info";
 import { createRunRouter } from "./run-router";
@@ -133,6 +135,27 @@ void currentAccount(chrome.storage.local).then((account) => {
   if (account) void pull(syncOptions);
 });
 
+/**
+ * Rulează codul aprobat o singură dată, în tab-ul paginii care l-a cerut, în lumea USER_SCRIPT (izolată de
+ * JavaScript-ul site-ului). Mod oprit sau API lipsă („Allow User Scripts” nepornit) → disabled.
+ */
+async function runJsInTab(tabId: number | undefined, code: string): Promise<RunJsData> {
+  if (!(await isExpertMode(chrome.storage.local)) || !chrome.userScripts?.execute || tabId === undefined) {
+    return { status: "disabled" };
+  }
+  try {
+    const [first] = await chrome.userScripts.execute({
+      target: { tabId },
+      js: [{ code: wrapCode(code) }],
+      world: "USER_SCRIPT",
+      injectImmediately: true,
+    });
+    return runJsDataFrom(first?.result, first?.error);
+  } catch (error) {
+    return runJsDataFrom(undefined, error instanceof Error ? error.message : String(error));
+  }
+}
+
 chrome.runtime.onConnect.addListener((port) => {
   const ports = port.name === POPUP_PORT ? popupPorts : port.name === PAGE_PORT ? pagePorts : null;
   if (!ports) return port.disconnect();
@@ -143,6 +166,12 @@ chrome.runtime.onConnect.addListener((port) => {
     const message = parseToWorker(raw);
     if (!message) return console.warn("extensie: mesaj nerecunoscut de la", port.name, raw);
     if (message.type === "get_status") return post(port, statusMessage());
+    if (message.type === "run_js") {
+      // Modul expert: codul vine deja verificat și aprobat de om în pagină; aici doar verificăm că modul e pornit.
+      const { requestId, code } = message;
+      void runJsInTab(port.sender?.tab?.id, code).then((data) => post(port, { type: "run_js_done", requestId, data }));
+      return;
+    }
     if (message.type === "load_run") {
       // „Reia pas cu pas”: citim rularea în locul paginii (CORS) și răspundem pe portul ei.
       const { requestId, runId } = message;

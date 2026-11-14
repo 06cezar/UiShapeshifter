@@ -8,7 +8,7 @@ import { mountMascot, type MascotController } from "../mascot";
 import { mountJournal } from "../journal/mount-journal";
 import { proposeChanges } from "../journal/proposal";
 import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
-import type { AgentRun, ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
+import type { AgentRun, RunJsData, ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
 import { runAuditUi } from "../a11y";
 import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
 import { applyDislikes, dislikesFromStored } from "../a11y/dislike-rules";
@@ -21,6 +21,7 @@ import { SHAPE_ATTR } from "../ui/recipes/dom-ops";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { isExcluded } from "./excluded-sites";
+import { isExpertMode } from "./expert-mode";
 import { applyGeneralStyle, generalCssFrom } from "./general-style";
 import { pageBackgroundFrom, startPageBackground } from "./page-background";
 import { keepClearOfSiteFixed } from "./keep-clear";
@@ -43,6 +44,8 @@ let excluded = false;
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
 /** Ce vede omul în chat când tab-ul are codul vechi al extensiei (după ↻): doar reîncărcarea paginii ajută. */
 const RELOAD_PAGE_TEXT = "Extensia s-a actualizat. Reîncarcă pagina (F5) și scrie din nou.";
+/** Modul expert: cât așteptăm rezultatul unui script aprobat înainte să-i spunem agentului că n-a răspuns. */
+const RUN_JS_TIMEOUT_MS = 10_000;
 /** „Reia pas cu pas”: cât așteptăm rularea de la service worker înainte să spunem că n-a mers. */
 const LOAD_RUN_TIMEOUT_MS = 10_000;
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
@@ -213,6 +216,19 @@ function start() {
       send({ type: "to_server", message: { type: "suggestion_decision", suggestionId, decision } }),
     onShow: () => mascot.setState("speaking"),
   });
+  /** Codul aprobat de om (modul expert), trimis service worker-ului să-l ruleze; răspunsul vine după requestId. */
+  const jsRequests = new Map<string, (data: RunJsData) => void>();
+  function executeJs(code: string): Promise<RunJsData> {
+    const requestId = `js-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    return new Promise((resolve) => {
+      jsRequests.set(requestId, resolve);
+      send({ type: "run_js", requestId, code });
+      setTimeout(() => {
+        if (jsRequests.delete(requestId)) resolve({ status: "ran", error: "Scriptul n-a răspuns la timp." });
+      }, RUN_JS_TIMEOUT_MS);
+    });
+  }
+
   /** Cererile „Reia pas cu pas” trimise service worker-ului, după requestId. */
   const runRequests = new Map<string, { resolve(run: AgentRun): void; reject(error: Error): void }>();
   function loadRun(runId: string): Promise<AgentRun> {
@@ -303,7 +319,7 @@ function start() {
   const tools: PageToolDeps = {
     registry,
     ourHostId: HOST_ID,
-    askUser: (question, options) => chat.ask(question, options),
+    askUser: (question, options, opts) => chat.ask(question, options, opts),
     // „anulează ce am cerut cu X” din chat: la fel ca „Anulez” din lista panoului, apoi limitele de bază din nou
     undoRequest: async (requestId) => {
       const result = await recipes.undoRequest(requestId);
@@ -340,6 +356,10 @@ function start() {
       mascot.setState("speaking");
     },
     pointAt: (element, message) => mascot.pointAt(element, message),
+    // Modul expert (run_js, x-mod-js): după verificarea și aprobarea din pagină (C), rularea o face service worker-ul.
+    executeJs,
+    // Oprit → agentul află „disabled” fără să-i cerem omului aprobarea degeaba (C). API-ul îl verifică service worker-ul.
+    expertModeOn: () => isExpertMode(chrome.storage.local),
     proposeChanges: async (args, runId) => {
       showWhatChanged(runId);
       const result = await proposeChanges(args, runId, {
@@ -382,6 +402,12 @@ function start() {
       if (!message) return;
       if (message.type === "status") {
         chat.setLinkStatus(message.status);
+        return;
+      }
+      if (message.type === "run_js_done") {
+        const waiting = jsRequests.get(message.requestId);
+        jsRequests.delete(message.requestId);
+        waiting?.(message.data);
         return;
       }
       if (message.type === "run_loaded") {

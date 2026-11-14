@@ -3,7 +3,7 @@
 // Semantica fiecărei unelte: specs/05-unelte-agent.md.
 
 import { DOM_OP_LIMITS, SETTABLE_ATTRS } from "./dom-ops";
-import { SITE_TOOL_DEFINITIONS } from "./tools";
+import { RUN_JS_LIMITS, SITE_TOOL_DEFINITIONS } from "./tools";
 
 /** Unde se pune ceva față de un element al paginii (`DomPlace`). */
 const DOM_PLACE = {
@@ -198,6 +198,29 @@ export const SITE_TOOL_DEFINITIONS_STAGE3 = [
     },
   },
 ] as const;
+
+/**
+ * Modul expert (experiment): serverul o dă modelului doar cu `AGENT_JS=1`. Extensia o rulează doar dacă omul a pornit
+ * modul și aprobă codul; altfel întoarce `status: "disabled"` sau `"declined"`.
+ */
+export const RUN_JS_TOOL_DEFINITION = {
+  type: "function",
+  function: {
+    name: "run_js",
+    description:
+      "Doar când omul cere un comportament pe care CSS și apply_ops nu-l pot face (citește cu voce, filtrează o listă " +
+      "după ce scrie omul, scurtături de tastatură, sortează după preț). Codul JavaScript rulează o singură dată, în " +
+      "pagină, după ce omul îl vede și apasă „Rulează”; nu se salvează în rețetă. Fără fetch, XMLHttpRequest, cookie-uri, " +
+      "localStorage, parole sau formulare: codul nu citește și nu trimite datele omului. `purpose`: ce face, într-o " +
+      `propoziție pentru om. Cel mult ${RUN_JS_LIMITS.maxCodeChars} de caractere. Dacă întoarce status "disabled", ` +
+      "spune-i omului că modul expert e oprit.",
+    parameters: {
+      type: "object",
+      properties: { code: { type: "string" }, purpose: { type: "string" } },
+      required: ["code", "purpose"],
+    },
+  },
+} as const;
 
 export type SiteToolStage = 1 | 2 | 3;
 

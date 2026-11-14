@@ -37,6 +37,9 @@ describe("withToolFallback", () => {
       "Îți spun ceva: Nu găsesc bara de sus.",
     );
     expect(withToolFallback(empty, "get_page_snapshot", {}).decision).toBe("Mă uit la pagină.");
+    expect(withToolFallback(empty, "run_js", { code: "x()", purpose: "Citește articolul cu voce" }).decision).toBe(
+      "Rulez un mic program în pagină, după ce îl aprobi: Citește articolul cu voce",
+    ); // modul expert: în panou se vede ce face codul
     expect(withToolFallback(empty, "get_page_snapshot", { regionId: "r.main" }).decision).toBe(
       "Mă uit mai atent la o parte a paginii.",
     ); // fără id-uri interne în panou
