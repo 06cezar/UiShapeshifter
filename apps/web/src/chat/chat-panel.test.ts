@@ -63,6 +63,30 @@ describe("trimitere", () => {
   });
 });
 
+describe("„…” cât lucrează agentul", () => {
+  test("apare după trimitere, la coada istoricului, și dispare la final", () => {
+    const { chat, q } = setup();
+    q<HTMLButtonElement>(".chat-launcher").click();
+    expect(q<HTMLElement>(".chat-typing").hidden).toBe(true);
+    type(q<HTMLInputElement>(".chat-input"), "ascunde Shorts");
+    expect(q<HTMLElement>(".chat-typing").hidden).toBe(false);
+    expect(q<HTMLElement>(".chat-log").lastElementChild).toBe(q(".chat-typing"));
+    chat.handleServerMessage({ type: "agent_message", text: "Le caut.", mascot: "speaking" });
+    expect(q<HTMLElement>(".chat-log").lastElementChild).toBe(q(".chat-typing"));
+    chat.handleServerMessage({ type: "run_finished", runId: "r1", success: true, summary: "Gata." });
+    expect(q<HTMLElement>(".chat-typing").hidden).toBe(true);
+  });
+
+  test("nu apare cât agentul așteaptă răspunsul omului", () => {
+    const { chat, q } = setup();
+    type(q<HTMLInputElement>(".chat-input"), "ascunde Shorts");
+    void chat.ask("Doar pe pagina asta?", ["Da", "Peste tot"]);
+    expect(q<HTMLElement>(".chat-typing").hidden).toBe(true);
+    q<HTMLButtonElement>(".chat-option").click();
+    expect(q<HTMLElement>(".chat-typing").hidden).toBe(false);
+  });
+});
+
 describe("răspunsul agentului", () => {
   test("apare în bulă; textul cu HTML rămâne text și nu adaugă elemente", () => {
     const { chat, q, shadow } = setup();

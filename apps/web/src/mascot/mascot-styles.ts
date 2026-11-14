@@ -84,6 +84,16 @@ export const MASCOT_CSS = `
   overflow-wrap: anywhere;
 }
 .mascot-bubble[hidden] { display: none; }
+/* Gândul agentului cât lucrează: margine punctată și „…” care pulsează, ca să nu semene cu un mesaj terminat. */
+.mascot-bubble[data-kind="thought"] { border-style: dashed; }
+.mascot-dots { display: inline-flex; gap: calc(var(--uis-space) / 2); margin-left: var(--uis-space); vertical-align: middle; }
+.mascot-dot {
+  width: calc(var(--uis-space) * 0.75); height: calc(var(--uis-space) * 0.75); border-radius: 50%;
+  background: var(--uis-accent); animation: mascot-dot 1.2s ease-in-out infinite;
+}
+.mascot-dot:nth-child(2) { animation-delay: 0.15s; }
+.mascot-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes mascot-dot { 0%, 60%, 100% { opacity: 0.35; } 30% { opacity: 1; } }
 .mascot[data-bubble-below="true"] .mascot-bubble { bottom: auto; top: calc(100% - var(--uis-space)); }
 .mascot[data-bubble-align="left"] .mascot-bubble { right: auto; left: 0; }
 .mascot[data-state="thinking"] .mascot-canvas { animation: mascot-think 1.2s ease-in-out infinite alternate; }
@@ -123,7 +133,7 @@ export const MASCOT_CSS = `
 }
 @keyframes mascot-think { from { opacity: 1; } to { opacity: 0.8; } }
 @media (prefers-reduced-motion: reduce) {
-  .mascot-highlight, .mascot-canvas, .mascot-disc { animation: none !important; }
+  .mascot-highlight, .mascot-canvas, .mascot-disc, .mascot-dot { animation: none !important; }
   .mascot-note { display: none !important; }
 }
 `;

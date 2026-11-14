@@ -35,6 +35,8 @@ const BUBBLE_MIN_MS = 4_000;
 const BUBBLE_MS_PER_WORD = 400;
 /** Cât așteptăm derularea lină a paginii până la element. */
 const SCROLL_SETTLE_MS = 450;
+/** Cât stă cel mult un gând fără un altul după el (o rulare are pași mult mai des). */
+const THOUGHT_MAX_MS = 60_000;
 /** Mărimea de rezervă, când CSS-ul n-a fost încă aplicat (happy-dom, prima randare). */
 const FALLBACK_SIZE = { width: 132, height: 112 };
 
@@ -42,6 +44,11 @@ export interface MascotController {
   setState(state: MascotState): void;
   state(): MascotState;
   say(text: string, ms?: number): void;
+  /**
+   * Ce gândește agentul acum (rândul de activitate din chat), într-o bulă de gând cu „…” care stă cât lucrează;
+   * `null` o ascunde. Nu acoperă bula unui point_at.
+   */
+  think(text: string | null): void;
   /** Merge la element și îl arată; NOT_VISIBLE dacă e ascuns (meniu închis, `display: none`). */
   pointAt(element: Element, message: string): Promise<ToolResult<ToolData["point_at"]>>;
   /** Lasă elementul și se întoarce în colț. */
@@ -125,6 +132,8 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   let danceTimer: ReturnType<typeof setTimeout> | undefined;
   /** Mărimea bulei, măsurată când apare un mesaj (o dată pe mesaj, nu la fiecare pas de mers); null = încă nemăsurată. */
   let bubbleSize: Size | null = null;
+  /** Bula arată acum un gând (think), nu un mesaj (say): un gând nou o poate înlocui, unul gol o ascunde. */
+  let thinking = false;
 
   function size() {
     const rect = container.getBoundingClientRect();
@@ -237,13 +246,44 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     trackFrame = requestAnimationFrame(follow);
   }
 
-  function say(text: string, ms?: number) {
+  function showBubble(text: string, kind: "message" | "thought") {
     clearTimeout(bubbleTimer);
+    thinking = kind === "thought";
+    bubble.dataset.kind = kind;
     bubble.textContent = text;
+    if (thinking) {
+      const dots = document.createElement("span");
+      dots.className = "mascot-dots";
+      dots.innerHTML = `<span class="mascot-dot"></span><span class="mascot-dot"></span><span class="mascot-dot"></span>`;
+      bubble.append(dots);
+    }
     bubble.hidden = false;
     const rect = bubble.getBoundingClientRect();
     bubbleSize = rect.width > 0 && rect.height > 0 ? { width: rect.width, height: rect.height } : null;
     placeBubble();
+  }
+
+  function think(text: string | null) {
+    // point_at a pus în bulă unde să apese omul: gândurile de după nu-l acoperă.
+    if (pointed && !thinking && !bubble.hidden) return;
+    if (!text) {
+      if (thinking) {
+        clearTimeout(bubbleTimer);
+        bubble.hidden = true;
+        thinking = false;
+      }
+      return;
+    }
+    showBubble(text.replace(/…$/, ""), "thought"); // punctele care pulsează țin locul lui „…”
+    // Plasă de siguranță: dacă nu mai vine nimic (legătura s-a rupt), gândul nu rămâne pe ecran la nesfârșit.
+    bubbleTimer = setTimeout(() => {
+      bubble.hidden = true;
+      thinking = false;
+    }, THOUGHT_MAX_MS);
+  }
+
+  function say(text: string, ms?: number) {
+    showBubble(text, "message");
     const words = text.trim().split(/\s+/).length;
     bubbleTimer = setTimeout(() => (bubble.hidden = true), ms ?? Math.max(BUBBLE_MIN_MS, words * BUBBLE_MS_PER_WORD));
   }
@@ -334,6 +374,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     setState,
     state: () => state,
     say,
+    think,
     pointAt,
     release,
     destroy() {
