@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "2caa1cc98912df62746b834f0b41d111aa1e9410",
-  "last_run": "2026-11-14T04:14:51Z",
-  "last_sha": "d899b7303e7bacd2851ae2f6cec75839ec44d5ac",
+  "last_comms_sha": "f155f51faad8b4c4d58e51e12b7b68a1c5c87052",
+  "last_run": "2026-11-14T04:17:25Z",
+  "last_sha": "c30829a9b65f20dc1143372bb63e52e670bffec5",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -55,8 +55,8 @@
     },
     "104": {
       "head": "c-audit-taiat-de-parinte",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T04:17:14Z",
+      "state": "MERGED"
     },
     "105": {
       "head": "a-repara-taierea",
