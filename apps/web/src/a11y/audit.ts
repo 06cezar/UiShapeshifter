@@ -38,6 +38,11 @@ export interface DomFacts {
    * carusel). Ce iese din ecran e doar derulat în carusel: omul ajunge la el cu săgețile sau derulând.
    */
   inScroller?: boolean;
+  /**
+   * Selectorul cutiei părinte (`overflow: hidden`/`clip`) care taie elementul interactiv pe verticală: un buton pus de
+   * agent într-un antet cu înălțime fixă. Reparația crește cutia (fix-css.ts), nu butonul.
+   */
+  clippedBySelector?: string;
 }
 export type DomFactsMap = Record<string, DomFacts>;
 
@@ -210,7 +215,9 @@ export function checkClipped(el: ElementInfo, f: DomFacts = {}): AuditIssue[] {
       elementId: el.id,
       measured: "tăiat",
       expected: "întreg",
-      message: `${name(el)} nu încape și textul e tăiat.`,
+      message: f.clippedBySelector
+        ? `${name(el)} e tăiat de cutia în care stă și nu se poate apăsa întreg.`
+        : `${name(el)} nu încape și textul e tăiat.`,
     },
   ];
 }
