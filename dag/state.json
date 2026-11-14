@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "ab94ec38e4d3ccae7041748cb1b7ec6a00bd1777",
-  "last_run": "2026-11-14T02:09:38Z",
-  "last_sha": "ad8f4cbf7292a352943c30b042ee341ad65485bd",
+  "last_run": "2026-11-14T02:10:38Z",
+  "last_sha": "0f99e1f365b4318e1f47bbfc252e7608f1bbecec",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -460,8 +460,8 @@
     },
     "89": {
       "head": "a-ca-google-culori",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T02:10:35Z",
+      "state": "MERGED"
     },
     "9": {
       "head": "c3-onboarding",
