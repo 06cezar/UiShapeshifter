@@ -152,6 +152,7 @@ function measurePage(
     if (clipper) {
       result.elements[id]!.clipped = true;
       result.facts[id]!.clippedBySelector = options.identity.selectorOf(clipper);
+      if (clipper.querySelector(AGENT_SHAPE_SELECTOR)) result.facts[id]!.clippedByAgentShape = true;
     }
     result.selectors[id] = options.identity.selectorOf(element);
   }
@@ -221,6 +222,8 @@ function isInHorizontalScroller(element: Element, viewportWidth: number): boolea
   return false;
 }
 
+/** Ce a adăugat agentul în pagină (wrap, insertHtml, inject) poartă `data-shape` (specs/03). */
+const AGENT_SHAPE_SELECTOR = "[data-shape]";
 /** Valorile `overflow-y` cu care o cutie ascunde ce iese din ea (fără bară de derulare). */
 const HIDING_OVERFLOW = new Set(["hidden", "clip"]);
 /** Până la atâta înălțime, cutia e închisă voit (acordeon cu max-height: 0, meniu strâns), nu strâmtă. */
