@@ -6,11 +6,12 @@
 // Parola nu apare în loguri, în răspunsuri sau în erori.
 
 import { Router, type Request, type Response } from "express";
-import type { AuthResult, SiteRecipe, SyncBundle, UserProfile } from "@uishapeshifter/contracts";
+import type { AuthResult, SiteRecipe, SiteRecipeHistory, SyncBundle, UserProfile } from "@uishapeshifter/contracts";
 import { profileStore, type ProfileStore } from "../profile";
 import { parseProfile } from "../profile/validate";
 import { checkRecipe, listRecipes, saveRecipe } from "../recipes/recipe-store";
 import { isSafeId } from "../storage/json-files";
+import { checkHistory, loadHistory, mergeHistory, saveHistory } from "./history";
 import { mergeProfiles, mergeRecipes } from "./merge";
 import { accountOfToken, checkCredentials, createAccount, issueToken, verifyAccount, type Account } from "./store";
 
@@ -93,6 +94,7 @@ export function createAccountsRouter(store: ProfileStore = profileStore): Router
       const bundle: SyncBundle = {
         profile: await store.get(account.userId),
         recipes: await listRecipes(account.userId),
+        history: await loadHistory(account.userId),
         updatedAt: new Date().toISOString(),
       };
       res.json(bundle);
@@ -113,10 +115,22 @@ export function createAccountsRouter(store: ProfileStore = profileStore): Router
         const problem = checkRecipe(recipe);
         if (problem) return void res.status(400).json({ error: `recipes[${i}]: ${problem}` });
       }
+      const historyProblem = checkHistory(body.history);
+      if (historyProblem) return void res.status(400).json({ error: historyProblem });
       const now = new Date().toISOString();
       await store.save(mergeProfiles(await store.get(account.userId), parsed.value, now));
       const merged = mergeRecipes(await listRecipes(account.userId), recipes as SiteRecipe[]);
       for (const recipe of merged) await saveRecipe(account.userId, recipe);
+      const incomingHistory = (body.history ?? []) as SiteRecipeHistory[];
+      if (incomingHistory.length > 0) {
+        const history = mergeHistory(
+          await loadHistory(account.userId),
+          incomingHistory,
+          recipes as SiteRecipe[],
+          merged,
+        );
+        await saveHistory(account.userId, history);
+      }
       res.json({ updatedAt: now });
     } catch (error) {
       next(error);

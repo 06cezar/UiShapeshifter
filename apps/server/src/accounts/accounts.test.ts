@@ -152,6 +152,39 @@ describe("conturile", () => {
   });
 });
 
+describe("istoricul rețetelor", () => {
+  test("PUT cu history: se păstrează doar cu rețeta care a câștigat; GET îl întoarce", async () => {
+    const auth = (await (
+      await post("/accounts/login", { username: "maria", password: "parola-test-1", anonymousUserId: "u-laptop" })
+    ).json()) as AuthResult;
+    const headers = { authorization: `Bearer ${auth.token}`, "content-type": "application/json" };
+    const current = (await (await fetch(`${base}/sync`, { headers })).json()) as SyncBundle;
+    const revisions = [
+      { revision: 1, css: "#shorts{display:none}", reason: "ascunde Shorts", at: "2026-11-14T01:00:00.000Z" },
+      {
+        revision: 2,
+        css: "#shorts{display:none} .ai{display:none}",
+        reason: "fără AI",
+        at: "2026-11-14T03:00:00.000Z",
+      },
+    ];
+    const put = (recipes: SiteRecipe[], history: unknown) =>
+      fetch(`${base}/sync`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ profile: current.profile, recipes, history, updatedAt: "x" }),
+      });
+    const newer = recipe("video.example", "#shorts{display:none} .ai{display:none} .x{}", "2026-11-14T03:00:00.000Z");
+    assert.equal((await put([newer], [{ host: "video.example", revisions }])).status, 200);
+    // o rețetă mai veche de pe alt dispozitiv nu-i strică istoricul
+    const older = recipe("video.example", "vechi", "2026-11-14T00:30:00.000Z");
+    await put([older], [{ host: "video.example", revisions: revisions.slice(0, 1) }]);
+    const after = (await (await fetch(`${base}/sync`, { headers })).json()) as SyncBundle;
+    assert.deepEqual(after.history?.find((h) => h.host === "video.example")?.revisions, revisions);
+    assert.equal((await put([], [{ host: "../x", revisions: [] }])).status, 400);
+  });
+});
+
 describe("îmbinarea", () => {
   test("rețete: cea mai nouă câștigă pe același site", () => {
     const merged = mergeRecipes(
