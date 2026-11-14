@@ -25,9 +25,9 @@
       }
     }
   },
-  "last_comms_sha": "a2ede746993faf82ff2fbf9944cc04665a9ad53d",
-  "last_run": "2026-11-14T10:49:36Z",
-  "last_sha": "d103cb7c75789bc703fb48544655353237983fdc",
+  "last_comms_sha": "842f48099816061261481cf21e24a2180847237b",
+  "last_run": "2026-11-14T10:51:46Z",
+  "last_sha": "99dc736a6ab2d1e6ceff9ca24aeb82a48ecb03c0",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -391,8 +391,8 @@
     },
     "164": {
       "head": "d-voce-nu-aproba",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T10:51:37Z",
+      "state": "MERGED"
     },
     "17": {
       "head": "c2-reparatii",
