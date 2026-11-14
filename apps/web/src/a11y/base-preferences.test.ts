@@ -202,7 +202,8 @@ describe("oprire și schimbarea profilului", () => {
     base.update({ minFontPx: 24 });
     expect(fontOf("mic")).toBe(24);
     expect(fontOf("gri")).toBe(24);
-    expect(el("buton").style.getPropertyValue("min-height")).toBe("44px"); // fără minTargetPx în profil: 44
+    // fără minTargetPx peste implicit, țintele nu se mai măresc (specs/07: doar la cererea testului de atingere)
+    expect(el("buton").style.getPropertyValue("min-height")).toBe("");
     expect(document.getElementById(BASE_STYLE_ID)).toBeNull(); // fără reducedMotion
   });
 
@@ -283,5 +284,25 @@ describe("verificarea de după scriere (Teams, WhatsApp, Instagram, găsite de A
     page(`<button id="reactie" style="border: 1px solid #ffffff; font-size: 20px" data-rect="60,60">+</button>`);
     base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
     expect(el("reactie").style.borderColor).toBe("#ffffff"); // culoarea site-ului, nerescrisă de noi
+  });
+});
+
+describe("profilul implicit nu deformează site-urile la prima vizită (găsit de Adelin)", () => {
+  it("fără test de atingere: fontul crește la 16px, dar butoanele și linkurile mici rămân cum sunt", () => {
+    page(`
+      <button id="mic" data-rect="30,30" style="font-size: 12px">OK</button>
+      <nav><a id="meniu" href="/x" data-rect="60,20" style="font-size: 12px">Acasă</a></nav>`);
+    base = startBasePreferences({ needs: { minFontPx: 16, minTargetPx: 44 }, ourHostId: HOST_ID });
+    expect(fontOf("mic")).toBe(16);
+    expect(fontOf("meniu")).toBe(16);
+    expect(el("mic").style.minHeight).toBe("");
+    expect(el("meniu").style.minWidth).toBe("");
+    expect(el("meniu").style.display).toBe("");
+  });
+
+  it("cu țintele cerute de testul de atingere (56px), butonul mic crește", () => {
+    page(`<button id="mic" data-rect="30,30" style="font-size: 20px">OK</button>`);
+    base = startBasePreferences({ needs: { minFontPx: 16, minTargetPx: 56 }, ourHostId: HOST_ID });
+    expect(el("mic").style.minHeight).toBe("56px");
   });
 });

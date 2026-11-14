@@ -66,6 +66,10 @@ au teste cu valori cunoscute (ex. `#777777` pe alb = 4.48:1).
 - Ieșire: o foaie de stil a extensiei, separată de rețeta agentului, care ridică fontul sub minim, țintele sub prag și
   contrastul sub prag pe orice site; se pune **după** rețetă și se actualizează când se schimbă profilul.
 - Ce nu face: nu schimbă structura și nu ascunde nimic; doar aduce pagina la limite.
+- **Țintele doar la cerere:** C4 mărește țintele (`min-width`/`min-height`) doar când profilul cere mai mult decât
+  implicitul (`minTargetPx` > 44, din testul de atingere). Cu profilul implicit, 44px pe fiecare link din meniuri și liste
+  deforma orice site la prima vizită, fără ca omul să fi cerut ceva. Țintele mici rămân în audit (`target-size`), iar
+  agentul le mărește la cerere. Fontul minim (16px) și contrastul se aplică oricum.
 - Pe site-uri cu probleme de lizibilitate cunoscute (iframe-uri din alt domeniu), rămâne ce nu poate atinge; auditul îl notează.
 - **Singura excepție de la fontul minim:** o etichetă scurtă (cel mult 24 de caractere) dintr-o cutie îngustă (cel mult
   120px) care o taie pe un rând (`text-overflow: ellipsis`, sau `overflow: hidden`/`clip` cu `white-space: nowrap`), până
