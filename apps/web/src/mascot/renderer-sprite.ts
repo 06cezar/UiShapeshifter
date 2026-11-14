@@ -20,7 +20,7 @@ export type CreateRenderer = (
 ) => Promise<MascotRenderer>;
 
 /** În colțul din dreapta, „față” înseamnă privind spre pagină, adică spre stânga. */
-const FRONT_FACING: Facing = "left";
+export const FRONT_FACING: Facing = "left";
 
 async function decode(base64: string): Promise<ImageBitmap> {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));

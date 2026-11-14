@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { HOST_ID, mountOurRoot } from "../extension/shadow-root";
-import type { SpriteAnimation } from "./animations";
+import { DANCE_MS, type SpriteAnimation } from "./animations";
 import type { Facing } from "./geometry";
 import { mountMascot, type MascotController } from "./mascot";
 import type { MascotRenderer } from "./renderer-sprite";
@@ -75,7 +75,7 @@ describe("dansul", () => {
       const { mascot, fake } = await setup();
       mascot.setState("happy");
       expect(fake.played.at(-1)).toBe("dance");
-      vi.advanceTimersByTime(4_501); // DANCE_MS: trei ture de dans
+      vi.advanceTimersByTime(DANCE_MS + 1);
       expect(mascot.state()).toBe("idle");
       expect(fake.played.at(-1)).toBe("idle");
     } finally {

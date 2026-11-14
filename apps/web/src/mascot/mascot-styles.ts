@@ -1,40 +1,77 @@
 // Stilul mascotei. Culorile și mărimile vin din tema extensiei (variabilele --uis-* din extension/shadow-root.ts);
 // mărimile sunt multipli ai țintei minime și ai spațiului de bază, ca să crească odată cu ele.
 
+import {
+  DANCE_BAR_MS,
+  DANCE_BEAT_MS,
+  DANCE_FINALE_BARS,
+  DANCE_FINALE_TURNS_PER_BAR,
+  DANCE_MS,
+  DANCE_STEADY_BARS,
+} from "./animations";
+
+/**
+ * Unde stă ratonul în cadru (235×200), măsurat pe cadrele de dans: între x 73–194 și y 6–167. Restul cadrului e gol
+ * (loc pentru căderea pe spate), deci „mijlocul ratonului” nu e mijlocul cutiei: în jurul lui se învârte la dans.
+ */
+const FRAME_WIDTH_PX = 235;
+const FRAME_HEIGHT_PX = 200;
+const RACCOON_CENTER_X_PERCENT = 57; // privind spre dreapta; oglindit (spre stânga) e 100 - 57
+const RACCOON_CENTER_Y_PERCENT = 43;
+/** Discul de dans, cât din lățimea cutiei: destul cât să încapă ratonul întors pe orice parte. */
+const DISC_WIDTH_PERCENT = 76;
+
+/** Rotirea din dans: ture în ritm normal, apoi finalul de două ori mai repede (animations.ts). */
+const SPIN_STEADY_END_PERCENT = (100 * DANCE_STEADY_BARS) / (DANCE_STEADY_BARS + DANCE_FINALE_BARS);
+const SPIN_STEADY_TURNS = DANCE_STEADY_BARS;
+const SPIN_TOTAL_TURNS = DANCE_STEADY_BARS + DANCE_FINALE_BARS * DANCE_FINALE_TURNS_PER_BAR;
+
 export const MASCOT_CSS = `
 .mascot {
   position: fixed; left: 0; top: 0;
-  /* cadrele ratonului au 235×200 */
-  width: calc(var(--uis-target) * 3); aspect-ratio: 235 / 200;
+  width: calc(var(--uis-target) * 3); aspect-ratio: ${FRAME_WIDTH_PX} / ${FRAME_HEIGHT_PX};
   pointer-events: none;
   font: var(--uis-font-size)/1.4 var(--uis-font); color: var(--uis-fg);
   will-change: transform;
+  --mascot-center-x: ${100 - RACCOON_CENTER_X_PERCENT}%; --mascot-center-y: ${RACCOON_CENTER_Y_PERCENT}%;
+  --mascot-disc-radius: calc(var(--uis-target) * 3 * ${DISC_WIDTH_PERCENT / 2 / 100});
 }
+.mascot[data-facing="right"] { --mascot-center-x: ${RACCOON_CENTER_X_PERCENT}%; }
 .mascot-canvas { display: block; width: 100%; height: 100%; }
-/* Scena: umbra sub picioare, stratul care sare, canvas-ul care se rotește și notele. Fiecare strat are animația lui,
-   ca rotirea, săritura și notele să se combine fără să se calce una pe alta. */
-.mascot-stage { position: relative; width: 100%; height: 100%; perspective: calc(var(--uis-target) * 12); }
-.mascot-hop { width: 100%; height: 100%; transform-origin: 50% 100%; }
-.mascot-shadow, .mascot-note { display: none; position: absolute; }
-.mascot-shadow {
-  left: 28%; right: 28%; bottom: 0; height: 9%;
-  border-radius: 50%; background: color-mix(in srgb, var(--uis-bg) 30%, transparent);
+/* Scena de dans: discul din spate, ratonul (canvas-ul) și notele, toate prinse de mijlocul ratonului. Rotirea, mărirea
+   și apariția sunt animații separate pe proprietăți separate (rotate, scale), ca să se combine fără să se calce. */
+.mascot-stage { position: relative; width: 100%; height: 100%; }
+.mascot-canvas { position: relative; transform-origin: var(--mascot-center-x) var(--mascot-center-y); }
+.mascot-disc, .mascot-note {
+  display: none; position: absolute; left: var(--mascot-center-x); top: var(--mascot-center-y); translate: -50% -50%;
+}
+.mascot-disc {
+  width: ${DISC_WIDTH_PERCENT}%; aspect-ratio: 1; box-sizing: border-box;
+  border-radius: 50%; border: 2px solid var(--uis-bg); box-shadow: var(--uis-shadow);
+  background: repeating-conic-gradient(
+    color-mix(in srgb, var(--uis-accent) 92%, var(--uis-bg)) 0deg 30deg,
+    color-mix(in srgb, var(--uis-accent) 40%, var(--uis-fg)) 30deg 60deg
+  );
 }
 .mascot-note {
-  left: calc(18% + var(--i) * 28%); bottom: 55%;
   color: var(--uis-accent); font-weight: 700; font-size: calc(var(--uis-font-size) * 1.6); line-height: 1;
   text-shadow: 0 0 calc(var(--uis-space) / 2) var(--uis-bg);
   opacity: 0;
 }
-/* Dansul (happy): se învârte lin pe loc, ca pe un platou, sare în ritm cu turtire la aterizare, iar notele urcă. */
-.mascot[data-state="happy"] { --mascot-dance-turn: 1.5s; --mascot-dance-beat: calc(var(--mascot-dance-turn) / 4); }
-.mascot[data-state="happy"] .mascot-canvas { animation: mascot-spin var(--mascot-dance-turn) linear infinite; }
-.mascot[data-state="happy"] .mascot-hop { animation: mascot-bounce var(--mascot-dance-beat) ease-in-out infinite; }
-.mascot[data-state="happy"] .mascot-shadow { display: block; animation: mascot-shadow var(--mascot-dance-beat) ease-in-out infinite; }
+/* Dansul (happy): ratonul se învârte în cerc ca un disc de pick-up, o tură pe măsură, și „pulsează” la fiecare bătaie;
+   în ultima măsură se învârte de două ori mai repede. Discul din spate se rotește invers, iar notele sar de pe marginea
+   lui, câte una pe bătaie. */
+.mascot[data-state="happy"] .mascot-canvas {
+  animation: mascot-spin ${DANCE_MS}ms linear both, mascot-beat ${DANCE_BEAT_MS}ms ease-out infinite;
+}
+.mascot[data-state="happy"] .mascot-disc {
+  display: block;
+  animation: mascot-disc-show ${DANCE_MS}ms ease-out both, mascot-disc-turn ${DANCE_BAR_MS * 2}ms linear infinite;
+}
 .mascot[data-state="happy"] .mascot-note {
   display: block;
-  animation: mascot-note var(--mascot-dance-turn) ease-out infinite;
-  animation-delay: calc(var(--i) * var(--mascot-dance-turn) / 3);
+  animation: mascot-note ${DANCE_BAR_MS}ms ease-out infinite;
+  animation-delay: calc(var(--i) * ${DANCE_BEAT_MS}ms);
 }
 .mascot[data-no-model="true"] .mascot-canvas { display: none; }
 .mascot-bubble {
@@ -59,24 +96,34 @@ export const MASCOT_CSS = `
 }
 .mascot-highlight[hidden] { display: none; }
 @keyframes mascot-pulse { from { outline-offset: 0; } to { outline-offset: var(--uis-space); } }
-@keyframes mascot-spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
-@keyframes mascot-bounce {
-  0%, 100% { transform: translateY(0) scale(1.08, 0.9); }
-  35% { transform: translateY(calc(var(--uis-space) * -1.5)) scale(0.95, 1.06); }
-  55% { transform: translateY(calc(var(--uis-space) * -2.5)) scale(1, 1); }
+@keyframes mascot-spin {
+  0% { rotate: 0turn; }
+  ${SPIN_STEADY_END_PERCENT}% { rotate: ${SPIN_STEADY_TURNS}turn; }
+  100% { rotate: ${SPIN_TOTAL_TURNS}turn; }
 }
-@keyframes mascot-shadow {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  55% { transform: scale(0.6); opacity: 0.5; }
+@keyframes mascot-beat { from { scale: 1.16; } to { scale: 1; } }
+@keyframes mascot-disc-show {
+  0% { scale: 0; }
+  5% { scale: 1.12; }
+  9%, 94% { scale: 1; }
+  100% { scale: 0; }
 }
+@keyframes mascot-disc-turn { from { rotate: 0turn; } to { rotate: -1turn; } }
+/* Nota pleacă de pe marginea discului, pe direcția --angle (0 = în sus), și rămâne dreaptă cât zboară. */
 @keyframes mascot-note {
-  0% { opacity: 0; transform: translate(0, 0) rotate(-12deg) scale(0.6); }
-  20% { opacity: 1; }
-  100% { opacity: 0; transform: translate(calc(var(--uis-space) * 3 * var(--dx)), calc(var(--uis-space) * -7)) rotate(14deg) scale(1.1); }
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(calc(var(--mascot-disc-radius) * -0.9)) rotate(calc(var(--angle) * -1)) scale(0.6);
+  }
+  10% { opacity: 1; }
+  45%, 100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(calc(var(--mascot-disc-radius) * -1.6)) rotate(calc(var(--angle) * -1)) scale(1.2);
+  }
 }
 @keyframes mascot-think { from { opacity: 1; } to { opacity: 0.8; } }
 @media (prefers-reduced-motion: reduce) {
-  .mascot-highlight, .mascot-canvas, .mascot-hop, .mascot-shadow { animation: none !important; }
+  .mascot-highlight, .mascot-canvas, .mascot-disc { animation: none !important; }
   .mascot-note { display: none !important; }
 }
 `;
