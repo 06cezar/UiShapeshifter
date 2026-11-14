@@ -176,12 +176,14 @@
 
     <button type="button" class="chat-bubble" aria-label="Asistent virtual">💬 Ai nevoie de ajutor?</button>
     <script>
-      // Eșecul pregătit pentru demo (specs/12): secțiunea Facturi are înălțimea fixă exact cât conținutul și
-      // overflow: hidden, ca pe multe site-uri reale. Un buton adăugat de agent aici iese tăiat, auditul îl prinde,
-      // iar agentul repară (height: auto). Înălțimea urmează conținutul (și fontul minim al extensiei) până când cineva
-      // adaugă ceva în secțiune; de atunci rămâne fixă.
-      (() => {
-        const section = document.getElementById("facturi");
+      // Eșecul pregătit pentru demo (specs/12): antetul și secțiunea Facturi au înălțimea fixă exact cât conținutul și
+      // overflow: hidden, ca pe multe site-uri reale. Un buton adăugat de agent acolo iese tăiat, auditul îl prinde,
+      // iar agentul repară (height: auto). Înălțimea urmează conținutul (și fontul minim al extensiei) până când agentul
+      // adaugă ceva în cutie; de atunci rămâne fixă.
+      const FIT_EVERY_MS = 300;
+      function tightBox(selector) {
+        const box = document.querySelector(selector);
+        if (!box) return;
         // Regula stă într-o foaie cu :where (prioritate zero), nu pe element: orice CSS al agentului o bate.
         const rule = document.createElement("style");
         document.head.append(rule);
@@ -190,23 +192,23 @@
         function fit() {
           if (frozen) return;
           // Cu overflow hidden, scrollHeight e înălțimea conținutului: schimbăm regula doar când acesta crește.
-          const content = section.scrollHeight;
+          const content = box.scrollHeight + (box.offsetHeight - box.clientHeight); // plus bordurile
           if (content === height) return;
           height = content;
-          rule.textContent = `:where(#facturi) { height: ${height}px; overflow: hidden; }`;
+          rule.textContent = `:where(${selector}) { height: ${height}px; overflow: hidden; box-sizing: border-box; }`;
         }
-        // Agentul își marchează elementele adăugate cu data-shape, oriunde le pune în secțiune (și mai adânc): atunci
+        // Agentul își marchează elementele adăugate cu data-shape, oriunde le pune în cutie (și mai adânc): atunci
         // înălțimea rămâne fixă. Alte noduri trecătoare (ex. măsurătorile fontului minim) nu o fixează.
         new MutationObserver(() => {
-          if (section.querySelector("[data-shape]")) frozen = true;
-        }).observe(section, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-shape"] });
-        // Fontul minim al extensiei mărește textul după încărcare, în mai mulți pași: refacem potrivirea des, până când
-        // agentul adaugă ceva (atunci fit nu mai face nimic).
-        const FIT_EVERY_MS = 300;
+          if (box.querySelector("[data-shape]")) frozen = true;
+        }).observe(box, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-shape"] });
+        // Fontul minim mărește textul după încărcare, în mai mulți pași: refacem potrivirea des, până la îngheț.
         setInterval(fit, FIT_EVERY_MS);
         addEventListener("resize", fit);
         fit();
-      })();
+      }
+      tightBox(".site-header");
+      tightBox("#facturi");
     </script>
   </body>
 </html>
