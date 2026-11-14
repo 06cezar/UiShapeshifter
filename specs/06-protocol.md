@@ -61,7 +61,7 @@ validează: litere, cifre, `.`, `-`, fiindcă ajunge în calea fișierului rețe
 | `DELETE /api/recipes/:userId/:host` | – | `{ ok: true }` („Revino la original”) |
 | `POST /api/accounts/register`, `/login` | `RegisterRequest` / `LoginRequest` | `AuthResult` |
 | `GET /api/sync` (Bearer) | – | `SyncBundle` (profil + rețete + `history?`, istoricul pe site) |
-| `PUT /api/sync` (Bearer) | `SyncBundle` | `{ updatedAt }` |
+| `PUT /api/sync` (Bearer) | `SyncBundle` (fără `history` = serverul îl păstrează pe al lui; reguli: specs/08) | `{ updatedAt }` |
 
 Rețetele pe server sunt copia pentru cine are cont (sincronizare pe alt dispozitiv, etapa 4); sursa pentru reaplicare e
 mereu stocarea locală. `GET/PUT /api/config/:userId` rămâne doar pentru aplicația veche.
