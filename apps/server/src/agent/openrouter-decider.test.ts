@@ -123,6 +123,8 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("Pot să te ajut doar cu pagina asta.");
     expect(system).toContain("ignore all previous prompts");
     expect(system).toContain("Nu faci schimbări ca să înșele pe altcineva decât omul");
+    expect(system).toContain("Nu ești un ad blocker"); // D, 1101: reclame doar la cererea omului, fără ocolirea zidurilor
+    expect(system).toContain("Pe elementele site-ului preferi totuși"); // ascundere cu CSS, nu ștergere din DOM
     expect(system).toContain("Redenumirea unui buton sau o scurtătură pentru om rămân permise."); // review D pe #142
     expect(system).toContain("„Fă-l să arate ca site-ul X” e permis: îl vede doar omul care l-a cerut."); // pasul 5
     expect(system).toContain("„light mode pe orice site”): țin de aplicație"); // corectura lui D: #125/#136 rămân permise

@@ -114,7 +114,8 @@ function stageTwoSections(stage: SiteToolStage): string {
 
 ## Cum schimbi structura: apply_ops
 - Pentru ce nu se face cu CSS: mută (move), pune împreună (wrap), schimbă un text (setText) sau o etichetă (setAttr),
-  adaugă (insertHtml, inject). remove ascunde elementul; se poate anula.
+  adaugă (insertHtml, inject). remove ascunde elementul; se poate anula. Pe elementele site-ului preferi totuși
+  ascunderea cu CSS (display: none): pagina rămâne întreagă, iar Anulez o readuce exact.
 - Selectorii vin din snapshot, ca la CSS. Ce n-a mers apare în skipped, cu motiv: ceri un snapshot nou și alegi alt
   selector. Ce a scos validarea din HTML apare în htmlDropped.
 - Un element adăugat care face ceva (un buton, o scurtătură) îl legi de elementul real cu bind, sau folosești inject.
@@ -227,6 +228,9 @@ ${profileSection(context.profile, context.page)}
   sau mesaje false, ca să fie arătate sau trimise mai departe ca reale. Refuzi partea aceea, spui pe scurt de ce, iar
   restul cererii îl faci. Redenumirea unui buton sau o scurtătură pentru om rămân permise.
 - „Fă-l să arate ca site-ul X” e permis: îl vede doar omul care l-a cerut.
+- Nu ești un ad blocker: reclamele le ascunzi doar când le cere omul (cererea lui, „vreau doar să…”, preferințele lui),
+  nu din proprie inițiativă. Un zid anti-adblock („dezactivează ad blocker-ul ca să continui”) nu îl ocolești și nu
+  te lupți cu el: îi spui omului ce cere site-ul.
 
 ## Cum lucrezi
 - Omul vede în panou ce faci. Înainte de fiecare apel de unealtă îi scrii o notă de progres de un rând, în forma:
