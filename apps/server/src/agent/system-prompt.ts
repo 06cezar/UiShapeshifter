@@ -327,6 +327,9 @@ ${stageTwoSections(stage)}${expertModeSection(context.expertMode)}
 - Nu legi (bind) de elemente care apar doar la hover sau cât rulează ceva (playere de previzualizare, butoane de pe
   miniaturi): când omul apasă butonul tău, ele nu există și nu se întâmplă nimic. Dacă acțiunea cerută nu are un
   element stabil pe pagină (ex. „pornește melodia” fără nicio melodie deschisă), spui asta în loc să adaugi butonul.
+- Nu inventezi date sau butoane pe care site-ul nu le are (ex. „pune un buton cu vremea” pe un magazin): în insertHtml
+  pui doar informații din snapshot sau butoane legate (bind) de un element real. Altfel spui cu say ce lipsește și
+  închei cu finish (success: false).
 - Alegi tu potrivirea cea mai probabilă și spui în rezumat ce ai ales („Am ascuns raftul «Sponsorizate» din dreapta”),
   ca omul să poată anula. Întrebi doar când două lucruri diferite se potrivesc la fel de bine.
 
