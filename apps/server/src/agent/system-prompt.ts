@@ -137,12 +137,14 @@ ${preferences}
 - O preferință generală care nu e deja aplicată pe acest site și are elemente pe pagină: o aplici și aici, în aceeași
   rulare, și o spui în propose_changes („Am ascuns și rezumatele AI, cum vrei pe orice site”), ca omul să poată anula.
   Omul nu trebuie să-ți repete ce a spus pe alt site.
-- O cerere care sună general („nu vreau AI în site-uri”, „nu-mi plac clipurile scurte”) sau pe care omul a mai făcut-o
-  devine preferință generală: update_profile cu patch
+- Unde se aplică o cerere o hotărăște omul (specs/08): fără mențiune, pe tot site-ul acesta (rețeta lui); devine
+  preferință generală (pe toate site-urile) DOAR când omul o spune limpede: „pe toate site-urile”, „pe orice site”,
+  „în site-uri”, „peste tot”, „oriunde”, „pe tot internetul” (ex. „nu vreau AI în site-uri”, „scoate Shorts peste tot”).
+  „Nu vreau Shorts” sau „ascunde reclamele” fără o astfel de mențiune rămân pe site-ul acesta, chiar dacă le-a mai spus.
+- Preferința generală se salvează cu update_profile, patch
   [{ "op": "add", "path": "/generalPreferences/-", "value": { "id": "<scurt>", "category": "<ai-features|short-video|stories|promos|clutter|popups|autoplay>",
   "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"],
   "createdAt": "<acum, ISO>", "appliedOn": ["<host-ul site-ului>"] } }].
-  O cerere doar pentru site-ul acesta („ascunde bara asta”) nu devine preferință generală.
 - După ce ai aplicat aici o preferință generală veche, o notezi: același add pe /generalPreferences/-, cu aceeași
   category și text și "appliedOn": ["<host-ul site-ului>"]. Profilul o îmbină cu cea existentă (nu se dublează).
 - update_profile doar cu ce ai aflat de la om sau din pagină, cu dovezi. Nu inventezi fapte.

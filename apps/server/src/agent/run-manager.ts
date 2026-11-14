@@ -23,7 +23,7 @@ interface ActiveRun {
 }
 
 const activeByUser = new Map<string, ActiveRun>();
-const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin }>();
+const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin; page?: PageInfo }>();
 
 // etapa la care e extensia (specs/00), citită la fiecare rulare. Implicit 2 de la M2: extensia are apply_ops (B6),
 // point_at (D2) și propose_changes (D9). AGENT_STAGE=1 o readuce la doar CSS; 3 adaugă profilul (A6).
@@ -92,7 +92,7 @@ function launch(session: Session, goal: string, origin: RunOrigin, page?: PageIn
       const next = queuedAdaptation.get(session.userId);
       if (next && !activeByUser.has(session.userId)) {
         queuedAdaptation.delete(session.userId);
-        startRun(session.userId, next.goal, next.origin);
+        startRun(session.userId, next.goal, next.origin, next.page);
       }
     });
   activeByUser.set(session.userId, active);
@@ -117,17 +117,18 @@ export function startRunInSession(session: Session, goal: string, origin: RunOri
 
 /**
  * Pornește o rulare pentru un utilizator, în tab-ul lui conectat cel mai recent.
- * Pentru E3 (adaptare) și C3 (onboarding). Întoarce runId, „queued” dacă așteaptă la coadă,
+ * Pentru E3 (adaptare). `page`: site-ul de pe care au venit semnalele; fără el, agentul nu știe pe ce site lucrează
+ * și nu poate opri rularea dacă tab-ul activ e pe alt site. Întoarce runId, „queued” dacă așteaptă la coadă,
  * sau null dacă utilizatorul nu are niciun tab deschis.
  */
-export function startRun(userId: string, goal: string, origin: RunOrigin): string | "queued" | null {
+export function startRun(userId: string, goal: string, origin: RunOrigin, page?: PageInfo): string | "queued" | null {
   const session = latestSessionOf(userId);
   if (!session) return null;
   if (origin === "adaptation" && activeByUser.has(userId)) {
-    queuedAdaptation.set(userId, { goal, origin }); // cel mai nou declanșator îl înlocuiește pe cel vechi
+    queuedAdaptation.set(userId, { goal, origin, page }); // cel mai nou declanșator îl înlocuiește pe cel vechi
     return "queued";
   }
-  return startRunInSession(session, goal, origin);
+  return startRunInSession(session, goal, origin, page);
 }
 
 /** cancel_run: bucla se oprește după pasul curent și trimite run_finished { success: false }. */
