@@ -26,8 +26,8 @@
     }
   },
   "last_comms_sha": "0efc05e4999397ff841e4426157aff83e5c387ff",
-  "last_run": "2026-11-14T11:16:35Z",
-  "last_sha": "07c2db0f242aafa6151b6a300ede4d081901b9ea",
+  "last_run": "2026-11-14T11:19:12Z",
+  "last_sha": "4c5d5ed3819c7129ac784fd344314e18fbd1f60c",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -397,6 +397,11 @@
     "165": {
       "head": "d6-pitch",
       "merged_at": "2026-11-14T11:16:26Z",
+      "state": "MERGED"
+    },
+    "166": {
+      "head": "d6-pitch-cifre",
+      "merged_at": "2026-11-14T11:19:09Z",
       "state": "MERGED"
     },
     "17": {
