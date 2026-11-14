@@ -134,7 +134,7 @@ function ourBoxes(shadow: ShadowRoot): Placed[] {
     const element = shadow.querySelector(selector);
     if (element && element.getClientRects().length > 0) placed.push({ box: element.getBoundingClientRect(), side });
   };
-  add(".journal", "right");
+  // Panoul nu împinge pagina: la fonturi mari site-ul strâns lângă el își strică aspectul (proba cu Iulia). Are „Ascunde”.
   // Chatul deschis nu împinge pagina: e mic, stă jos și se închide după cerere; o coloană întreagă ar fi goală.
   add(".chat-launcher", "bottom");
   const mascot = shadow.querySelector<HTMLElement>(".mascot");
