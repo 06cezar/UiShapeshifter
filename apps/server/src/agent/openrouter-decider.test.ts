@@ -118,6 +118,7 @@ describe("createOpenRouterDecider", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("„Fundalul paginii (rgb(…))” din snapshot e containerul care ține toată pagina"); // Bing rămânea gri: agentul îl ascundea
     expect(system).toContain("„auditul” e „verificarea”"); // proba Iuliei: „îl evidențiez cu point_at” în chat
     expect(system).toContain("fără id-uri (e.17"); // rândurile din panou aveau e.22, hiddenBy: recipe, snapshot
     expect(system).toContain("arăți cu point_at elementul cu care se face X"); // demo, pasul 4: mascota merge la buton

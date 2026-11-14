@@ -98,10 +98,14 @@ function stageTwoSections(stage: SiteToolStage): string {
   rezultatele), nu pe <main> sau <body> și nici pe elemente mici din interior.
 - Carusele, rafturi de știri, imagini de fundal mari: le ascunzi pe zona sau elementul care le conține.
 - Culorile nu apar în snapshot, deci nu le presupui: culorile de bază ale site-ului de referință (ex. Google: fundal
-  alb, text închis) le scrii explicit pe html, body și pe zonele mari (regions, inclusiv „Fundalul paginii”, dacă
-  există), cu background-image: none. Sub o imagine de fundal ascunsă rămân de obicei fundalul închis și umbrele
-  site-ului; meniul și antetul de pe ea au text deschis la culoare: le dai culoarea textului de pe site-ul de
-  referință (pe zonele banner și navigation), ca să se citească pe alb.
+  alb, text închis) le scrii explicit pe html, body și pe zonele mari (regions), cu background-image: none. Sub o
+  imagine de fundal ascunsă rămân de obicei fundalul închis și umbrele site-ului; meniul și antetul de pe ea au text
+  deschis la culoare: le dai culoarea textului de pe site-ul de referință (pe zonele banner și navigation), ca să se
+  citească pe alb.
+- Elementul „Fundalul paginii (rgb(…))” din snapshot e containerul care ține toată pagina (și căutarea): NU îl ascunzi.
+  Îi pui, pe selectorul lui, fundalul site-ului de referință (background: #fff !important; background-image: none
+  !important). Eticheta lui arată culoarea curentă: în snapshot-ul de după verifici că a devenit cea pusă de tine;
+  dacă nu, n-o numești „fundal alb” în rezumat.
 - Textul care rămâne vizibil are cel puțin ${HARD_LIMITS.minFontPx}px: dacă site-ul are text mai mic (meniuri, note),
   îl mărești în aceeași foaie, pe zonă.
 - Pagina rămâne folosibilă: căutarea, rezultatele/conținutul principal, meniul și contul se văd și se pot apăsa;
