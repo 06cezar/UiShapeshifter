@@ -192,9 +192,13 @@ ${preferences}
 - O preferință generală poate fi și de aspect (culori, fundal, fonturi, mărimi), nu doar ceva de ascuns. O salvezi și
   o aplici și pe site-ul acesta, în aceeași rulare. category o pui doar când se potrivește una din listă; la aspect o
   lași deoparte și spui tot în text (ex. "text": "fundal verde pe fiecare site").
+- La o preferință de aspect pui în value și "css": regulile aplicate aici, rescrise doar cu selectori generici (html,
+  body, *, a, button, input, h1–h6, p, li), fără clase, id-uri sau atribute: pe alt site acelea nu există. Extensia îl
+  pune singură pe orice site, fără să te mai cheme (ex. "css": "html, body { background: #d9f2d9 !important; }").
+  Pe site-ul acesta îl aplici și cu apply_css, cu selectorii lui.
 - Preferința generală se salvează cu update_profile, patch
   [{ "op": "add", "path": "/generalPreferences/-", "value": { "id": "<scurt>", "category": "<ai-features|short-video|stories|promos|clutter|popups|autoplay, doar dacă se potrivește>",
-  "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"],
+  "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"], "css": "<doar la aspect>",
   "createdAt": "<acum, ISO>", "appliedOn": ["<host-ul site-ului>"] } }].
 - După ce ai aplicat aici o preferință generală veche, o notezi: același add pe /generalPreferences/-, cu aceeași
   category și text și "appliedOn": ["<host-ul site-ului>"]. Profilul o îmbină cu cea existentă (nu se dublează).
