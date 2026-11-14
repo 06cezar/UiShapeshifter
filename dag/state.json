@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "4f196e3e17fde148165910036657cbc6c90993ab",
-  "last_run": "2026-11-14T06:35:31Z",
-  "last_sha": "2c60cd0371c143eb56d1f9c5e543c30aae9c13f6",
+  "last_run": "2026-11-14T06:36:46Z",
+  "last_sha": "2936f1092be29cba490c1b31f01318c74ff5d99b",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -200,8 +200,8 @@
     },
     "130": {
       "head": "a-undo-request-prompt",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T06:36:36Z",
+      "state": "MERGED"
     },
     "14": {
       "head": "d-agents-block",
