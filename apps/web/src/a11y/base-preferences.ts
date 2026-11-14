@@ -22,6 +22,17 @@ export const MAX_BASE_ELEMENTS = 20_000;
 const REVEALING_ATTRIBUTES = ["open", "hidden"];
 /** `line-height: normal` în browsere e ~1.2 din mărimea fontului (la fel ca în dom.ts). */
 const NORMAL_LINE_HEIGHT = 1.2;
+/** Cât urcăm de la text după containerul care îl taie (eticheta din bara laterală stă în 1–3 cutii). */
+const CLIPPING_LABEL_DEPTH = 3;
+/** Valorile `overflow-x` cu care o cutie își taie conținutul. */
+const CLIPPING_OVERFLOW = new Set(["hidden", "clip"]);
+/**
+ * Cutia care taie e îngustă ca o bară laterală de iconițe (Teams: ~68px). Un meniu sau un antet lat, chiar cu
+ * `nowrap` + `overflow: hidden`, își primește fontul minim ca orice text (review D pe #100).
+ */
+const CLIPPED_LABEL_MAX_BOX_PX = 120;
+/** Doar etichete scurte („Activitate”, „Calendar”), nu fraze. */
+const CLIPPED_LABEL_MAX_CHARS = 24;
 
 const REDUCED_MOTION_CSS =
   "*, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;" +
@@ -126,7 +137,7 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
   function planText(element: HTMLElement, style: CSSStyleDeclaration, t: AuditThresholds, writes: StyleWrite[]): void {
     const originalFontPx = parseFloat(style.fontSize);
     let fontPx = originalFontPx;
-    if (fontPx < t.minFontPx) {
+    if (fontPx < t.minFontPx && !isClippedLabel(element, style)) {
       writes.push({ element, property: "font-size", value: `${t.minFontPx}px` });
       fontPx = t.minFontPx;
     }
@@ -235,6 +246,27 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     },
     adjustedCount: () => saved.size,
   };
+}
+
+/**
+ * O etichetă scurtă dintr-o cutie îngustă care taie textul (un rând, fără trecere pe rândul următor): bara
+ * laterală din Teams („Activitate” → „Acti…”). Mărită, se suprapune cu iconița și nu se mai citește deloc, deci o
+ * lăsăm cum e; auditul o raportează în continuare ca problemă a site-ului (găsit de E pe teams.cloud.microsoft).
+ */
+function isClippedLabel(element: HTMLElement, style: CSSStyleDeclaration): boolean {
+  if ((element.textContent ?? "").trim().length > CLIPPED_LABEL_MAX_CHARS) return false;
+  let node: HTMLElement | null = element;
+  let nodeStyle = style;
+  for (let depth = 0; node && depth <= CLIPPING_LABEL_DEPTH; depth++) {
+    // `overflow` scurt, unde motorul nu desface `overflow-x` (happy-dom în teste)
+    const overflowX = nodeStyle.overflowX || nodeStyle.overflow;
+    const clipsOneLine =
+      nodeStyle.textOverflow === "ellipsis" || (CLIPPING_OVERFLOW.has(overflowX) && nodeStyle.whiteSpace === "nowrap");
+    if (clipsOneLine) return node.getBoundingClientRect().width <= CLIPPED_LABEL_MAX_BOX_PX;
+    node = node.parentElement;
+    if (node) nodeStyle = getComputedStyle(node);
+  }
+  return false;
 }
 
 /** Text de citit (paragrafe, liste), nu butoane sau titluri: aceeași regulă ca `line-height` din audit.ts. */
