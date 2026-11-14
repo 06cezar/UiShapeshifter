@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "32731fbc52beed7db84d199b5ea0b225ceb919bb",
-  "last_run": "2026-11-14T04:54:29Z",
-  "last_sha": "3896d66d999a21ba4f7a4e876ccb262d0458d30e",
+  "last_comms_sha": "2c795062d5ae2b6596bcf7eb28ba8b625018cb37",
+  "last_run": "2026-11-14T04:56:11Z",
+  "last_sha": "b6acdb7a3cf3583db444741a9d475f91142b875d",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -580,8 +580,8 @@
     },
     "99": {
       "head": "e-ui-nu-acopera",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T04:56:03Z",
+      "state": "MERGED"
     }
   },
   "statuses": {
