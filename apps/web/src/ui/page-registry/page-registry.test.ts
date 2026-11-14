@@ -395,3 +395,27 @@ describe("coloanele rămân zone după ce rețeta ascunde vecina", () => {
     expect(reg.snapshot().regions.some((r) => r.selector === "#b_results")).toBe(true);
   });
 });
+
+describe("rândurile de tabel (facturile de pe site-ul de test)", () => {
+  test("fiecare rând e un element cu textul celulelor și un selector care îl găsește din nou", () => {
+    document.body.innerHTML = `
+      <section id="facturi"><table>
+        <thead><tr><th>Nr. factură</th><th>Valoare</th><th>Stare</th></tr></thead>
+        <tbody>
+          <tr class="current"><td>DEMO-2026-0011</td><td>248,37 lei</td><td><span>De plată</span></td></tr>
+          <tr><td>DEMO-2026-0010</td><td>231,12 lei</td><td><span>Plătită</span></td></tr>
+        </tbody>
+      </table></section>`;
+    const rows = registry()
+      .snapshot()
+      .elements.filter((e) => e.role === "row");
+    expect(rows.map((r) => r.label)).toEqual([
+      "DEMO-2026-0011 · 248,37 lei · De plată",
+      "DEMO-2026-0010 · 231,12 lei · Plătită",
+    ]);
+    const second = document.querySelectorAll("tbody tr")[1];
+    expect(document.querySelector(rows[1]!.selector)).toBe(second);
+    // antetul nu e rând de date
+    expect(rows.some((r) => r.label.startsWith("Nr. factură"))).toBe(false);
+  });
+});
