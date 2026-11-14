@@ -14,7 +14,7 @@ import type { Decider, Decision } from "./run-agent";
 import { buildSystemPrompt, userMessage, type ProfileContext } from "./system-prompt";
 
 const TEMPERATURE = 0.2; // mică, pentru un demo previzibil (specs/05)
-const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
+const DEFAULT_MODEL = "anthropic/claude-opus-5.5"; // decizia echipei, 14 nov. 07:30 (Haiku 5.5 rămâne opțiune prin OPENROUTER_MODEL)
 // de câte ori îi cerem modelului să repare un tool call stricat (nume necunoscut, JSON invalid) în același pas
 const MAX_MALFORMED_CALLS = 2;
 
