@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "998dd27d03b5c91ad4270241df1a3e927eabe3a7",
-  "last_run": "2026-11-14T00:42:21Z",
-  "last_sha": "7eb88a6a88272a15d330bffe161d31cdb559ecaf",
+  "last_comms_sha": "6936a13aadb01410c860a425a6148f323db9463a",
+  "last_run": "2026-11-14T00:51:07Z",
+  "last_sha": "8ba5124fb9512a2c975e2370b04abc4b8664e885",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -315,8 +315,8 @@
     },
     "62": {
       "head": "a6-test-preferinta-pastrata",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:51:00Z",
+      "state": "MERGED"
     },
     "63": {
       "head": "e-onboarding-legat",
@@ -340,8 +340,8 @@
     },
     "67": {
       "head": "a6-preferinta-doar-peste-tot",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:51:05Z",
+      "state": "MERGED"
     },
     "68": {
       "head": "a-startrun-page",
@@ -370,6 +370,11 @@
     },
     "72": {
       "head": "a5-retete",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "73": {
+      "head": "c-anulez-o-cerere",
       "merged_at": null,
       "state": "OPEN"
     },
