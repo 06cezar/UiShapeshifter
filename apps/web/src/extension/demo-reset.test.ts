@@ -29,6 +29,7 @@ const full = () => ({
   "u-1": { userId: "u-1" },
   onboarding: { skipped: false },
   account: { token: "t" },
+  excludedSites: ["banca.ro"], // „Nu schimba acest site” (#85): și asta revine ca la instalare
   "recipe:video.example": { recipe: {} },
   "recipe:a.ro": { recipe: {} },
 });

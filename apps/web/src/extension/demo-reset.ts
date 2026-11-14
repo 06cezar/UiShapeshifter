@@ -3,6 +3,7 @@
 
 import type { OnboardingResult } from "@uishapeshifter/contracts";
 import { RECIPE_KEY_PREFIX } from "../ui/recipes/recipe-store";
+import { EXCLUDED_SITES_KEY } from "./excluded-sites";
 
 export const ONBOARDING_KEY = "onboarding";
 export const ACCOUNT_KEY = "account";
@@ -54,7 +55,13 @@ export async function resetDemo(options: DemoOptions): Promise<{ recipes: number
       server = false; // serverul nu răspunde: curățăm măcar local
     }
   }
-  await options.storage.remove([...recipeKeys, ONBOARDING_KEY, ACCOUNT_KEY, ...(userId ? [userId] : [])]);
+  await options.storage.remove([
+    ...recipeKeys,
+    ONBOARDING_KEY,
+    ACCOUNT_KEY,
+    EXCLUDED_SITES_KEY,
+    ...(userId ? [userId] : []),
+  ]);
   return { recipes: recipeKeys.length, server };
 }
 

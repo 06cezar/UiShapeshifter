@@ -97,6 +97,11 @@ function stageTwoSections(stage: SiteToolStage): string {
 - Așezarea (lățime maximă, centrare, coloane) o pui pe zonele din snapshot (regions, cu selectorul lor, ex. zona cu
   rezultatele), nu pe <main> sau <body> și nici pe elemente mici din interior.
 - Carusele, rafturi de știri, imagini de fundal mari: le ascunzi pe zona sau elementul care le conține.
+- Culorile nu apar în snapshot, deci nu le presupui: culorile de bază ale site-ului de referință (ex. Google: fundal
+  alb, text închis) le scrii explicit pe html, body și pe zonele mari (regions, inclusiv „Fundalul paginii”, dacă
+  există), cu background-image: none. Sub o imagine de fundal ascunsă rămân de obicei fundalul închis și umbrele
+  site-ului; meniul și antetul de pe ea au text deschis la culoare: le dai culoarea textului de pe site-ul de
+  referință (pe zonele banner și navigation), ca să se citească pe alb.
 - Textul care rămâne vizibil are cel puțin ${HARD_LIMITS.minFontPx}px: dacă site-ul are text mai mic (meniuri, note),
   îl mărești în aceeași foaie, pe zonă.
 - Pagina rămâne folosibilă: căutarea, rezultatele/conținutul principal, meniul și contul se văd și se pot apăsa;
@@ -139,8 +144,10 @@ ${preferences}
   Omul nu trebuie să-ți repete ce a spus pe alt site.
 - Unde se aplică o cerere o hotărăște omul (specs/08): fără mențiune, pe tot site-ul acesta (rețeta lui); devine
   preferință generală (pe toate site-urile) DOAR când omul o spune limpede: „pe toate site-urile”, „pe orice site”,
-  „în site-uri”, „peste tot”, „oriunde”, „pe tot internetul” (ex. „nu vreau AI în site-uri”, „scoate Shorts peste tot”).
-  „Nu vreau Shorts” sau „ascunde reclamele” fără o astfel de mențiune rămân pe site-ul acesta, chiar dacă le-a mai spus.
+  „în site-uri”, „peste tot”, „oriunde”, „pe tot internetul”, „nicăieri”, „pe niciun site”, „pe toate paginile” (ex. „nu vreau AI în
+  site-uri”, „scoate Shorts peste tot”, „nu vreau Shorts nicăieri”).
+  „Nu vreau Shorts” sau „ascunde reclamele” fără o astfel de mențiune rămân pe site-ul acesta, chiar dacă le-a mai spus:
+  atunci NU chemi update_profile pentru preferință (nici cu patch gol); rețeta site-ului ține minte schimbarea.
 - Preferința generală se salvează cu update_profile, patch
   [{ "op": "add", "path": "/generalPreferences/-", "value": { "id": "<scurt>", "category": "<ai-features|short-video|stories|promos|clutter|popups|autoplay>",
   "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"],

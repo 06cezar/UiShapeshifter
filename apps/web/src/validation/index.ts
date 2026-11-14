@@ -4,6 +4,6 @@
 export { OUR_INTERFACE_MARKERS, validateCss } from "./css";
 export { validateHtml } from "./html";
 export { DEFAULT_SCOPE, effectiveScope, requestedScope, type RequestScope } from "./scope";
-export { recipeWithoutRequest, requestHistory } from "./undo-request";
+export { recipeWithoutRequest, requestHistory, UNDO_RUN_PREFIX, undoneRequests } from "./undo-request";
 export type { RecipeWithoutRequest, RequestEntry, UndoRequestResult } from "./undo-request";
 export type { CssValidation, HtmlValidation } from "./result";

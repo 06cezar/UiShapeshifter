@@ -39,6 +39,12 @@ export const CHAT_CSS = `
 .chat-bubble[data-role="user"] { align-self: flex-end; color: var(--uis-bg); background: var(--uis-accent); }
 .chat-bubble[data-role="agent"] { align-self: flex-start; background: color-mix(in srgb, var(--uis-fg) 14%, var(--uis-bg)); }
 .chat-bubble[data-error="true"] { border: 2px solid var(--uis-error); }
+.chat-options { display: flex; flex-wrap: wrap; gap: var(--uis-space); }
+.chat-option {
+  min-height: var(--uis-target); min-width: var(--uis-target); padding: 0 calc(var(--uis-space) * 1.5);
+  color: var(--uis-fg); background: color-mix(in srgb, var(--uis-fg) 10%, var(--uis-bg));
+  border: 2px solid var(--uis-accent); border-radius: var(--uis-radius); cursor: pointer;
+}
 .chat-activity { margin: 0; color: var(--uis-muted); min-height: 1.5em; }
 .chat-form { display: flex; gap: var(--uis-space); }
 .chat-input {

@@ -27,6 +27,12 @@ export interface RecipeWithoutRequest {
 
 export type UndoRequestResult = { ok: true; recipe: RecipeWithoutRequest } | { ok: false; message: string };
 
+/**
+ * O revizie făcută de anularea unei cereri are `runId` = prefixul + cererea scoasă. Nu e o cerere a omului: lista o
+ * ascunde, iar refacerea o sare și scoate din nou toate cererile anulate, ca anulările să se adune.
+ */
+export const UNDO_RUN_PREFIX = "anulare:";
+
 /** Separatorul pus de motorul de rețete între foaia veche și bucata nouă la `mode: "append"` (recipe-engine.ts). */
 const CSS_APPEND_SEPARATOR = "\n";
 
@@ -34,14 +40,28 @@ function requestIdOf(revision: RecipeRevision): string {
   return revision.runId ?? `revizia-${revision.revision}`;
 }
 
+function isUndoRevision(revision: RecipeRevision): boolean {
+  return revision.runId?.startsWith(UNDO_RUN_PREFIX) ?? false;
+}
+
+/** Cererile scoase deja, din reviziile de anulare. */
+export function undoneRequests(revisions: RecipeRevision[]): string[] {
+  return revisions.filter(isUndoRevision).map((revision) => revision.runId!.slice(UNDO_RUN_PREFIX.length));
+}
+
 function byRevision(revisions: RecipeRevision[]): RecipeRevision[] {
   return [...revisions].sort((a, b) => a.revision - b.revision);
 }
 
-/** Cererile din istoric, în ordinea în care au fost făcute: lista din panou, cu „Anulez” pe fiecare. */
+/**
+ * Cererile din istoric care încă au efect, în ordinea în care au fost făcute: lista din panou, cu „Anulez” pe fiecare.
+ * Fără reviziile de anulare și fără cererile scoase de ele.
+ */
 export function requestHistory(revisions: RecipeRevision[]): RequestEntry[] {
+  const undone = new Set(undoneRequests(revisions));
   const entries = new Map<string, RequestEntry>();
   for (const revision of byRevision(revisions)) {
+    if (isUndoRevision(revision) || undone.has(requestIdOf(revision))) continue;
     const id = requestIdOf(revision);
     const entry = entries.get(id);
     if (entry) entry.revisions.push(revision.revision);
@@ -95,19 +115,20 @@ function dependsOn(op: DomOp, shapeIds: Set<string>): boolean {
 }
 
 /**
- * Rețeta de acum fără cererea `requestId`: refacem istoricul revizie cu revizie și sărim bucățile ei. Cererile de
- * după rămân. O revizie „replace” de după cerere (agentul a rescris toată foaia) nu se poate despărți: rămâne cum e.
- * Istoricul păstrează doar ultimele `RECIPE_LIMITS.maxRevisions` revizii; o cerere mai veche nu se mai poate scoate
- * singură (rămâne „Revino la original”).
+ * Rețeta de acum fără cererea `requestId` și fără cele anulate înainte: refacem istoricul revizie cu revizie și sărim
+ * bucățile lor. Cererile de după rămân. O revizie „replace” de după cerere (agentul a rescris toată foaia) nu se poate
+ * despărți: rămâne cum e. Istoricul păstrează doar ultimele `RECIPE_LIMITS.maxRevisions` revizii; o cerere mai veche nu
+ * se mai poate scoate singură (rămâne „Revino la original”).
  */
 export function recipeWithoutRequest(revisions: RecipeRevision[], requestId: string): UndoRequestResult {
   const ordered = byRevision(revisions);
-  if (!ordered.some((revision) => requestIdOf(revision) === requestId)) {
+  if (!ordered.some((revision) => !isUndoRevision(revision) && requestIdOf(revision) === requestId)) {
     return { ok: false, message: "Cererea nu e în istoricul rețetei acestui site." };
   }
+  const skipped = new Set([...undoneRequests(revisions), requestId]);
   // Prima revizie păstrată poate conține și cereri mai vechi, ieșite din istoric: n-o putem despărți.
   const first = ordered[0]!;
-  if (first.revision > 1 && requestIdOf(first) === requestId) {
+  if (first.revision > 1 && skipped.has(requestIdOf(first))) {
     return { ok: false, message: "Cererea e prea veche ca să fie scoasă singură; se poate reveni la original." };
   }
 
@@ -124,7 +145,9 @@ export function recipeWithoutRequest(revisions: RecipeRevision[], requestId: str
     previousCss = revision.css;
     previousOps = nextOps;
 
-    if (requestIdOf(revision) === requestId) {
+    // O anulare de mai devreme: rezultatul ei îl refacem chiar acum; ce vine după ea s-a adăugat la foaia ei.
+    if (isUndoRevision(revision)) continue;
+    if (skipped.has(requestIdOf(revision))) {
       if (opsChange.kind === "append") for (const id of shapeIdsOf(opsChange.added)) removedShapes.add(id);
       continue;
     }

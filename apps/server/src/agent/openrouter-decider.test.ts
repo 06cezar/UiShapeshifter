@@ -118,6 +118,7 @@ describe("createOpenRouterDecider", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("Culorile nu apar în snapshot"); // „ca Google” pe pagina de start Bing rămânea gri
   });
 
   it("etapa 3: profilul și preferințele generale intră în promptul de sistem, cu ce e deja aplicat pe site", async () => {
@@ -156,6 +157,8 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("- fără clipuri scurte (deja aplicată pe acest site)");
     expect(system).toContain("/generalPreferences/-");
     expect(system).toContain("DOAR când omul o spune limpede"); // nu orice cerere devine preferință generală (#64)
+    expect(system).toContain("„nicăieri”, „pe niciun site”, „pe toate paginile”"); // aceleași cuvinte ca requestedScope (#75)
+    expect(system).toContain("NU chemi update_profile pentru preferință"); // proba M3: patch gol la „nu vreau Shorts”
     expect((sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name)).toContain(
       "update_profile",
     );
