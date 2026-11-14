@@ -138,7 +138,8 @@ export function evaluateRules(seen: SeenSignal[], now: number, thresholds: RuleT
  * O singură propunere pe site, cu toate preferințele care lipsesc.
  */
 export function generalPreferencesFinding(page: PageInfo, preferences: GeneralPreference[]): Finding | null {
-  const missing = preferences.filter((p) => !p.appliedOn.includes(page.host));
+  // Cele cu css (aspect „peste tot”) le pune extensia singură pe orice site, fără AI: n-are rost să întrebăm.
+  const missing = preferences.filter((p) => !p.css && !p.appliedOn.includes(page.host));
   if (missing.length === 0) return null;
   const list = missing.map((p) => p.text).join("; ");
   return {

@@ -53,6 +53,8 @@ export function mergeGeneralPreferences(list: GeneralPreference[]): GeneralPrefe
     }
     same.evidence = [...new Set([...same.evidence, ...preference.evidence])];
     same.appliedOn = [...new Set([...same.appliedOn, ...preference.appliedOn])];
+    // Aceeași preferință spusă din nou cu alt aspect („acum albastru”): ultimul CSS câștigă.
+    if (preference.css !== undefined) same.css = preference.css;
   }
   return merged;
 }

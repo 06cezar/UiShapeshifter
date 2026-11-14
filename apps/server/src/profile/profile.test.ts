@@ -7,13 +7,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import express from "express";
-import type { UserProfile } from "@uishapeshifter/contracts";
+import type { GeneralPreference, UserProfile } from "@uishapeshifter/contracts";
 import { createEmptyProfile, createMariaProfile } from "./defaults";
 import { createProfileRouter } from "./routes";
 import { createProfileStore, type ProfileStore } from "./store";
 import { MAX_SUMMARY_WORDS, profileSummary } from "./summary";
-import { applyOnboarding, applyProfileUpdate } from "./update";
-import { parseProfile } from "./validate";
+import { applyOnboarding, applyProfileUpdate, mergeGeneralPreferences } from "./update";
+import { parseGeneralPreference, parseProfile } from "./validate";
 
 const NOW = "2026-11-13T18:00:00.000Z";
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
@@ -358,5 +358,40 @@ describe("profilul extins (E8): preferințe generale și site-uri familiare", ()
     assert.ok(parsed.ok);
     assert.deepEqual(parsed.value.generalPreferences, []);
     assert.deepEqual(parsed.value.familiarSites, []);
+  });
+});
+
+describe("preferința de aspect peste tot (css)", () => {
+  const base = {
+    id: "verde",
+    text: "fundal verde",
+    source: "conversation",
+    evidence: ["„fundal verde peste tot”"],
+    createdAt: "x",
+    appliedOn: [],
+  };
+
+  test("CSS-ul se păstrează; url() sau @import sunt refuzate", () => {
+    const ok = parseGeneralPreference({ ...base, css: "body { background: #2e7d32 !important; }" });
+    assert.ok(ok.ok && ok.value.css?.includes("#2e7d32"));
+    assert.equal(parseGeneralPreference({ ...base, css: "body { background: url(x.png) }" }).ok, false);
+    assert.equal(parseGeneralPreference({ ...base, css: "@import 'x.css';" }).ok, false);
+    assert.equal(parseGeneralPreference({ ...base, css: ".site-header { background: green }" }).ok, false);
+    // ce scrie agentul pe un site („html, body, #main”): rămâne partea generică
+    const mixed = parseGeneralPreference({
+      ...base,
+      css: "html, body, #main-container { background: pink !important; }",
+    });
+    assert.ok(mixed.ok);
+    assert.equal(mixed.ok && mixed.value.css, "html, body { background: pink !important; }");
+  });
+
+  test("aceeași preferință spusă din nou: ultimul CSS câștigă", () => {
+    const merged = mergeGeneralPreferences([
+      { ...base, source: "conversation", css: "body{background:green}" },
+      { ...base, source: "conversation", css: "body{background:blue}" },
+    ] as GeneralPreference[]);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0]?.css, "body{background:blue}");
   });
 });

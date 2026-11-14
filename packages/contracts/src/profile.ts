@@ -75,6 +75,38 @@ export interface GeneralPreference {
   createdAt: string;
   /** Pe ce site-uri s-a aplicat deja (host); o preferință nu se mai propune acolo. */
   appliedOn: string[];
+  /**
+   * Preferință de aspect cerută „peste tot” (ex. fundal verde): CSS-ul aplicat de agent, pe care extensia îl pune
+   * singură pe orice site, fără AI (trece prin aceeași validare ca rețetele, C5). Fără selectori de site, doar
+   * `html`, `body`, `*` și elemente generice. Lipsește la preferințele de ascuns (acelea le aplică regulile C4).
+   */
+  css?: string;
+}
+
+/**
+ * Un selector valabil pe orice site: un singur element (html, body, a, button, p, h1–h6…) sau `*`, cel mult cu o
+ * pseudo-clasă (a:hover). Clasele, id-urile, atributele și combinațiile țin de un site anume.
+ */
+const GENERIC_SELECTOR = /^(\*|[a-z][a-z0-9-]*)(::?[a-z-]+)?$/i;
+
+/**
+ * Partea generică dintr-un CSS (pentru GeneralPreference.css): din fiecare regulă rămân doar selectorii generici,
+ * iar regulile fără niciunul cad. Ex. „html, body, #main { … }” → „html, body { … }”. Același filtru pe server și în
+ * extensie. Blocurile @media se pierd (rămân doar regulile simple).
+ */
+export function genericPreferenceCss(css: string): string {
+  const rules = css.match(/[^{}]+\{[^{}]*\}/g) ?? [];
+  return rules
+    .flatMap((rule) => {
+      const open = rule.indexOf("{");
+      const selectors = rule
+        .slice(0, open)
+        .split(",")
+        .map((selector) => selector.trim())
+        .filter((selector) => GENERIC_SELECTOR.test(selector));
+      return selectors.length > 0 ? [`${selectors.join(", ")} ${rule.slice(open).trim()}`] : [];
+    })
+    .join("\n");
 }
 
 /** Un site pe care omul îl cunoaște bine: sursă pentru „fă-l să arate ca site-ul cu care sunt obișnuit”. */

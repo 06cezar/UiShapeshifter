@@ -2,6 +2,7 @@
 // Nevoile se aduc mereu în limitele HARD_LIMITS: nimeni nu coboară fontul sau țintele sub minim (specs/07).
 
 import {
+  genericPreferenceCss,
   HARD_LIMITS,
   type FamiliarSite,
   type GeneralPreference,
@@ -38,6 +39,10 @@ const PREFERENCE_SOURCES: readonly GeneralPreference["source"][] = ["onboarding"
 const FAMILIAR_LEVELS: readonly FamiliarSite["level"][] = ["daily", "sometimes"];
 /** O preferință generală e o propoziție scurtă („fără rezumate AI”), nu un paragraf. */
 const PREFERENCE_TEXT_MAX_CHARS = 120;
+/** CSS-ul unei preferințe de aspect „peste tot”: câteva reguli, nu o rețetă întreagă. */
+export const PREFERENCE_CSS_MAX_CHARS = 2000;
+/** Ce nu primește niciodată un CSS de-al nostru (C5): cod, resurse din afară, comportamente vechi. */
+const UNSAFE_CSS = /url\s*\(|@import|expression\s*\(|javascript:|behavior\s*:|-moz-binding/i;
 /** Id-ul preferinței ajunge în scopul agentului și în panou: scurt și fără caractere ciudate. */
 const PREFERENCE_ID = /^[a-z0-9-]{1,40}$/;
 /** Gazdă de site: litere, cifre, „.” și „-” (fără „www.”, litere mici; ca la cheia rețetei, specs/06). */
@@ -212,7 +217,21 @@ function parseGeneralPreferenceUnsafe(raw: unknown, field: string): GeneralPrefe
     evidence,
     createdAt: str(v.createdAt, `${field}.createdAt`),
     appliedOn: strings(v.appliedOn ?? [], `${field}.appliedOn`).map((h, i) => hostOf(h, `${field}.appliedOn[${i}]`)),
+    ...(v.css === undefined ? {} : { css: preferenceCss(v.css, `${field}.css`) }),
   };
+}
+
+/** Prima barieră pe server; extensia îl mai trece o dată prin validateCss (C5) înainte să-l pună în pagină. */
+function preferenceCss(raw: unknown, field: string): string {
+  const css = str(raw, field).trim();
+  if (!css || css.length > PREFERENCE_CSS_MAX_CHARS)
+    fail(field, `CSS scurt, cel mult ${PREFERENCE_CSS_MAX_CHARS} de caractere`);
+  if (UNSAFE_CSS.test(css)) fail(field, "fără url(), @import sau cod");
+  // Pe orice site: rămân doar selectorii generici (html, body, a, button, p, h1–h6…); restul ține de un site anume.
+  const generic = genericPreferenceCss(css);
+  if (!generic)
+    fail(field, "niciun selector generic (html, body, a, button, p, h1–h6); clasele și id-urile țin de un site");
+  return generic;
 }
 
 function parseFamiliarSiteUnsafe(raw: unknown, field: string): FamiliarSite {
