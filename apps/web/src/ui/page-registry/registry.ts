@@ -6,6 +6,7 @@ import {
   type PageElement,
   type PageRegion,
   type PageSnapshot,
+  type RecipeRequest,
   type Rect,
 } from "@uishapeshifter/contracts";
 import { HIDDEN_STYLE_ID } from "../recipes/dom-ops";
@@ -17,6 +18,8 @@ export interface RecipeView {
   css: string;
   /** Foaia aplicată acum, ca snapshot-ul să deosebească „ascuns de rețetă” de „ascuns de site”. */
   styleElement?: HTMLStyleElement | null;
+  /** Cererile omului care au încă efect pe site (`recipes.history()`), pentru `undo_request`. */
+  requests?: RecipeRequest[];
 }
 
 export interface PageRegistry {
@@ -655,6 +658,8 @@ export function createPageRegistry(options: PageRegistryOptions): PageRegistry {
         revision: recipe.revision,
         css:
           css.length > SNAPSHOT_LIMITS.maxRecipeCssChars ? `${css.slice(0, SNAPSHOT_LIMITS.maxRecipeCssChars)}…` : css,
+        // „anulează ce am cerut cu X”: agentul alege cererea după `reason` și o scoate cu undo_request
+        ...(recipe.requests?.length ? { requests: recipe.requests } : {}),
       },
       takenAt: now().toISOString(),
     };

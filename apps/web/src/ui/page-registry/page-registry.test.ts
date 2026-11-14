@@ -458,3 +458,14 @@ describe("ce a ascuns agentul cu remove apare în snapshot (hiddenBy recipe)", (
     removedStyle.remove();
   });
 });
+
+describe("cererile din rețetă în snapshot (undo_request)", () => {
+  test("cererile care mai au efect intră în recipe.requests; fără cereri, câmpul lipsește", () => {
+    document.body.innerHTML = `<main><p>Text</p></main>`;
+    const requests = [{ requestId: "run-1", reason: "ascunde reclamele", at: "2026-11-14T08:00:00.000Z" }];
+    const cu = createPageRegistry({ ourHostId: HOST, recipe: () => ({ revision: 2, css: "", requests }) });
+    expect(cu.snapshot().recipe.requests).toEqual(requests);
+    const fara = createPageRegistry({ ourHostId: HOST, recipe: () => ({ revision: 0, css: "", requests: [] }) });
+    expect("requests" in fara.snapshot().recipe).toBe(false);
+  });
+});

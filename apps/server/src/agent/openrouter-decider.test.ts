@@ -113,11 +113,14 @@ describe("createOpenRouterDecider", () => {
       "wait_for_user_click",
       "ask_user",
       "propose_changes",
+      "undo_request",
       "audit_ui",
     ]);
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("recipe.requests are"); // „anulează ce am cerut cu X” → undo_request (#126)
+    expect(system).toContain("Dacă mesajul începe cu „Conversația de până acum”"); // „și mai mult” după o cerere
     expect(system).toContain("Acțiune de o singură dată"); // proba Iuliei: „dă-i play” lăsa un buton permanent
     expect(system).toContain("Nu legi (bind) de elemente care apar doar la hover"); // proba Iuliei pe YouTube
     expect(system).toContain("nu gândirea ta"); // Opus 5.5 refuza cererea de a-și scrie raționamentul (content_filter)
@@ -168,6 +171,7 @@ describe("createOpenRouterDecider", () => {
     expect(system).toContain("- fără clipuri scurte (deja aplicată pe acest site)");
     expect(system).toContain("/generalPreferences/-");
     expect(system).toContain("DOAR când omul o spune limpede"); // nu orice cerere devine preferință generală (#64)
+    expect(system).toContain("poate fi și de aspect"); // proba Iuliei: „fundal verde pe fiecare site” era refuzată
     expect(system).toContain("„nicăieri”, „pe niciun site”, „pe toate paginile”"); // aceleași cuvinte ca requestedScope (#75)
     expect(system).toContain("NU chemi update_profile pentru preferință"); // proba M3: patch gol la „nu vreau Shorts”
     expect((sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name)).toContain(

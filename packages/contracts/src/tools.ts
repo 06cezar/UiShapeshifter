@@ -28,6 +28,7 @@ export type ToolName =
   | "wait_for_user_click"
   | "ask_user"
   | "propose_changes"
+  | "undo_request"
   | "audit_ui"
   | "say"
   | "get_profile"
@@ -51,6 +52,7 @@ export const TOOL_RUNS_ON: Record<ToolName, "web" | "server"> = {
   wait_for_user_click: "web",
   ask_user: "web",
   propose_changes: "web",
+  undo_request: "web",
   audit_ui: "web",
   say: "web",
   get_profile: "server",
@@ -96,6 +98,11 @@ export interface ToolArgs {
     component?: ToolArgs["generate_component"];
     risk: "low" | "high";
   };
+  /**
+   * „Anulează ce am cerut cu X”: scoate din rețeta site-ului o singură cerere de mai demult, iar cele de dinainte și de
+   * după rămân (ca „Anulez” din lista „Ce ai cerut aici” a panoului). `requestId` vine din `PageSnapshot.recipe.requests`.
+   */
+  undo_request: { requestId: string };
   audit_ui: { moduleId?: string; regionId?: string }; // moduleId: aplicația veche; regionId: o zonă din PageSnapshot
   say: { message: string; mascot?: MascotState };
   get_profile: Record<string, never>;
@@ -157,6 +164,8 @@ export interface ToolData {
   wait_for_user_click: { clickedElementId: string | null; correct: boolean; timedOut: boolean };
   ask_user: { answer: string };
   propose_changes: { proposalId: string; decision: "keep" | "undo"; revision: number };
+  /** `droppedOps`: operații de după cerere scoase fiindcă țineau de un element adăugat de ea. */
+  undo_request: { revision: number; droppedOps: number };
   audit_ui: AuditReport;
   say: { shown: true };
   get_profile: UserProfile;
