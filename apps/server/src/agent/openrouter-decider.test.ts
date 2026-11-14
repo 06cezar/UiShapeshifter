@@ -237,3 +237,28 @@ describe("repairLeakedParameters", () => {
     expect(repairLeakedParameters(normal)).toEqual(normal);
   });
 });
+
+describe("modelul de rezervă", () => {
+  it("un pas refuzat de filtrul modelului pleacă la Sonnet 5.5, iar rularea rămâne pe el", async () => {
+    delete process.env.OPENROUTER_MODEL;
+    delete process.env.OPENROUTER_FALLBACK_MODEL;
+    const decider = createOpenRouterDecider("Ascunde reclamele");
+    const refused = new Response(
+      JSON.stringify({
+        choices: [{ message: { content: null }, finish_reason: "content_filter", native_finish_reason: "refusal" }],
+      }),
+      { status: 200 },
+    );
+    replies.push(refused, reply("Observ: a. Fac: b. Pentru că: c.", { name: "get_page_snapshot", arguments: "{}" }));
+    expect(await decider.decide(null)).toMatchObject({ kind: "tool", name: "get_page_snapshot" });
+    expect((sent as unknown as Array<{ model: string }>).map((r) => r.model)).toEqual([
+      "anthropic/claude-opus-5.5",
+      "anthropic/claude-sonnet-5.5",
+    ]);
+    expect(decider.model).toBe("anthropic/claude-sonnet-5.5");
+
+    replies.push(reply("Gata."));
+    await decider.decide({ name: "get_page_snapshot", args: {}, result: { ok: true, data: snapshot } });
+    expect((sent[2] as unknown as { model: string }).model).toBe("anthropic/claude-sonnet-5.5");
+  });
+});

@@ -14,7 +14,9 @@ import type { Decider, Decision } from "./run-agent";
 import { buildSystemPrompt, userMessage, type ProfileContext } from "./system-prompt";
 
 const TEMPERATURE = 0.2; // mică, pentru un demo previzibil (specs/05)
-const DEFAULT_MODEL = "anthropic/claude-opus-5.5"; // decizia echipei, 14 nov. 07:30 (Haiku 5.5 rămâne opțiune prin OPENROUTER_MODEL)
+const DEFAULT_MODEL = "anthropic/claude-opus-5.5";
+/** Când modelul principal refuză un pas (filtrul de siguranță) sau nu dă nimic, pasul pleacă la acesta (decizia omului). */
+const DEFAULT_FALLBACK_MODEL = "anthropic/claude-sonnet-5.5"; // decizia echipei, 14 nov. 07:30 (Haiku 5.5 rămâne opțiune prin OPENROUTER_MODEL)
 // de câte ori îi cerem modelului să repare un tool call stricat (nume necunoscut, JSON invalid) în același pas
 const MAX_MALFORMED_CALLS = 2;
 
@@ -77,13 +79,17 @@ export interface OpenRouterDeciderOptions {
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
   const { stage = 1, page, retryDelaysMs = RETRY_DELAYS_MS } = options;
   const definitions = options.definitions ?? siteToolDefinitions(stage);
-  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  let model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL;
   const allowed = new Set<string>(definitions.map((definition) => definition.function.name));
   const messages: ChatMessage[] = [];
   let pendingCallId: string | null = null;
 
   return {
-    model,
+    /** Modelul care lucrează acum: după un refuz devine modelul de rezervă. */
+    get model() {
+      return model;
+    },
     async decide(previous): Promise<Decision> {
       if (messages.length === 0) {
         const profile = await options.loadProfile?.().catch((error: unknown) => {
@@ -105,10 +111,19 @@ export function createOpenRouterDecider(goal: string, options: OpenRouterDecider
       }
 
       for (let attempt = 0; ; attempt++) {
-        const reply = await chatCompletionWithRetry(
+        let reply = await chatCompletionWithRetry(
           { model, messages, tools: definitions, temperature: TEMPERATURE },
           retryDelaysMs,
         );
+        if (reply.refused && fallbackModel !== model) {
+          // Restul rulării merge pe modelul de rezervă: același context ar fi refuzat din nou.
+          console.warn(`agent: ${model} a refuzat pasul; îl trimit la ${fallbackModel} până la final`);
+          model = fallbackModel;
+          reply = await chatCompletionWithRetry(
+            { model, messages, tools: definitions, temperature: TEMPERATURE },
+            retryDelaysMs,
+          );
+        }
         const call = reply.toolCalls[0]; // parallel_tool_calls: false → cel mult unul; dacă vin mai multe, primul
         const content = reply.content ?? "";
         if (!call) {

@@ -28,7 +28,11 @@ export interface ChatRequest {
 export interface ChatReply {
   content: string | null;
   toolCalls: ChatToolCall[];
+  /** Modelul a refuzat (filtrul de siguranță: finish_reason „content_filter” sau „refusal”) ori n-a dat nimic. */
+  refused: boolean;
 }
+
+const REFUSAL_REASONS = new Set(["content_filter", "refusal"]);
 
 /** Eroare de la OpenRouter; `retryable` = rețea, 429 sau 5xx (A4 le reîncearcă). */
 export class OpenRouterError extends Error {
@@ -93,7 +97,11 @@ export async function chatCompletion(request: ChatRequest): Promise<ChatReply> {
   }
 
   const body = (await response.json().catch(() => null)) as {
-    choices?: Array<{ message?: { content?: unknown; tool_calls?: unknown } }>;
+    choices?: Array<{
+      message?: { content?: unknown; tool_calls?: unknown };
+      finish_reason?: unknown;
+      native_finish_reason?: unknown;
+    }>;
     error?: { message?: unknown };
   } | null;
   if (!response.ok || body?.error) {
@@ -102,10 +110,12 @@ export async function chatCompletion(request: ChatRequest): Promise<ChatReply> {
     throw new OpenRouterError(`OpenRouter ${response.status}: ${detail}`, response.status, retryable);
   }
 
-  const message = body?.choices?.[0]?.message;
+  const choice = body?.choices?.[0];
+  const message = choice?.message;
   if (!message) throw new OpenRouterError("Răspuns fără choices[0].message.", response.status, true);
-  return {
-    content: typeof message.content === "string" ? message.content : null,
-    toolCalls: Array.isArray(message.tool_calls) ? message.tool_calls.filter(isToolCall) : [],
-  };
+  const content = typeof message.content === "string" ? message.content : null;
+  const toolCalls = Array.isArray(message.tool_calls) ? message.tool_calls.filter(isToolCall) : [];
+  const filtered =
+    REFUSAL_REASONS.has(String(choice?.finish_reason)) || REFUSAL_REASONS.has(String(choice?.native_finish_reason));
+  return { content, toolCalls, refused: filtered || (!content?.trim() && toolCalls.length === 0) };
 }
