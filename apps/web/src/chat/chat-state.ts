@@ -27,6 +27,7 @@ export const CHAT_TEXT = {
   voiceStart: "Vorbește",
   voiceStop: "Oprește ascultarea",
   voiceListening: "Te ascult…",
+  voiceNeedsButton: "Codul pornește doar cu butonul «Rulează».",
 } as const;
 
 export interface ChatMessage {
