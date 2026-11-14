@@ -156,6 +156,31 @@ describe("reaplicarea și „Revino la original”", () => {
     early.remove();
   });
 
+  test("după mutare, foile noastre (mișcarea redusă, ce te deranjează) rămân ultimele, în aceeași ordine", async () => {
+    const engine = newEngine({ host: "bing.com", storage: memoryStorage() });
+    await engine.load();
+    await engine.applyCss({ css: "#cover { background-image: none !important }", reason: "fără imagine" });
+    const ours = ["uishapeshifter-base", "uishapeshifter-dislikes"].map((id) => {
+      const sheet = document.createElement("style");
+      sheet.id = id;
+      document.head.append(sheet);
+      return sheet;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const late = document.createElement("style");
+    late.id = "iotd-lite-bg";
+    document.head.append(late);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const order = [...document.querySelectorAll("style")].map((s) => s.id).filter(Boolean);
+    expect(order.slice(-4)).toEqual([
+      "iotd-lite-bg",
+      RECIPE_STYLE_ID,
+      "uishapeshifter-base",
+      "uishapeshifter-dislikes",
+    ]);
+    [late, ...ours].forEach((sheet) => sheet.remove());
+  });
+
   test("stilurile noastre (preferințele de bază) puse după rețetă nu o mută", async () => {
     const engine = newEngine({ host: "a.ro", storage: memoryStorage() });
     await engine.load();

@@ -205,7 +205,17 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
     );
     const last = siteSheets.at(-1);
     if (!last?.parentElement || !(style.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
+    // Celelalte foi ale noastre (mișcarea redusă, ce te deranjează) vin după rețetă, în ordinea lor: trebuie să rămână
+    // ultimele, altfel le-ar bate rețeta mutată peste ele.
+    const ourOthers = [...doc.querySelectorAll(`style[id^="${OUR_STYLE_ID_PREFIX}"]`)].filter(
+      (sheet) => sheet !== style,
+    );
+    let previous: Element = style;
     last.parentElement.insertBefore(style, last.nextSibling);
+    for (const sheet of ourOthers) {
+      previous.after(sheet);
+      previous = sheet;
+    }
   }
 
   const domOps = createDomOpsApplier({ doc, askAgent: (goal) => options.askAgent?.(goal) });
