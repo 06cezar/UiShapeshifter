@@ -21,7 +21,7 @@ import { SHAPE_ATTR } from "../ui/recipes/dom-ops";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
 import { isExcluded } from "./excluded-sites";
-import { startReservingSpace, type Placed } from "./reserve-space";
+import { keepClearOfSiteFixed, startReservingSpace, type Placed } from "./reserve-space";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { measurePage, type PageMeasure } from "./measure";
@@ -223,6 +223,9 @@ function start() {
 
   // Interfața noastră nu stă peste textul site-ului: pagina îi face loc pe margine (proba cu Iulia, 14 nov.).
   startReservingSpace(() => ourBoxes(ourRoot.shadow), ourRoot.shadow);
+  // Butoanele fixe ale site-ului nu se mută cu marginea: chatul nostru urcă deasupra lor, nu stă peste ele.
+  const chatBox = ourRoot.shadow.querySelector<HTMLElement>(".chat");
+  if (chatBox) keepClearOfSiteFixed(chatBox, ourRoot.host);
 
   /** Înainte de Păstrez / Anulez: omul trebuie să vadă ce s-a schimbat, deci mascota arată spre elementul nou. */
   function showWhatChanged(runId: string | undefined) {
