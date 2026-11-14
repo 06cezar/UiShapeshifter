@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "19a5ecc8d81028c3e62db3659e2d376b9f48917f",
-  "last_run": "2026-11-14T06:33:23Z",
-  "last_sha": "b440492dddfc0c116353ebd20c9e17ebb8ab9217",
+  "last_run": "2026-11-14T06:33:37Z",
+  "last_sha": "824ffbdbcc4eadd664b9013efd473b3336826fe1",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -190,13 +190,18 @@
     },
     "129": {
       "head": "d-panou-dupa-f5",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T06:33:29Z",
+      "state": "MERGED"
     },
     "13": {
       "head": "d-comms-block-review",
       "merged_at": "2026-11-13T14:26:38Z",
       "state": "MERGED"
+    },
+    "130": {
+      "head": "a-undo-request-prompt",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "14": {
       "head": "d-agents-block",
