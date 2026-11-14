@@ -37,6 +37,7 @@ const TOOL_ICONS: Record<ToolName, string> = {
   wait_for_user_click: "⏳",
   ask_user: "❓",
   propose_changes: "💡",
+  undo_request: "↩️",
   audit_ui: "🔍",
   say: "💬",
   get_profile: "📇",

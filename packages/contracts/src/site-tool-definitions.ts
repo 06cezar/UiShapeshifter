@@ -135,6 +135,21 @@ export const SITE_TOOL_DEFINITIONS_STAGE2 = [
   {
     type: "function",
     function: {
+      name: "undo_request",
+      description:
+        "Scoate o singură cerere de mai demult din rețeta site-ului („anulează ce am cerut cu reclamele”); cererile de " +
+        "dinainte și de după rămân. Iei `requestId` din `recipe.requests` din snapshot, după `reason`. Nu e pentru " +
+        "rularea de acum: pe aceea omul o anulează din propunere.",
+      parameters: {
+        type: "object",
+        properties: { requestId: { type: "string", description: "Din recipe.requests din snapshot." } },
+        required: ["requestId"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "audit_ui",
       description:
         "Verifică pagina așa cum arată acum: font minim, contrast, mărimea țintelor, text tăiat, elemente în afara ecranului. " +

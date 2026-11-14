@@ -9,6 +9,7 @@ import { createFakeDecider } from "./fake-decider";
 import { createOpenRouterDecider } from "./openrouter-decider";
 import { runAgent, type Decider } from "./run-agent";
 import { profileStore, profileSummary } from "../profile";
+import { recentTurns, recordTurn, type ConversationTurn } from "./conversation";
 import { callServerTool } from "./server-tools";
 import type { ProfileContext } from "./system-prompt";
 
@@ -40,12 +41,18 @@ async function profileContext(userId: string): Promise<ProfileContext> {
   return { summary: profileSummary(profile), generalPreferences: profile.generalPreferences ?? [] };
 }
 
-function createDecider(userId: string, goal: string, page: PageInfo | undefined): Decider {
+function createDecider(
+  userId: string,
+  goal: string,
+  page: PageInfo | undefined,
+  history: readonly ConversationTurn[],
+): Decider {
   const stage = agentStage();
   if (process.env.AGENT_FAKE === "1") return createFakeDecider(goal, FAKE_STEP_DELAY_MS, stage);
   return createOpenRouterDecider(goal, {
     page,
     stage,
+    history,
     ...(stage >= 3 && { loadProfile: () => profileContext(userId) }),
   });
 }
@@ -55,7 +62,9 @@ function newRunId(): string {
 }
 
 function launch(session: Session, goal: string, origin: RunOrigin, page?: PageInfo): ActiveRun {
-  const decider = createDecider(session.userId, goal, page);
+  // doar cererile omului fac o conversație; adaptarea pornește singură, fără să continue ceva spus
+  const history = origin === "user" ? recentTurns(session.userId, page?.host) : [];
+  const decider = createDecider(session.userId, goal, page, history);
   const run: AgentRun = {
     runId: newRunId(),
     userId: session.userId,
@@ -82,6 +91,12 @@ function launch(session: Session, goal: string, origin: RunOrigin, page?: PageIn
     },
     { host: page?.host },
   )
+    .then((finished) => {
+      if (origin === "user" && finished.status !== "cancelled" && finished.summary) {
+        recordTurn(session.userId, { goal, summary: finished.summary, host: page?.host, finishedAt: Date.now() });
+      }
+      return finished;
+    })
     // o eroare scăpată din buclă nu trebuie să oprească tot serverul
     .catch((error: unknown) => {
       console.error(`agent: rularea ${run.runId} s-a oprit cu o eroare neprinsă:`, error);
