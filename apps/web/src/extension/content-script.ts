@@ -23,6 +23,7 @@ import { isExcluded } from "./excluded-sites";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
+import { mountSuggestionBubble } from "./suggestion-bubble";
 
 /** Pus de build.mjs: true în build-ul de dezvoltare, false cu --prod. */
 declare const __UIS_DEV__: boolean;
@@ -158,6 +159,12 @@ function start() {
     page: () => pageInfo(location, document.title),
   });
   const mascot = mountMascot(ourRoot);
+  // Propunerile adaptării automate (E3): bula discretă cu Da / Nu; răspunsul pleacă la server.
+  const suggestions = mountSuggestionBubble(ourRoot, {
+    decide: (suggestionId, decision) =>
+      send({ type: "to_server", message: { type: "suggestion_decision", suggestionId, decision } }),
+    onShow: () => mascot.setState("speaking"),
+  });
   const panel = mountJournal(ourRoot, {
     send: (message) => {
       if (message.type !== "hello") send({ type: "to_server", message });
@@ -243,13 +250,17 @@ function start() {
       mascot.setState("speaking");
     },
     pointAt: (element, message) => mascot.pointAt(element, message),
-    proposeChanges: (args, runId) =>
-      proposeChanges(args, runId, {
+    proposeChanges: async (args, runId) => {
+      const result = await proposeChanges(args, runId, {
         ask: panel.askProposal,
         revisionBefore: (id) => (id ? runStart.get(id) : undefined) ?? recipes.view().revision,
         currentRevision: () => recipes.view().revision,
         undoRun,
-      }),
+      });
+      // Păstrez / Anulez e și semnal (specs/09): din ele crește sau scade încrederea pentru aplicarea automată (E3).
+      if (result.ok) signals?.proposalDecision(result.data.proposalId, result.data.decision);
+      return result;
+    },
   };
 
   function connect() {
@@ -274,6 +285,10 @@ function start() {
         return;
       }
       if (server.type === "run_started") runStart.set(server.runId, recipes.view().revision);
+      if (server.type === "suggestion") {
+        suggestions.show(server.suggestion);
+        return;
+      }
       chat.handleServerMessage(server);
       moveMascot(mascot, server);
       panel.journal.getState().handleServerMessage(server);
