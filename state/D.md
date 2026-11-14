@@ -1,3 +1,3 @@
-2026-11-14 03:29
+2026-11-14 03:59
 
-gata: aprobat #75 #76 #78 #79 #80 #81 #82; urmează: review #83 (B4, C) la cerere, M3 cu Cezar; blocat: nimic
+gata: #87 ask_user în chat, aprobat #84 #85 #86; urmează: C leagă askUser în page-tools, review e4-demo (A pentru E), M3 cu Cezar; blocat: nimic
