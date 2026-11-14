@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 31/40 · **În lucru:** 4 · **Poate începe:** 1 · **Așteaptă:** 4 · **Blocat:** 0
+**Gata:** 32/40 · **În lucru:** 3 · **Poate începe:** 1 · **Așteaptă:** 4 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -13,7 +13,7 @@ flowchart LR
     t_A3["A3 · Uneltele etapei 2 - apply_ops, point_at, propose_changes, ask_user, wait_for_user_click + promptul care cere verificare după fiecare schimbare<br/>✅ gata"]
     t_A6["A6 · Profilul și rețeta site-ului în contextul agentului + update_profile; o cerere repetată devine preferință generală<br/>✅ gata"]
     t_A4["A4 · Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter<br/>✅ gata"]
-    t_A5["A5 · Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes)<br/>🔨 în lucru · încă așteaptă M3"]
+    t_A5["A5 · Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes)<br/>✅ gata"]
   end
   subgraph t_owner_B["B"]
     t_B1["B1 · Store-ul UIConfig (Zustand) cu poarta de limite, undo/istoric, temă → variabile CSS, LayoutRenderer + 3 șabloane<br/>✅ gata"]
@@ -54,7 +54,7 @@ flowchart LR
     t_E2["E2 · Colectarea semnalelor în content script - misclick, zoom, back_loop, dwell, feature_use, help_request (specs/09)<br/>✅ gata"]
     t_E8["E8 · Profilul extins - site-uri familiare și preferințe generale care trec de la un site la altul, ținut local și pe server (specs/08)<br/>✅ gata"]
     t_E3["E3 · Adaptarea automată - reguli pe semnale, încrederea (autoApplyLowRisk) și preferințele generale propuse singure pe site-uri noi<br/>🔨 în lucru · încă așteaptă M3"]
-    t_E6["E6 · Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv<br/>🔨 în lucru · încă așteaptă A5, M3"]
+    t_E6["E6 · Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv<br/>🔨 în lucru · încă așteaptă M3"]
     t_E4["E4 · Butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă<br/>⏳ așteaptă"]
   end
   t_D1 --> t_A1
@@ -145,8 +145,8 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_M2,t_C3,t_E8,t_A6,t_C4,t_B3,t_D10,t_A4 done
-  class t_B4,t_A5,t_E3,t_E6 progress
+  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_M2,t_C3,t_E8,t_A6,t_C4,t_B3,t_D10,t_A4,t_A5 done
+  class t_B4,t_E3,t_E6 progress
   class t_M3 ready
   class t_M4,t_D5,t_E4,t_D6 wait
 ```
@@ -162,9 +162,8 @@ _nimic_
 ## În lucru
 
 - **B4** (B) Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo: branch `b4-refacere` are commit-uri; încă așteaptă M3 _(Etapa 4 · sâm 06:00. Gata = pe perechea aleasă pentru demo, „fă-l să arate ca X” schimbă așezarea și stilul, pagina rămâne folosibilă și rețeta rezistă la reîncărcare; pe site-ul de test, „vreau doar să plătesc factura” lasă o pagină simplă.)_
-- **A5** (A) Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes): PR #72 deschis; încă așteaptă M3 _(Etapa 4 · sâm 04:30. Gata = o rețetă salvată pentru un site se citește înapoi; lista site-urilor unui utilizator. O folosește E6.)_
 - **E3** (E) Adaptarea automată - reguli pe semnale, încrederea (autoApplyLowRisk) și preferințele generale propuse singure pe site-uri noi: PR #66 deschis; încă așteaptă M3 _(Etapa 4 · sâm 05:30. Gata = 3 ratări lângă un buton pornesc singure propunerea „butoane mai mari”; pe un site nou, mascota propune singură preferințele generale.)_
-- **E6** (E) Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv: branch `e6-conturi` are commit-uri; încă așteaptă A5, M3 _(Etapa 4 · sâm 06:30. Gata = după login pe alt profil de browser apar același profil și aceleași rețete. Parola doar ca hash.)_
+- **E6** (E) Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv: branch `e6-conturi` are commit-uri; încă așteaptă M3 _(Etapa 4 · sâm 06:30. Gata = după login pe alt profil de browser apar același profil și aceleași rețete. Parola doar ca hash.)_
 
 ## Așteaptă
 
@@ -175,7 +174,7 @@ _nimic_
 
 ## Cel mai lung lanț rămas
 
-M3 → A5 → E6 → M4 → D5 → E4 (6 taskuri)
+M3 → B4 → M4 → D5 → E4 (5 taskuri)
 
 ## Legendă
 

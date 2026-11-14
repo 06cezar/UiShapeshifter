@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "e34a2d18b31ddfa8df6ca2f800c6094dd0c4fa3f",
-  "last_run": "2026-11-14T00:55:19Z",
-  "last_sha": "a6001cd2ee8be045b79f199c142b2a042784e102",
+  "last_comms_sha": "c03e2c5605211742bd1eb2498fcbb503ca2e3287",
+  "last_run": "2026-11-14T00:56:15Z",
+  "last_sha": "391857f92d6fa23c5df18f334224aa3bce3e2d5a",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -370,8 +370,8 @@
     },
     "72": {
       "head": "a5-retete",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T00:56:06Z",
+      "state": "MERGED"
     },
     "73": {
       "head": "c-anulez-o-cerere",
@@ -394,7 +394,7 @@
     "A2": "done",
     "A3": "done",
     "A4": "done",
-    "A5": "progress",
+    "A5": "done",
     "A6": "done",
     "B1": "done",
     "B2": "done",
