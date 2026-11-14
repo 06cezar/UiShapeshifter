@@ -32,7 +32,10 @@ să vadă cel puțin unul, deci îl pregătim pe **site-ul de test**, cu o cutie
 - Live, dacă apare și un eșec natural (selector negăsit, operație sărită), îl arătăm pe acela; cazul pregătit rămâne
   rezerva sigură. Videoul de rezervă îl conține.
 
-Cine: E pune comportamentul în `apps/test-site/` (doar date de test); A probează de 3 ori că agentul repară.
+**Decizia de la 07:20 (D, după probele lui A pe main):** niciun caz nu iese sigur live (`#facturi` strâmt 1/3, antet
+strâmt + „pune butonul în antet” 2/3). La demo cerem **„Vreau doar să plătesc factura; pune butonul sus, în antet”**
+(2/3), iar dacă reparația nu apare live, o arătăm din **videoul de rezervă** (E4), înregistrat cu o rulare în care apare.
+Nu mai schimbăm codul pentru asta înainte de îngheț.
 
 ## Ce pregătim
 
