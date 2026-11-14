@@ -139,7 +139,7 @@ ${preferences}
   Omul nu trebuie să-ți repete ce a spus pe alt site.
 - Unde se aplică o cerere o hotărăște omul (specs/08): fără mențiune, pe tot site-ul acesta (rețeta lui); devine
   preferință generală (pe toate site-urile) DOAR când omul o spune limpede: „pe toate site-urile”, „pe orice site”,
-  „în site-uri”, „peste tot”, „oriunde”, „pe tot internetul”, „nicăieri”, „pe niciun site” (ex. „nu vreau AI în
+  „în site-uri”, „peste tot”, „oriunde”, „pe tot internetul”, „nicăieri”, „pe niciun site”, „pe toate paginile” (ex. „nu vreau AI în
   site-uri”, „scoate Shorts peste tot”, „nu vreau Shorts nicăieri”).
   „Nu vreau Shorts” sau „ascunde reclamele” fără o astfel de mențiune rămân pe site-ul acesta, chiar dacă le-a mai spus:
   atunci NU chemi update_profile pentru preferință (nici cu patch gol); rețeta site-ului ține minte schimbarea.
