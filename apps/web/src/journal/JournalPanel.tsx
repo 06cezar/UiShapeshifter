@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "zustand";
 import type { AgentRun, AgentStep, ClientMessage, ToolName } from "@uishapeshifter/contracts";
 import { activeRun, auditScores, revisionAtStep } from "./journal-store";
+import { RunJsStep, runJsView } from "./RunJsStep";
 import type { JournalStore, RunStatus, RunView } from "./journal-store";
 import type { RequestEntry } from "../validation";
 
@@ -42,6 +43,7 @@ const TOOL_ICONS: Record<ToolName, string> = {
   say: "💬",
   get_profile: "📇",
   update_profile: "📝",
+  run_js: "⚡",
   finish: "🏁",
 };
 
@@ -194,12 +196,15 @@ function AuditScore({ steps }: { steps: readonly AgentStep[] }) {
 function StepRow({ step }: { step: AgentStep }) {
   const failed = step.result?.ok === false;
   const outcome = step.result ? (failed ? "fail" : "ok") : "none";
+  const js = runJsView(step);
   return (
-    <details className={`journal-step journal-step-${outcome}`}>
+    // Pasul cu cod e deschis din start: codul care rulează în pagină nu stă ascuns după un click.
+    <details className={`journal-step journal-step-${outcome}`} open={js !== null}>
       <summary>
         <span aria-hidden="true">{step.tool ? TOOL_ICONS[step.tool] : "•"}</span> {step.decision}
         {failed && <span className="journal-step-failed"> (nu a mers)</span>}
       </summary>
+      {js && <RunJsStep view={js} />}
       <dl>
         <dt>Observ</dt>
         <dd>{step.observation}</dd>

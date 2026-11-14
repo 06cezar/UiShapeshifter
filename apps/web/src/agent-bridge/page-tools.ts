@@ -2,17 +2,24 @@
 // tool_result. get_page_snapshot îl face registrul (B2), apply_css și apply_ops motorul de rețete (B5, B6),
 // say bula mascotei (D), point_at mascota (D2), care merge la elementul găsit în registru, wait_for_user_click
 // ascultă click-ul omului (ghidajul „arată-mi cum…”), ask_user întrebarea în chat (D), undo_request scoate o cerere
-// de mai demult din rețetă (motorul, #82), propose_changes panoul (D9, Păstrez / Anulez).
+// de mai demult din rețetă (motorul, #82), propose_changes panoul (D9, Păstrez / Anulez), run_js modul expert
+// (experiment, specs/05): plasa și aprobarea omului (C), apoi rularea (E, executeJs).
 
 import type {
   ApplyCssData,
   ApplyOpsData,
   PageSnapshot,
+  RunJsData,
   ToolData,
   ToolName,
   ToolResult,
 } from "@uishapeshifter/contracts";
 import type { PageRegistry } from "../ui/page-registry/registry";
+import { truncateRunJsText, validateRunJs } from "../validation";
+
+/** Butoanele aprobării pentru modul expert; doar primul pornește codul. */
+export const RUN_JS_APPROVE = "Rulează";
+export const RUN_JS_DECLINE = "Nu rula";
 
 /** Cât așteptăm click-ul omului când modelul nu spune (ghidajul „arată-mi cum…”, specs/05). */
 export const DEFAULT_CLICK_TIMEOUT_MS = 60_000;
@@ -45,7 +52,7 @@ export interface PageToolDeps {
    * Întrebarea agentului în chat, cu variante ca butoane (D, chat.ask). `null` = omul n-a răspuns (2 min, rularea s-a
    * terminat sau a venit altă întrebare).
    */
-  askUser?(question: string, options?: string[]): Promise<string | null>;
+  askUser?(question: string, options?: string[], opts?: { humanOnly?: boolean }): Promise<string | null>;
   /**
    * Scoate o singură cerere din rețeta site-ului (motorul de rețete, `undoRequest`, #82); cele de dinainte și de după
    * rămân. Aceeași funcție ca „Anulez” din lista „Ce ai cerut aici” a panoului.
@@ -58,6 +65,21 @@ export interface PageToolDeps {
   doc?: Document;
   /** Panoul arată „Păstrez / Anulez” (D9); argumentele le verifică el. */
   proposeChanges?(args: unknown, runId?: string): Promise<ToolResult<ToolData["propose_changes"]>>;
+  /**
+   * Modul expert (E): rulează codul aprobat în pagină (`chrome.userScripts.execute`, prin service worker). Întoarce
+   * `disabled` dacă modul e oprit sau Chrome nu permite scripturi.
+   */
+  executeJs?(code: string): Promise<RunJsData>;
+  /** Modul expert e pornit (E)? Dacă e oprit, nu-i mai cerem omului aprobarea degeaba. */
+  expertModeOn?(): Promise<boolean>;
+}
+
+/** Ce vede omul înainte să aprobe: ce face codul, codul întreg și că „Anulez” nu-l poate da înapoi. */
+export function runJsApprovalText(purpose: string, code: string): string {
+  return (
+    `Mod expert: vreau să rulez un cod în pagină.\n${purpose}\n\n${code}\n\n` +
+    `Rulează o singură dată și nu intră în rețetă; „Anulez” nu-l poate da înapoi (reîncarcă pagina pentru asta).`
+  );
 }
 
 function fail(code: "INVALID_ARGS" | "INTERNAL" | "ELEMENT_NOT_FOUND" | "TIMEOUT", message: string): ToolResult<never> {
@@ -192,6 +214,31 @@ export async function runPageTool(
           );
         }
         return { ok: true, data: { revision: result.revision, droppedOps: result.droppedOps } };
+      }
+      case "run_js": {
+        // plasa întâi: codul care ar atinge rețeaua sau datele omului nu ajunge nici măcar să fie arătat
+        const checked = validateRunJs(args);
+        if (!checked.ok) return fail("INVALID_ARGS", checked.message);
+        if (!deps.executeJs || !deps.askUser || (deps.expertModeOn && !(await deps.expertModeOn()))) {
+          return { ok: true, data: { status: "disabled" } };
+        }
+        // humanOnly: doar un click sau un Enter reale aprobă; scriptul paginii nu poate apăsa „Rulează” în locul omului
+        const answer = await deps.askUser(
+          runJsApprovalText(checked.purpose, checked.code),
+          [RUN_JS_APPROVE, RUN_JS_DECLINE],
+          { humanOnly: true },
+        );
+        // doar „Rulează” pornește codul; orice alt răspuns, sau niciunul, înseamnă nu
+        if (answer?.trim() !== RUN_JS_APPROVE) return { ok: true, data: { status: "declined" } };
+        const ran = await deps.executeJs(checked.code);
+        return {
+          ok: true,
+          data: {
+            status: ran.status,
+            ...(ran.result !== undefined ? { result: truncateRunJsText(ran.result) } : {}),
+            ...(ran.error !== undefined ? { error: truncateRunJsText(ran.error) } : {}),
+          },
+        };
       }
       case "propose_changes": {
         if (!deps.proposeChanges) return fail("INTERNAL", "Panoul de control nu e încă pornit în pagină.");

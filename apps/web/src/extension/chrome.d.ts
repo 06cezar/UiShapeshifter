@@ -22,6 +22,25 @@ declare namespace chrome {
     const id: string | undefined;
   }
 
+  /**
+   * Modul expert (run_js): există doar după ce omul a pornit „Allow User Scripts” în detaliile extensiei (Chrome 135+).
+   * Îl verificăm mereu înainte (`chrome.userScripts?.execute`).
+   */
+  namespace userScripts {
+    interface InjectionResult {
+      documentId?: string;
+      frameId?: number;
+      result?: unknown;
+      error?: string;
+    }
+    function execute(injection: {
+      target: { tabId: number; frameIds?: number[]; allFrames?: boolean };
+      js: { code: string }[];
+      world?: "USER_SCRIPT" | "MAIN";
+      injectImmediately?: boolean;
+    }): Promise<InjectionResult[]>;
+  }
+
   namespace storage {
     interface StorageArea {
       /** null = tot ce e în stocare. */

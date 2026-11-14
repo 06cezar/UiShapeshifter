@@ -279,3 +279,33 @@ describe("modelul de rezervă", () => {
     expect((sent[2] as unknown as { model: string }).model).toBe("anthropic/claude-sonnet-5.5");
   });
 });
+
+describe("modul expert (run_js, experiment)", () => {
+  afterEach(() => {
+    delete process.env.AGENT_JS;
+  });
+
+  it("fără AGENT_JS=1 modelul nu primește run_js și promptul nu-l pomenește", async () => {
+    delete process.env.AGENT_JS;
+    const decider = createOpenRouterDecider("citește-mi articolul", { stage: 3 });
+    replies.push(reply("Gata."));
+    await decider.decide(null);
+    const names = (sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name);
+    expect(names).not.toContain("run_js");
+    expect(sent[0].messages[0].content).not.toContain("run_js");
+  });
+
+  it("cu AGENT_JS=1 (etapa ≥ 2) primește run_js, iar promptul îl lasă doar pentru comportamente", async () => {
+    process.env.AGENT_JS = "1";
+    const decider = createOpenRouterDecider("citește-mi articolul", { stage: 2 });
+    replies.push(reply("Gata."));
+    await decider.decide(null);
+    const names = (sent[0].tools as Array<{ function: { name: string } }>).map((t) => t.function.name);
+    expect(names).toContain("run_js");
+    const system = sent[0].messages[0].content ?? "";
+    expect(system).toContain("run_js e ultima variantă");
+    expect(system).toContain("Nu intră în rețetă");
+    expect(system).toContain("Codul e corpul unei funcții async"); // altfel result vine null (wrapCode, E)
+    expect(system).toContain("Fără secvențe \\u sau \\x în cod"); // ANAF: filtrul cu \\u0300 era refuzat de plasă
+  });
+});
