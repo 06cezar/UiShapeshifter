@@ -48,6 +48,7 @@ const TOOL_VERBS: Partial<Record<string, string>> = {
   ask_user: "Te întreb ceva",
   propose_changes: "Îți arăt schimbările",
   undo_request: "Anulez o cerere de mai demult",
+  run_js: "Rulez un mic program în pagină, după ce îl aprobi",
   audit_ui: "Verific accesibilitatea",
   say: "Îți spun ceva",
   get_profile: "Citesc ce știu despre tine",
@@ -59,8 +60,9 @@ const TOOL_VERBS: Partial<Record<string, string>> = {
 export function withToolFallback(reasoning: Reasoning, tool: string, args: unknown): Reasoning {
   if (reasoning.decision) return reasoning;
   // regionId („r.main”) nu e pentru om: panoul arăta „Mă uit la pagină: r.main”
-  const { reason, message, summary, regionId } = (args ?? {}) as Record<string, unknown>;
-  const detail = [reason, message, summary].find((value) => typeof value === "string");
+  // purpose: ce face codul din modul expert (run_js), scris pentru om
+  const { reason, message, summary, purpose, regionId } = (args ?? {}) as Record<string, unknown>;
+  const detail = [reason, message, summary, purpose].find((value) => typeof value === "string");
   const verb =
     tool === "get_page_snapshot" && typeof regionId === "string"
       ? "Mă uit mai atent la o parte a paginii"
