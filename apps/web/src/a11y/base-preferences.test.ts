@@ -284,6 +284,35 @@ describe("verificarea de după scriere (Teams, WhatsApp, Instagram, găsite de A
     expect(fontOf("mesaj-lung")).toBe(20);
   });
 
+  it("WhatsApp: textul mărit care ajunge sub colțul «Editat 08:58» primește la capăt spațiul care lipsește (găsit de E)", () => {
+    page(`
+      <div id="bula-scurta" data-rect="300,40">
+        <span id="mesaj-mare" style="font-size: 14px">Bine, ne vedem acolo la ora stabilită</span>
+        <div id="colt" style="position: absolute"><span id="editat-2" style="font-size: 11px">Editat</span><span id="ora-2" style="font-size: 11px">08:58</span></div>
+      </div>`);
+    const scale = () => px(el("mesaj-mare").style.fontSize, 14) / 14;
+    const bubbleHeight = () => 24 * scale();
+    layout("bula-scurta", () => new DOMRect(0, 0, 300, bubbleHeight()));
+    // la 14px, textul se oprește la 200px, înainte de colț (236–300); mărit, ajunge la 286px
+    layout("mesaj-mare", () => new DOMRect(0, 0, 200 * scale(), bubbleHeight()));
+    const corner = (id: string, offset: number, width: number) =>
+      layout(id, (e) => {
+        const own = px(e.style.fontSize, 11) / 11;
+        return new DOMRect(300 - (offset + width) * own, bubbleHeight() - 14 * own, width * own, 14 * own);
+      });
+    corner("ora-2", 0, 30);
+    corner("editat-2", 30, 34);
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("editat-2")).toBe(11);
+    expect(fontOf("mesaj-mare")).toBe(20);
+    // trebuie cel puțin 54px (286 − 236 + 4); estimarea fără a doua măsurare poate da ceva mai mult, cel mult un colț
+    const room = px(el("mesaj-mare").style.getPropertyValue("padding-inline-end"), 0);
+    expect(room).toBeGreaterThanOrEqual(54);
+    expect(room).toBeLessThanOrEqual(164);
+    base.stop();
+    expect(el("mesaj-mare").style.getPropertyValue("padding-inline-end")).toBe("");
+  });
+
   it("Instagram: linkul din jurul unei poze nu se mărește dacă poza ar crește odată cu el", () => {
     page(
       `<p id="nume-ig" style="font-size: 20px">utilizator</p><a id="link" href="/u"><img id="poza" alt="profil"></a>`,
