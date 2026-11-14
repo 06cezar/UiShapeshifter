@@ -65,9 +65,16 @@ export function runAuditUi(args: unknown, deps: AuditToolDeps): ToolResult<Audit
     doc: deps.doc,
     root,
   };
-  const now = withFixCss(auditPage(thresholds, options)).report;
+  const audit = withFixCss(auditPage(thresholds, options));
+  const now = audit.report;
   const original = auditWithoutRecipe(thresholds, { ...options, pauseRecipe: deps.pauseRecipe }).report;
   const introduced = new Set(introducedIssues(now, original));
-  const issues = now.issues.map((issue) => (introduced.has(issue) ? { ...issue, introduced: true } : issue));
+  // Tăierea dintr-o cutie în care agentul a pus ceva e a lui, chiar dacă apare și cu rețeta oprită (elementele adăugate
+  // rămân în pagină). Găsit de A la proba pasului 4: rândurile din #facturi tăiate, dar audit cu 0 probleme introduse.
+  const byAgentShape = (issue: (typeof now.issues)[number]) =>
+    issue.rule === "clipped" && audit.facts[issue.elementId]?.clippedByAgentShape === true;
+  const issues = now.issues.map((issue) =>
+    introduced.has(issue) || byAgentShape(issue) ? { ...issue, introduced: true } : issue,
+  );
   return { ok: true, data: { ...now, issues } };
 }

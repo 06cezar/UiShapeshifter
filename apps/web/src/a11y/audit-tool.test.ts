@@ -81,6 +81,37 @@ describe("audit_ui pe un site", () => {
   });
 });
 
+describe("tăieturile din cutia în care a pus ceva agentul (proba pasului 4, A)", () => {
+  it("rândul împins afară de scurtătura agentului e introduced, deși apare și cu rețeta oprită", () => {
+    document.body.innerHTML = `
+      <section data-t="facturi" style="height: 310px; overflow: hidden">
+        <a data-t="scurtatura" data-shape="plata" href="/plata" style="display: block; font-size: 18px">Plătește</a>
+        <a data-t="ultimul" href="/d6" style="display: block; font-size: 18px">Descarcă</a>
+      </section>
+      <div data-t="site" style="height: 40px; overflow: hidden">
+        <a data-t="vechi-taiat" href="/v" style="display: block; font-size: 18px">Al site-ului</a>
+      </div>`;
+    const rects: Record<string, DOMRect> = {
+      facturi: new DOMRect(0, 0, 600, 310),
+      scurtatura: new DOMRect(0, 0, 200, 56),
+      ultimul: new DOMRect(0, 320, 100, 44),
+      site: new DOMRect(0, 400, 600, 40),
+      "vechi-taiat": new DOMRect(0, 420, 100, 44),
+    };
+    for (const el of document.querySelectorAll<HTMLElement>("[data-t]")) {
+      el.getBoundingClientRect = () => rects[el.getAttribute("data-t")!] ?? new DOMRect(0, 0, 300, 30);
+    }
+    const result = runAuditUi({}, deps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const clipped = result.data.issues.filter((issue) => issue.rule === "clipped");
+    expect(clipped.map((issue) => [issue.elementId, issue.introduced ?? false])).toEqual([
+      ["ultimul", true],
+      ["vechi-taiat", false], // tăiat de site, fără nimic de la agent în cutie
+    ]);
+  });
+});
+
 describe("argumentele", () => {
   it("acceptă {}, lipsa lor, { regionId } și moduleId-ul vechi", () => {
     expect(parseAuditArgs(undefined)).toEqual({});
