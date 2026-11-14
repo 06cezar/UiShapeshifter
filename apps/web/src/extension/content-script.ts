@@ -11,6 +11,7 @@ import { runPageTool, type PageToolDeps } from "../agent-bridge/page-tools";
 import type { ServerMessage, UserNeeds } from "@uishapeshifter/contracts";
 import { runAuditUi } from "../a11y";
 import { startBasePreferences, type BasePreferences } from "../a11y/base-preferences";
+import { applyDislikes, dislikesFromStored } from "../a11y/dislike-rules";
 import { thresholdsFor } from "../a11y/thresholds";
 import { createPageRegistry } from "../ui/page-registry/registry";
 import { buildSelector } from "../ui/page-registry/selector";
@@ -18,6 +19,7 @@ import { createRecipeEngine } from "../ui/recipes/recipe-engine";
 import { parseStoredRecipe, recipeKey } from "../ui/recipes/recipe-store";
 import { isHelpRequest, startSignalCollector, type SignalCollector } from "../signals/collector";
 import { needsFromStored, ONBOARDING_KEY, USER_ID_KEY } from "./base-needs";
+import { isExcluded } from "./excluded-sites";
 import { PAGE_PORT, parseFromWorker, type ToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { HOST_ID, mountOurRoot } from "./shadow-root";
@@ -26,6 +28,11 @@ import { HOST_ID, mountOurRoot } from "./shadow-root";
 declare const __UIS_DEV__: boolean;
 
 const host = normalizeHost(location.hostname);
+/**
+ * „Nu schimba acest site” (popup, specs/08): pe un site exclus nu aplicăm singuri nimic (fontul minim C4, ascunderile
+ * fără AI, rețeta salvată). Chatul și mascota rămân, ca omul să poată cere ceva sau să repornească din popup.
+ */
+let excluded = false;
 /** Din chat se vede mereu una dintre ele: butonul (chat închis) sau panoul (chat deschis). */
 const CHAT_PARTS_SELECTOR = ".chat-launcher, .chat-panel";
 /** Dacă service worker-ul a fost oprit de Chrome, portul se închide: ne legăm din nou după atât. */
@@ -54,7 +61,6 @@ const recipes = createRecipeEngine({
 // Doar în build-ul de dezvoltare: motorul în consolă, pentru probe manuale (cererea lui B). În DevTools alege contextul
 // „UI Shapeshifter” din lista de sus a consolei, apoi: uiRecipes.view(), uiRecipes.applyCss({ css, reason }).
 if (__UIS_DEV__) (globalThis as { uiRecipes?: typeof recipes }).uiRecipes = recipes;
-void recipes.load();
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 /** Preferințele de bază (C4): fontul minim, contrastul și țintele din profil, fără AI, aplicate ultimele. */
 let base: BasePreferences | null = null;
@@ -64,7 +70,7 @@ let needs: Partial<UserNeeds> = {};
 // Popup-ul („Revino la original”) sau alt tab al aceluiași site au schimbat rețeta: o luăm de acolo.
 // Testul inițial a salvat alte nevoi: preferințele de bază se refac după ele.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
+  if (area !== "local" || excluded) return; // site exclus: nu reaplicăm nimic singuri
   const recipeChange = changes[recipeKey(host)];
   if (recipeChange) {
     recipes.adopt(parseStoredRecipe(recipeChange.newValue, host, new Date().toISOString()));
@@ -72,6 +78,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   // Nevoile s-au putut schimba: testul inițial (cheia „onboarding”) sau profilul local, ținut la zi de service worker.
   if (changes[ONBOARDING_KEY] || (activeUserId && changes[activeUserId])) {
+    void refreshDislikes();
     void readNeeds().then((next) => {
       if (JSON.stringify(next) === JSON.stringify(needs)) return; // profilul s-a schimbat, nevoile nu
       needs = next;
@@ -90,6 +97,17 @@ async function readNeeds(): Promise<Partial<UserNeeds>> {
   activeUserId = typeof userId === "string" ? userId : undefined;
   const profile = activeUserId ? await chrome.storage.local.get(activeUserId) : {};
   return needsFromStored({ ...first, ...profile });
+}
+
+/**
+ * Ce îl deranjează pe om (testul inițial, preferințele „peste tot”), ascuns pe orice site, fără AI (C4).
+ * Aceleași chei ca la nevoi: testul inițial și profilul local de sub userId.
+ */
+async function refreshDislikes(): Promise<void> {
+  const first = await chrome.storage.local.get([USER_ID_KEY, ONBOARDING_KEY]);
+  const userId = first[USER_ID_KEY];
+  const profile = typeof userId === "string" ? await chrome.storage.local.get(userId) : {};
+  applyDislikes(dislikesFromStored({ ...first, ...profile }, ONBOARDING_KEY, USER_ID_KEY));
 }
 
 /** Ce face mascota la mesajele serverului: se gândește cât rulează agentul, se bucură sau se încurcă la final. */
@@ -148,6 +166,14 @@ function start() {
       await recipes.reset();
       base?.refresh();
     },
+    // „Ce ai cerut aici”: o cerere anulată singură, cele de dinainte și de după rămân (B, C).
+    requestHistory: () => recipes.history(),
+    undoRequest: async (requestId) => {
+      const result = await recipes.undoRequest(requestId);
+      if (!result.ok) return result;
+      base?.refresh();
+      return { ok: true };
+    },
   });
   /** Revizia rețetei de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
   const runStart = new Map<string, number>();
@@ -167,8 +193,9 @@ function start() {
   // peste rețetă.
   void readNeeds().then((saved) => {
     needs = saved;
-    base = startBasePreferences({ needs, ourHostId: HOST_ID });
+    if (!excluded) base = startBasePreferences({ needs, ourHostId: HOST_ID });
   });
+  if (!excluded) void refreshDislikes();
 
   // Registrul paginii (B2), motorul de rețete (B5), bula chatului pentru `say` și mascota pentru `point_at` (D2).
   const registry = createPageRegistry({ ourHostId: HOST_ID, recipe: () => recipes.view() });
@@ -262,5 +289,10 @@ function start() {
   connect();
 }
 
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-else start();
+void isExcluded(chrome.storage.local, host).then((isOff) => {
+  excluded = isOff;
+  // Rețeta cât mai devreme (document_start), ca site-ul să nu apară întâi neschimbat.
+  if (!excluded) void recipes.load();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+});

@@ -12,7 +12,13 @@ import {
   type RecipeRevision,
   type ToolResult,
 } from "@uishapeshifter/contracts";
-import { validateCss } from "../../validation";
+import {
+  recipeWithoutRequest,
+  requestHistory,
+  UNDO_RUN_PREFIX,
+  validateCss,
+  type RequestEntry,
+} from "../../validation";
 import type { RecipeView } from "../page-registry/registry";
 import { checkOps, createDomOpsApplier } from "./dom-ops";
 import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRecipe } from "./recipe-store";
@@ -65,6 +71,16 @@ export interface RecipeEngine {
    * `revertTo(0)` = rețeta goală. O revizie care nu mai e în istoric întoarce INVALID_ARGS și nu schimbă nimic.
    */
   revertTo(revision: number): Promise<ToolResult<{ revision: number }>>;
+  /** Cererile care încă au efect pe site-ul acesta, în ordine: lista „Ce ai cerut aici” din panou. */
+  history(): RequestEntry[];
+  /**
+   * Scoate o singură cerere; cele de dinainte și de după rămân (C, `recipeWithoutRequest`). Rezultatul intră ca
+   * revizie nouă, deci „Anulez” al rulării sau „Revino la original” merg ca înainte. `droppedOps` = operații de după
+   * care țineau de un element adăugat de cererea scoasă.
+   */
+  undoRequest(
+    requestId: string,
+  ): Promise<{ ok: true; revision: number; droppedOps: number } | { ok: false; message: string }>;
   /** „Revino la original”: golește rețeta gazdei. */
   reset(): Promise<void>;
   /** Ce a scris alt tab sau popup-ul în stocare: aplicăm aici fără să salvăm din nou. */
@@ -375,6 +391,37 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
       render();
       await saveRecipe(options.storage, stored);
       return { ok: true, data: { revision } };
+    },
+
+    history() {
+      return requestHistory(stored.revisions);
+    },
+
+    async undoRequest(requestId) {
+      const entry = requestHistory(stored.revisions).find((request) => request.requestId === requestId);
+      if (!entry) return { ok: false, message: "Cererea nu mai e în istoricul acestui site." };
+      const result = recipeWithoutRequest(stored.revisions, requestId);
+      if (!result.ok) return result;
+      const { css, ops, droppedOps } = result.recipe;
+      const at = now().toISOString();
+      const revision = stored.recipe.revision + 1;
+      stored = {
+        recipe: { host: options.host, revision, css, ...opsField(ops), updatedAt: at },
+        revisions: [
+          ...stored.revisions,
+          {
+            revision,
+            css,
+            ...opsField(ops),
+            reason: `Anulat: ${entry.reason}`,
+            runId: `${UNDO_RUN_PREFIX}${requestId}`,
+            at,
+          } satisfies RecipeRevision,
+        ].slice(-RECIPE_LIMITS.maxRevisions),
+      };
+      render();
+      await saveRecipe(options.storage, stored);
+      return { ok: true, revision, droppedOps: droppedOps.length };
     },
 
     async reset() {

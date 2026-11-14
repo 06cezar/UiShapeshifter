@@ -34,6 +34,8 @@ const ALL_PATTERNS = [
   /\b(pe |in )?(toate|orice|fiecare|celelalte|alte) (site-?uri(le)?|site)\b/,
   /\b(in|pe) site-?uri\b/, // „nu vreau AI în site-uri”; „pe site-urile de știri” nu (descrie, nu cere un loc)
   /\bpeste tot\b/,
+  /\bnicaieri\b/, // „nu vreau Shorts nicăieri” (găsit la proba M3)
+  /\b(pe|in|de pe) niciun site\b/,
   /\boriunde\b/,
   /\b(pe |in )?toate paginile\b/,
   /\bpe tot internetul\b/,

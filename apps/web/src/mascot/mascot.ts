@@ -5,18 +5,21 @@
 
 import type { MascotState, ToolData, ToolResult } from "@uishapeshifter/contracts";
 import type { OurRoot } from "../extension/shadow-root";
-import { POSE_ANIMATIONS, type MascotPose } from "./animations";
+import { DANCE_MS, POSE_ANIMATIONS, type MascotPose } from "./animations";
 import {
+  bubblePlacement,
   homePosition,
   needsScroll,
   pointPlacement,
   stepToward,
   type Box,
+  type Facing,
   type Placement,
   type Point,
+  type Size,
 } from "./geometry";
 import { MASCOT_CSS } from "./mascot-styles";
-import { createSpriteRenderer, type CreateRenderer, type MascotRenderer } from "./renderer-sprite";
+import { createSpriteRenderer, FRONT_FACING, type CreateRenderer, type MascotRenderer } from "./renderer-sprite";
 
 /** Viteza de mers, în pixeli pe secundă: destul de încet ca ochiul să o urmărească. */
 const WALK_SPEED_PX_PER_SECOND = 420;
@@ -34,8 +37,6 @@ const BUBBLE_MS_PER_WORD = 400;
 const SCROLL_SETTLE_MS = 450;
 /** Mărimea de rezervă, când CSS-ul n-a fost încă aplicat (happy-dom, prima randare). */
 const FALLBACK_SIZE = { width: 132, height: 112 };
-/** Cât dansează după o rulare reușită (trei ture întregi, vezi mascot-dance-turn în CSS), apoi revine la idle. */
-const DANCE_MS = 4_500;
 
 export interface MascotController {
   setState(state: MascotState): void;
@@ -94,11 +95,12 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   container.innerHTML = `
     <p class="mascot-bubble" hidden></p>
     <div class="mascot-stage">
-      <span class="mascot-shadow"></span>
-      <div class="mascot-hop"><canvas class="mascot-canvas"></canvas></div>
-      <span class="mascot-note" style="--i: 0; --dx: -1">♪</span>
-      <span class="mascot-note" style="--i: 1; --dx: 1">♫</span>
-      <span class="mascot-note" style="--i: 2; --dx: -0.5">♪</span>
+      <span class="mascot-disc"></span>
+      <canvas class="mascot-canvas"></canvas>
+      <span class="mascot-note" style="--i: 0; --angle: -65deg">♪</span>
+      <span class="mascot-note" style="--i: 1; --angle: 22deg">♫</span>
+      <span class="mascot-note" style="--i: 2; --angle: -22deg">♪</span>
+      <span class="mascot-note" style="--i: 3; --angle: 65deg">♫</span>
     </div>
   `;
   const highlight = document.createElement("div");
@@ -121,18 +123,39 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   let pointed: Element | null = null;
   let destroyed = false;
   let danceTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Mărimea bulei, măsurată când apare un mesaj (o dată pe mesaj, nu la fiecare pas de mers); null = încă nemăsurată. */
+  let bubbleSize: Size | null = null;
 
   function size() {
     const rect = container.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0 ? { width: rect.width, height: rect.height } : FALLBACK_SIZE;
   }
 
+  /**
+   * Ține bula în ecran: lângă marginea de sus (ex. câmpul de căutare al unui site) trece sub mascotă, iar lângă
+   * marginea din stânga se întinde spre dreapta. Până apare primul mesaj o socotim cât mascota (câteva rânduri).
+   */
+  function placeBubble() {
+    const mascotSize = size();
+    const place = bubblePlacement({ ...position, ...mascotSize }, bubbleSize ?? mascotSize, viewport(), EDGE_MARGIN_PX);
+    container.dataset.bubbleBelow = String(place.below);
+    container.dataset.bubbleAlign = place.alignLeft ? "left" : "right";
+  }
+
   function moveTo(point: Point) {
     position = point;
     container.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y)}px)`;
-    // Lângă marginea de sus (ex. câmpul de căutare al unui site), bula de deasupra ar ieși din ecran: o punem dedesubt.
-    // Bula are câteva rânduri, deci încape în înălțimea mascotei.
-    container.dataset.bubbleBelow = String(point.y < size().height);
+    placeBubble();
+  }
+
+  /**
+   * Întoarce ratonul. Partea spre care privește ajunge și în CSS (data-facing): cadrul oglindit îl mută în cutie, iar
+   * dansul se învârte în jurul mijlocului lui, nu al cutiei.
+   */
+  function face(facing: Facing | "front") {
+    const side = facing === "front" ? FRONT_FACING : facing;
+    if (container.dataset.facing !== side) container.dataset.facing = side; // chemat la fiecare cadru cât arată un element
+    renderer?.face(facing);
   }
 
   function showPose(pose: MascotPose) {
@@ -168,7 +191,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
       return Promise.resolve(true);
     }
     showPose("walking");
-    renderer?.face(target.x >= position.x ? "right" : "left");
+    face(target.x >= position.x ? "right" : "left");
     return new Promise((resolve) => {
       walk = { target, done: resolve };
       let last = performance.now();
@@ -207,7 +230,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
       if (!walk) {
         const place = pointPlacement(rect, size(), viewport(), position, EDGE_MARGIN_PX, ELEMENT_GAP_PX);
         if (Math.abs(place.x - position.x) > 1 || Math.abs(place.y - position.y) > 1) moveTo(place);
-        renderer?.face(place.facing);
+        face(place.facing);
       }
       trackFrame = requestAnimationFrame(follow);
     };
@@ -218,6 +241,9 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     clearTimeout(bubbleTimer);
     bubble.textContent = text;
     bubble.hidden = false;
+    const rect = bubble.getBoundingClientRect();
+    bubbleSize = rect.width > 0 && rect.height > 0 ? { width: rect.width, height: rect.height } : null;
+    placeBubble();
     const words = text.trim().split(/\s+/).length;
     bubbleTimer = setTimeout(() => (bubble.hidden = true), ms ?? Math.max(BUBBLE_MIN_MS, words * BUBBLE_MS_PER_WORD));
   }
@@ -226,7 +252,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     clearTimeout(danceTimer);
     state = next;
     if (!walk) showPose(next);
-    if (next !== "pointing" && !pointed) renderer?.face("front");
+    if (next !== "pointing" && !pointed) face("front");
     if (next === "happy")
       danceTimer = setTimeout(() => state === "happy" && setState(pointed ? "pointing" : "idle"), DANCE_MS);
   }
@@ -238,7 +264,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     highlight.hidden = true;
     if (state === "pointing") state = "idle";
     void walkTo(homePosition(viewport(), size(), EDGE_MARGIN_PX)).then(() => {
-      if (!pointed) renderer?.face("front");
+      if (!pointed) face("front");
     });
   }
 
@@ -268,7 +294,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     // a venit între timp alt point_at (sau release): mascota e a lui, noi doar răspundem agentului
     if (!arrived || pointed !== element) return { ok: true, data: { scrolledIntoView, rect } };
 
-    renderer?.face(place.facing);
+    face(place.facing);
     showPose("pointing");
     highlight.hidden = false;
     placeHighlight(boxOf(element));
@@ -288,6 +314,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
   }
 
   goHomeInstantly();
+  face("front");
   showPose("idle");
   window.addEventListener("resize", onResize);
   document.addEventListener("visibilitychange", onVisibilityChange);
@@ -295,7 +322,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
     .then((created) => {
       if (destroyed) return created.dispose();
       renderer = created;
-      renderer.face(pointed ? "right" : "front");
+      face(pointed ? "right" : "front");
       showPose(walk ? "walking" : state);
     })
     .catch(() => {
