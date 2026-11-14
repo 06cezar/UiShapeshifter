@@ -148,6 +148,14 @@ function start() {
       await recipes.reset();
       base?.refresh();
     },
+    // „Ce ai cerut aici”: o cerere anulată singură, cele de dinainte și de după rămân (B, C).
+    requestHistory: () => recipes.history(),
+    undoRequest: async (requestId) => {
+      const result = await recipes.undoRequest(requestId);
+      if (!result.ok) return result;
+      base?.refresh();
+      return { ok: true };
+    },
   });
   /** Revizia rețetei de la începutul fiecărei rulări: „Anulez” o readuce (D9). */
   const runStart = new Map<string, number>();
