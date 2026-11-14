@@ -113,6 +113,7 @@ describe("createOpenRouterDecider", () => {
       "wait_for_user_click",
       "ask_user",
       "propose_changes",
+      "undo_request",
       "audit_ui",
     ]);
     const system = sent[0].messages[0].content ?? "";
