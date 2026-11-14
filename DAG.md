@@ -3,7 +3,7 @@
 > Generat automat de `dag/build_dag.py` din `dag/tasks.yaml`. Nu edita de mână:
 > schimbă planul printr-un PR la `dag/tasks.yaml`. Istoricul: `git log -p DAG.md`.
 
-**Gata:** 30/40 · **În lucru:** 5 · **Poate începe:** 1 · **Așteaptă:** 4 · **Blocat:** 0
+**Gata:** 31/40 · **În lucru:** 4 · **Poate începe:** 1 · **Așteaptă:** 4 · **Blocat:** 0
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,7 @@ flowchart LR
     t_A2["A2 · Bucla agentului cu OpenRouter cap-coadă pe o pagină reală - get_page_snapshot, apply_css, verificare, say, finish (+ agentul fals adaptat)<br/>✅ gata"]
     t_A3["A3 · Uneltele etapei 2 - apply_ops, point_at, propose_changes, ask_user, wait_for_user_click + promptul care cere verificare după fiecare schimbare<br/>✅ gata"]
     t_A6["A6 · Profilul și rețeta site-ului în contextul agentului + update_profile; o cerere repetată devine preferință generală<br/>✅ gata"]
-    t_A4["A4 · Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter<br/>🔨 în lucru · încă așteaptă M3"]
+    t_A4["A4 · Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter<br/>✅ gata"]
     t_A5["A5 · Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes)<br/>🔨 în lucru · încă așteaptă M3"]
   end
   subgraph t_owner_B["B"]
@@ -145,8 +145,8 @@ flowchart LR
   classDef ready fill:#fff4c2,stroke:#9a6700,color:#4d3300,stroke-width:2px
   classDef wait fill:#eaeef2,stroke:#6e7781,color:#24292f,stroke-width:2px
   classDef blocked fill:#ffd8d3,stroke:#cf222e,color:#5c0b10,stroke-width:2px
-  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_M2,t_C3,t_E8,t_A6,t_C4,t_B3,t_D10 done
-  class t_B4,t_A4,t_A5,t_E3,t_E6 progress
+  class t_D1,t_A1,t_B1,t_C1,t_D4,t_E1,t_D7,t_E5,t_M0,t_B2,t_C5,t_B5,t_A2,t_D3,t_E7,t_D8,t_M1,t_B6,t_A3,t_D2,t_D9,t_C2,t_E2,t_M2,t_C3,t_E8,t_A6,t_C4,t_B3,t_D10,t_A4 done
+  class t_B4,t_A5,t_E3,t_E6 progress
   class t_M3 ready
   class t_M4,t_D5,t_E4,t_D6 wait
 ```
@@ -162,14 +162,13 @@ _nimic_
 ## În lucru
 
 - **B4** (B) Refacerea liberă a unui site - „fă-l să arate ca site-ul X” și pagina simplă făcută din elementele care contează, pe perechile de site-uri din demo: branch `b4-refacere` are commit-uri; încă așteaptă M3 _(Etapa 4 · sâm 06:00. Gata = pe perechea aleasă pentru demo, „fă-l să arate ca X” schimbă așezarea și stilul, pagina rămâne folosibilă și rețeta rezistă la reîncărcare; pe site-ul de test, „vreau doar să plătesc factura” lasă o pagină simplă.)_
-- **A4** (A) Tratarea eșecurilor - element negăsit, CSS sau HTML respins la validare, audit picat, pagină schimbată între pași, TIMEOUT, maxSteps, erori OpenRouter: PR #71 deschis; încă așteaptă M3 _(Etapa 4 · sâm 05:30. Gata = fiecare eroare din specs/05 are un test sau un scenariu manual care arată reacția agentului.)_
 - **A5** (A) Rețetele pe server - GET/PUT /api/recipes/:userId și /:host, în locul /api/config (stocare data/recipes): PR #72 deschis; încă așteaptă M3 _(Etapa 4 · sâm 04:30. Gata = o rețetă salvată pentru un site se citește înapoi; lista site-urilor unui utilizator. O folosește E6.)_
 - **E3** (E) Adaptarea automată - reguli pe semnale, încrederea (autoApplyLowRisk) și preferințele generale propuse singure pe site-uri noi: PR #66 deschis; încă așteaptă M3 _(Etapa 4 · sâm 05:30. Gata = 3 ratări lângă un buton pornesc singure propunerea „butoane mai mari”; pe un site nou, mascota propune singură preferințele generale.)_
 - **E6** (E) Cont opțional și sincronizare - merge fără login (local), cu login preferințele trec pe alt dispozitiv: branch `e6-conturi` are commit-uri; încă așteaptă A5, M3 _(Etapa 4 · sâm 06:30. Gata = după login pe alt profil de browser apar același profil și aceleași rețete. Parola doar ca hash.)_
 
 ## Așteaptă
 
-- **M4** (D) PUNCT DE CONTROL 4 - „fă-l să arate ca X” pe perechea din demo, propunerea automată după ratări, preferințele pe alt profil de browser după login: așteaptă B4, A4, E3, E6 _(sâm 06:30. Fără PR: D îl marchează prin comms. Ce nu merge la 07:00 se taie din demo; etapele 1-3 rămân.)_
+- **M4** (D) PUNCT DE CONTROL 4 - „fă-l să arate ca X” pe perechea din demo, propunerea automată după ratări, preferințele pe alt profil de browser după login: așteaptă B4, E3, E6 _(sâm 06:30. Fără PR: D îl marchează prin comms. Ce nu merge la 07:00 se taie din demo; etapele 1-3 rămân.)_
 - **D5** (D) Integrare cap-coadă - scenariul din specs/12-demo.md merge fără intervenție: așteaptă M4 _(sâm 09:00 (înghețul). Gata = pașii din demo merg de 3 ori la rând, pe site-urile reale alese și pe site-ul de test.)_
 - **E4** (E) Butonul „Resetează demo-ul”, măsurătorile pentru pitch, videoul de rezervă: așteaptă D5 _(sâm 11:00. Cifrele măsurate, nu inventate; videoul înregistrat pe scenariul din specs/12.)_
 - **D6** (D) Pitch de 5 minute, descrierea de o pagină, screenshot-uri, README final, trimiterea pe Slack: așteaptă D5 _(sâm 13:30. Se marchează cu \[gata D6\] după trimitere.)_
