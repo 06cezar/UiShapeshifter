@@ -1,4 +1,4 @@
-// Chatul peste orice site: un buton „Spune-mi ce vrei” care deschide un panou cu istoricul, rândul de activitate al
+// Chatul peste orice site: un buton „Cu ce te pot ajuta?” care deschide un panou cu istoricul, rândul de activitate al
 // agentului și un câmp de text. Stă în shadow DOM-ul nostru (extension/shadow-root.ts), deci stilul site-ului nu-l atinge.
 // Tot textul primit de la server intră cu `textContent`, niciodată ca HTML: un răspuns nu poate adăuga elemente în pagină.
 

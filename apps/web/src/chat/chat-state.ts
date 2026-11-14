@@ -12,7 +12,7 @@ export const MAX_INPUT_CHARS = 500;
 const ACTIVITY_MAX_CHARS = 80;
 
 export const CHAT_TEXT = {
-  launcher: "Spune-mi ce vrei",
+  launcher: "Cu ce te pot ajuta?",
   close: "Închide",
   send: "Trimite",
   inputLabel: "Ce vrei să schimb pe pagina asta?",
