@@ -20,8 +20,8 @@
     }
   },
   "last_comms_sha": "b5b3b90ae972efad8314d5493c513387c7297820",
-  "last_run": "2026-11-14T05:11:05Z",
-  "last_sha": "0fa1cb428ec97841675b4a5ed6b6a4a62ec64028",
+  "last_run": "2026-11-14T05:15:45Z",
+  "last_sha": "66f734a3e55077bf1fa4295f6b598ec470bf16a1",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -95,8 +95,8 @@
     },
     "111": {
       "head": "e4-reset-onboarding",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T05:15:36Z",
+      "state": "MERGED"
     },
     "112": {
       "head": "e-tab-vechi",
