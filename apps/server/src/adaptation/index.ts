@@ -17,7 +17,7 @@ export function startAdaptation(): void {
       const session = latestSessionOf(userId);
       return session ? sendToSession(session, message) : false;
     },
-    startRun: (userId, goal) => startRun(userId, goal, "adaptation"),
+    startRun: (userId, goal, page) => startRun(userId, goal, "adaptation", page),
     // ADAPT_DEMO=1: praguri mai mici pentru demo (2 ratări în loc de 3), specs/09
     thresholds: process.env.ADAPT_DEMO === "1" ? DEMO_THRESHOLDS : THRESHOLDS,
   });
