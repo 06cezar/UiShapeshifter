@@ -78,6 +78,22 @@ export const JOURNAL_CSS = `
   justify-content: space-between;
 }
 
+.journal-history ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.journal-history-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing);
+}
+
 .journal-body,
 .journal-run,
 .journal-replay,
