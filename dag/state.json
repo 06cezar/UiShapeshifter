@@ -25,9 +25,9 @@
       }
     }
   },
-  "last_comms_sha": "b63169f724540c950f979ca5567f787231f8d65c",
-  "last_run": "2026-11-14T10:38:51Z",
-  "last_sha": "3dbf57b846e3a7e3fd28e7830b013f37dd367a5e",
+  "last_comms_sha": "aa5b9a09cc27beae7aba1abd8cfb318040c358a3",
+  "last_run": "2026-11-14T10:40:36Z",
+  "last_sha": "d56c40e31a8e4786b9348144dbdfd50c6cbffb57",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -371,8 +371,8 @@
     },
     "160": {
       "head": "d-panou-probleme",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T10:40:26Z",
+      "state": "MERGED"
     },
     "17": {
       "head": "c2-reparatii",
