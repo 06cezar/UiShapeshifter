@@ -62,6 +62,9 @@ describe("runAgent", () => {
     const run = await runAgent(newRun(), decider, io);
     expect(run.status).toBe("cancelled");
     expect(sent.map((m) => m.type)).toEqual(["run_finished"]);
+    // proba Iuliei: fără „Am oprit, cum ai cerut.” roșu în chat; jurnalul spune că a fost înlocuită
+    expect(sent[0]).toMatchObject({ type: "run_finished", summary: "" });
+    expect(run.summary).toBe("Am lăsat cererea asta pentru cea nouă.");
   });
 
   it("dacă jurnalul nu se poate salva, interfața primește totuși run_finished", async () => {
