@@ -68,7 +68,14 @@ const MAX_GRID_CELLS_PER_TEXT = 64;
  * Proprietățile scrise de noi care măresc textul, respectiv ținta; doar pe ele le anulăm la verificare. Cu fontul pleacă
  * și rândul scris pentru el: altfel eticheta rămânea cu fontul site-ului, dar cu un rând mai înalt decât al vecinilor.
  */
-const FONT_GROWTH = ["font-size", "line-height"];
+/** Ce se anulează odată cu fontul: și spațiul de la capăt pus pentru un colț (roomForCorners), altfel ar rămâne gol. */
+const FONT_GROWTH = ["font-size", "line-height", "padding-inline-end"];
+/**
+ * Cel mai mare „colț” pus peste capătul unui text (ora și «Editat» din bula WhatsApp). Ce e mai mare e o casetă, nu
+ * un colț, și nu-i facem loc împingând textul.
+ */
+const CORNER_MAX_WIDTH_PX = 160;
+const CORNER_MAX_HEIGHT_PX = 40;
 const TARGET_GROWTH = ["min-height", "min-width", "display"];
 
 const REDUCED_MOTION_CSS =
@@ -278,7 +285,59 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
       if (!overlapsNewText(element, before, now, covering, texts, measured.rects, afterOf, linesOf)) continue;
       undo.push([element, [...(kind.target ? TARGET_GROWTH : []), ...(textSuspect ? FONT_GROWTH : [])]]);
     }
+    const undone = new Set(undo.map(([element]) => element));
+    const kept = [...grown].filter(([element, kind]) => kind.font && !undone.has(element)).map(([element]) => element);
+    // încă din aceeași măsurare: abia apoi scriem (anulări și spațiu), deci layout-ul nu se reface încă o dată
+    const room = roomForCorners(kept, undone, measured, texts, afterOf, linesOf, outOfFlow);
     for (const [element, properties] of undo) restoreProperties(element, properties);
+    for (const [element, missing] of room) setImportant(element, "padding-inline-end", `${missing}px`);
+  }
+
+  /**
+   * Un text mărit, în flux, care acum intră sub un colț pus peste capătul lui (ora și «Editat» din bula WhatsApp: site-ul
+   * lasă la capătul textului un spațiu gol pe măsura colțului, iar textul mărit îl depășește; titlul unei casete
+   * Wikipedia sub „[arată]”) primește la capăt spațiul care lipsește. Doar citește: scrierea o face apelantul.
+   */
+  function roomForCorners(
+    kept: HTMLElement[],
+    undone: Set<HTMLElement>,
+    measured: Measured,
+    texts: TextGrid,
+    afterOf: (element: HTMLElement) => DOMRect,
+    linesOf: (element: HTMLElement) => DOMRect[],
+    outOfFlow: Map<Element, boolean>,
+  ): [HTMLElement, number][] {
+    const room: [HTMLElement, number][] = [];
+    for (const element of kept) {
+      if (isOutOfFlow(element, outOfFlow)) continue;
+      // calculul presupune colțul la dreapta, unde se termină rândul; la scrisul de la dreapta la stânga nu se aplică
+      if (getComputedStyle(element).direction === "rtl") continue;
+      const elementBefore = measured.rects.get(element);
+      const elementNow = afterOf(element);
+      // rândurile se citesc doar pentru textele care chiar au un colț aproape (puține), nu pentru toate cele mărite
+      let parts: DOMRect[] | undefined;
+      let missing = 0;
+      for (const corner of texts.near(elementNow)) {
+        const cornerBefore = measured.rects.get(corner);
+        if (corner === element || !cornerBefore || element.contains(corner) || corner.contains(element)) continue;
+        if (cornerBefore.width > CORNER_MAX_WIDTH_PX || cornerBefore.height > CORNER_MAX_HEIGHT_PX) continue;
+        if (!isPlacedOver(corner)) continue;
+        const cornerNow = finalCornerRect(corner, cornerBefore, afterOf(corner), undone);
+        // ce se suprapunea deja înainte, la fel de mult, e alegerea site-ului
+        if (elementBefore && !overlapGrew(elementBefore, cornerBefore, elementNow, cornerNow)) continue;
+        if (!parts) {
+          const lines = linesOf(element);
+          parts = lines.length > 0 ? lines : [elementNow];
+        }
+        for (const part of parts) {
+          if (overlaps(part, cornerNow))
+            missing = Math.max(missing, part.x + part.width - cornerNow.x + OVERLAP_MIN_PX);
+        }
+      }
+      // fără a doua măsurare, locul final al unui colț micșorat e estimat și poate ieși ceva mai mare: cel mult un colț
+      if (missing > 0) room.push([element, Math.ceil(Math.min(missing, CORNER_MAX_WIDTH_PX + OVERLAP_MIN_PX))]);
+    }
+    return room;
   }
 
   function isOurs(element: Element): boolean {
@@ -485,6 +544,25 @@ function spilled(element: HTMLElement, before: DOMRect, now: DOMRect, parentBefo
   const parent = element.parentElement;
   if (!parent || !parentBefore) return false;
   return outside(now, parent.getBoundingClientRect()) && !outside(before, parentBefore);
+}
+
+/**
+ * Unde va sta colțul după anulări, fără să mai măsurăm: dacă mărirea lui se anulează, își recapătă mărimea de dinainte,
+ * lipit de colțul din dreapta-jos (ca ora din bula WhatsApp). Altfel e unde l-am măsurat.
+ */
+function finalCornerRect(corner: HTMLElement, before: DOMRect, now: DOMRect, undone: Set<HTMLElement>): DOMRect {
+  if (!undone.has(corner)) return now;
+  return new DOMRect(now.right - before.width, now.bottom - before.height, before.width, before.height);
+}
+
+/** Elementul sau o cutie de deasupra lui e pus peste pagină (absolute, fixed), nu doar plutește lângă text (float). */
+function isPlacedOver(element: Element): boolean {
+  let node: Element | null = element;
+  for (let depth = 0; node && depth <= OUT_OF_FLOW_DEPTH; depth++, node = node.parentElement) {
+    const position = getComputedStyle(node).position;
+    if (position === "absolute" || position === "fixed") return true;
+  }
+  return false;
 }
 
 /** Elementul sau o cutie de deasupra lui stă în afara fluxului: mărit, nu împinge nimic, ci trece peste. */

@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 import type { ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
 import { needsFromStorage, needsFromStored } from "./base-needs";
 import { savedChangesText } from "./popup-text";
-import { parseServerMessage, parseToWorker } from "./messages";
+import { parseFromWorker, parseServerMessage, parseToWorker } from "./messages";
 import { normalizeHost, pageInfo } from "./page-info";
 import { createRunRouter } from "./run-router";
 import { startServerLink, type SocketLike } from "./server-link";
@@ -326,5 +326,22 @@ describe("bula de propunere (E3)", () => {
     timeout!();
     expect(el().hidden).toBe(true);
     expect(decisions).toEqual(["sug-1:accept"]);
+  });
+});
+
+describe("„Reia pas cu pas” prin service worker", () => {
+  test("load_run și run_loaded trec de verificare; o rulare stricată nu ajunge la panou", () => {
+    expect(parseToWorker({ type: "load_run", requestId: "r1", runId: "run-1" })).toEqual({
+      type: "load_run",
+      requestId: "r1",
+      runId: "run-1",
+    });
+    expect(parseToWorker({ type: "load_run", requestId: "r1" })).toBeNull();
+    const run = { runId: "run-1", goal: "g", status: "succeeded", steps: [{ index: 0 }] };
+    expect(parseFromWorker({ type: "run_loaded", requestId: "r1", run })).toMatchObject({ type: "run_loaded", run });
+    expect(parseFromWorker({ type: "run_loaded", requestId: "r1", run: { runId: 3 } })).toEqual({
+      type: "run_loaded",
+      requestId: "r1",
+    });
   });
 });

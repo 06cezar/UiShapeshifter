@@ -2,7 +2,8 @@
 // Ce pleacă spre server sunt exact mesajele din packages/contracts (ClientMessage / ServerMessage); aici doar le
 // împachetăm ca service worker-ul să știe ce face cu ele. Nu e contract cu serverul, deci nu stă în contracts.
 
-import type { ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
+import type { AgentRun, ClientMessage, ServerMessage } from "@uishapeshifter/contracts";
+import { isAgentRun } from "../journal/run-api";
 
 /** Numele portului prin care o pagină sau popup-ul vorbește cu service worker-ul. */
 export const PAGE_PORT = "uis-page";
@@ -14,10 +15,19 @@ export type LinkStatus = "connecting" | "open" | "closed";
 /** Ce poate trimite o pagină: mesajele către server (fără hello, pe care îl trimite doar service worker-ul). */
 export type OutgoingClientMessage = Exclude<ClientMessage, { type: "hello" }>;
 
-export type ToWorker = { type: "to_server"; message: OutgoingClientMessage } | { type: "get_status" };
+/**
+ * „Reia pas cu pas” (panoul, D): pagina nu poate citi rularea direct de pe server (CORS permite doar aplicația web),
+ * așa că o cere service worker-ului, care răspunde pe același port cu `run_loaded` și același `requestId`.
+ */
+export type ToWorker =
+  | { type: "to_server"; message: OutgoingClientMessage }
+  | { type: "get_status" }
+  | { type: "load_run"; requestId: string; runId: string };
 
 export type FromWorker =
-  { type: "from_server"; message: ServerMessage } | { type: "status"; status: LinkStatus; userId: string | null };
+  | { type: "from_server"; message: ServerMessage }
+  | { type: "status"; status: LinkStatus; userId: string | null }
+  | { type: "run_loaded"; requestId: string; run?: AgentRun; error?: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -44,6 +54,11 @@ const SERVER_TYPES: readonly string[] = [
 export function parseToWorker(value: unknown): ToWorker | null {
   if (!isRecord(value)) return null;
   if (value.type === "get_status") return { type: "get_status" };
+  if (value.type === "load_run") {
+    return typeof value.requestId === "string" && typeof value.runId === "string"
+      ? { type: "load_run", requestId: value.requestId, runId: value.runId }
+      : null;
+  }
   if (value.type !== "to_server" || !isRecord(value.message)) return null;
   const { message } = value;
   if (typeof message.type !== "string" || !OUTGOING_TYPES.includes(message.type)) return null;
@@ -68,6 +83,14 @@ export function parseFromWorker(value: unknown): FromWorker | null {
       type: "status",
       status: value.status as LinkStatus,
       userId: typeof value.userId === "string" ? value.userId : null,
+    };
+  }
+  if (value.type === "run_loaded" && typeof value.requestId === "string") {
+    return {
+      type: "run_loaded",
+      requestId: value.requestId,
+      ...(isAgentRun(value.run) ? { run: value.run } : {}),
+      ...(typeof value.error === "string" ? { error: value.error } : {}),
     };
   }
   if (value.type === "from_server" && isRecord(value.message) && typeof value.message.type === "string") {
