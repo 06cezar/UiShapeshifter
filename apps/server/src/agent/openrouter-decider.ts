@@ -11,6 +11,7 @@ import {
 import { compactResult } from "./compact-result";
 import { chatCompletionWithRetry, RETRY_DELAYS_MS, type ChatMessage } from "./openrouter";
 import type { Decider, Decision } from "./run-agent";
+import type { ConversationTurn } from "./conversation";
 import { buildSystemPrompt, userMessage, type ProfileContext } from "./system-prompt";
 
 const TEMPERATURE = 0.2; // mică, pentru un demo previzibil (specs/05)
@@ -74,6 +75,8 @@ export interface OpenRouterDeciderOptions {
   retryDelaysMs?: readonly number[]; // testele le pun pe 0
   /** Profilul omului pentru prompt (etapa 3); se încarcă la primul pas, ca rularea să pornească imediat. */
   loadProfile?: () => Promise<ProfileContext>;
+  /** Cererile anterioare ale omului pe același site (memoria scurtă a conversației). */
+  history?: readonly ConversationTurn[];
 }
 
 export function createOpenRouterDecider(goal: string, options: OpenRouterDeciderOptions = {}): Decider {
@@ -98,7 +101,7 @@ export function createOpenRouterDecider(goal: string, options: OpenRouterDecider
         });
         messages.push(
           { role: "system", content: buildSystemPrompt({ page, stage, profile }) },
-          { role: "user", content: userMessage(goal, page) },
+          { role: "user", content: userMessage(goal, page, options.history) },
         );
       }
       if (previous && pendingCallId) {
