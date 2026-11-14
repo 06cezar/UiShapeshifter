@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "0dd86d4116cf3ac9ce15ee35cf8d1a9b3df26b88",
-  "last_run": "2026-11-14T06:44:21Z",
+  "last_comms_sha": "448fbb83fdca7fa65611737c3474bfe1ac2781d0",
+  "last_run": "2026-11-14T06:45:34Z",
   "last_sha": "2936f1092be29cba490c1b31f01318c74ff5d99b",
   "prs": {
     "1": {
@@ -215,6 +215,11 @@
     },
     "133": {
       "head": "a-inlocuita-fara-mesaj",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "134": {
+      "head": "c-google-ai-vecini",
       "merged_at": null,
       "state": "OPEN"
     },
