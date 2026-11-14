@@ -27,7 +27,7 @@ const queuedAdaptation = new Map<string, { goal: string; origin: RunOrigin; page
 
 // etapa la care e extensia (specs/00), citită la fiecare rulare. Implicit 2 de la M2: extensia are apply_ops (B6),
 // point_at (D2) și propose_changes (D9). AGENT_STAGE=1 o readuce la doar CSS; 3 adaugă profilul (A6).
-const DEFAULT_STAGE: SiteToolStage = 2;
+const DEFAULT_STAGE: SiteToolStage = 3; // de la M3: profilul și preferințele generale (fără ele agentul nu poate salva)
 
 export function agentStage(): SiteToolStage {
   const stage = Number(process.env.AGENT_STAGE);

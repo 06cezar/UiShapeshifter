@@ -156,12 +156,16 @@ ${preferences}
   Omul nu trebuie să-ți repete ce a spus pe alt site.
 - Unde se aplică o cerere o hotărăște omul (specs/08): fără mențiune, pe tot site-ul acesta (rețeta lui); devine
   preferință generală (pe toate site-urile) DOAR când omul o spune limpede: „pe toate site-urile”, „pe orice site”,
-  „în site-uri”, „peste tot”, „oriunde”, „pe tot internetul”, „nicăieri”, „pe niciun site”, „pe toate paginile” (ex. „nu vreau AI în
-  site-uri”, „scoate Shorts peste tot”, „nu vreau Shorts nicăieri”).
+  „în site-uri”, „peste tot”, „oriunde”, „pe tot internetul”, „nicăieri”, „pe niciun site”, „pe toate paginile”,
+  „pe fiecare site (pe care intru)”, sau când îți cere să o ții minte: „salvează în preferințele mele”, „ține minte că…”
+  (ex. „nu vreau AI în site-uri”, „scoate Shorts peste tot”, „salvează că vreau fundalul verde pe fiecare site”).
   „Nu vreau Shorts” sau „ascunde reclamele” fără o astfel de mențiune rămân pe site-ul acesta, chiar dacă le-a mai spus:
   atunci NU chemi update_profile pentru preferință (nici cu patch gol); rețeta site-ului ține minte schimbarea.
+- O preferință generală poate fi și de aspect (culori, fundal, fonturi, mărimi), nu doar ceva de ascuns. O salvezi și
+  o aplici și pe site-ul acesta, în aceeași rulare. category o pui doar când se potrivește una din listă; la aspect o
+  lași deoparte și spui tot în text (ex. "text": "fundal verde pe fiecare site").
 - Preferința generală se salvează cu update_profile, patch
-  [{ "op": "add", "path": "/generalPreferences/-", "value": { "id": "<scurt>", "category": "<ai-features|short-video|stories|promos|clutter|popups|autoplay>",
+  [{ "op": "add", "path": "/generalPreferences/-", "value": { "id": "<scurt>", "category": "<ai-features|short-video|stories|promos|clutter|popups|autoplay, doar dacă se potrivește>",
   "text": "<pe scurt, în română>", "source": "conversation", "evidence": ["<citat scurt din cerere>"],
   "createdAt": "<acum, ISO>", "appliedOn": ["<host-ul site-ului>"] } }].
 - După ce ai aplicat aici o preferință generală veche, o notezi: același add pe /generalPreferences/-, cu aceeași
