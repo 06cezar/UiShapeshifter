@@ -22,12 +22,13 @@ Dacă timpul nu ajunge, pașii 5 și 7 se taie; 1–4 și 6 rămân. Cu etapele 
 ## Eșecul reparat (sigur, nu la noroc)
 
 Din jurnalele de probă (A, 23+ rulări): live, un eșec reparat apare doar uneori (Shorts 1/3, pasul 4 1/8). Juriul trebuie
-să vadă cel puțin unul, deci îl pregătim pe **site-ul de test**, ca pe un site real care încarcă reclame târziu:
+să vadă cel puțin unul, deci îl pregătim pe **site-ul de test**, cu un antet strâmt, ca pe multe site-uri reale:
 
-- La pasul 4, după ce reclamele marcate (`.ad`) dispar, site-ul de test adaugă după ~1 s o reclamă nouă, „Sponsorizat”,
-  cu altă clasă și fără `aria-label` de reclamă (cum fac site-urile care reîncarcă reclamele).
-- Agentul o vede în snapshot-ul de verificare („încă se vede o reclamă”), o ascunde după text/rol și verifică din nou.
-  În panou: pasul de verificare care a găsit-o și reparația. Reîncarci: rețeta le ascunde pe amândouă de la început.
+- La pasul 4, pe site-ul de test, antetul unde ajunge scurtătura „Plătește factura” are înălțime fixă și
+  `overflow: hidden`. Butonul nou iese tăiat: `audit_ui` îl raportează ca problemă nouă (`clipped`, `introduced`).
+  Preferințele de bază (C4) nu repară tăierile, deci se întâmplă de fiecare dată.
+- Agentul repară cu CSS (ex. `height: auto` pe antet) și verifică din nou cu `audit_ui`. În panou: auditul care a găsit
+  tăierea, reparația, auditul curat (propunerea lui C, 14 nov.).
 - Live, dacă apare și un eșec natural (selector negăsit, operație sărită), îl arătăm pe acela; cazul pregătit rămâne
   rezerva sigură. Videoul de rezervă îl conține.
 
