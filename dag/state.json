@@ -19,8 +19,8 @@
       }
     }
   },
-  "last_comms_sha": "8f7a4816c1bcc251bcd27770296bc91292d432ed",
-  "last_run": "2026-11-14T06:33:11Z",
+  "last_comms_sha": "19a5ecc8d81028c3e62db3659e2d376b9f48917f",
+  "last_run": "2026-11-14T06:33:23Z",
   "last_sha": "b440492dddfc0c116353ebd20c9e17ebb8ab9217",
   "prs": {
     "1": {
@@ -185,6 +185,11 @@
     },
     "128": {
       "head": "b-undo-request-tool",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "129": {
+      "head": "d-panou-dupa-f5",
       "merged_at": null,
       "state": "OPEN"
     },
