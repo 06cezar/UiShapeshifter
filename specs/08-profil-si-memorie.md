@@ -56,7 +56,13 @@ rețetele trec pe alt dispozitiv.
    dispozitiv, datele anonime de acolo se **îmbină** cu cele ale contului.
 4. **Îmbinarea:** per rețetă (host), câștigă cea cu `updatedAt` mai nou; la profil se unesc `facts`, `generalPreferences`
    și `familiarSites` după `id` / `host`, iar `needs` iau valoarea **mai mare** (nu coborâm un font minim la îmbinare).
+   **Istoricul urmează rețeta:** istoricul gazdei se ia întreg din aceeași parte cu rețeta câștigătoare; nu se amestecă
+   revizii de pe două dispozitive.
 5. **Sincronizarea:** `GET /api/sync` / `PUT /api/sync` cu `Authorization: Bearer <token>` și `SyncBundle`
-   (`profile` + `recipes`). Extensia trimite după fiecare schimbare (cu pauză de 2 s) și descarcă la login.
+   (`profile` + `recipes` + `history?`). Extensia trimite după fiecare schimbare (cu pauză de 2 s) și descarcă la login.
+   - `history` absent la `PUT` (client vechi): serverul păstrează istoricul pe care îl are. Prezent: se îmbină pe gazdă (pct. 4).
+   - **De făcut după îngheț** (nu e în cod azi): cel mult o intrare și `RECIPE_LIMITS.maxRevisions` revizii pe gazdă
+     (serverul păstrează azi 50), istoricul unei gazde fără rețetă aruncat, și o limită de mărime a pachetului sub 1 MB-ul
+     primit de server, cu istoricul scurtat primul (azi un pachet prea mare e refuzat și sincronizarea nu se face).
 6. Token-ul stă în `chrome.storage.local`; „Ieși din cont” îl scoate și lasă datele locale.
 7. După login, extensia folosește `AuthResult.userId` ca `userId` activ.

@@ -118,6 +118,8 @@ describe("createOpenRouterDecider", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("Nu legi (bind) de elemente care apar doar la hover"); // proba Iuliei pe YouTube
+    expect(system).toContain("nu gândirea ta"); // Opus 5.5 refuza cererea de a-și scrie raționamentul (content_filter)
     expect(system).toContain("elementele din el primesc id-uri noi"); // point_at pe id vechi → restilizare inutilă
     expect(system).toContain("clipped pe un element adăugat sau mutat de tine"); // demo, eșecul reparat (specs/12)
     expect(system).toContain("„Fundalul paginii (rgb(…))” din snapshot e containerul care ține toată pagina"); // Bing rămânea gri: agentul îl ascundea

@@ -171,6 +171,35 @@ describe("runAgent, eșecurile din specs/05 (A4)", () => {
     expect(run.summary).toBe("Am pus butonul în antet.");
   });
 
+  it("răspuns gol de la model (refuz): rularea eșuează cu un mesaj, nu „Am terminat.”", async () => {
+    const { io } = fakeIO();
+    const decider: Decider = { model: "test", decide: async () => ({ kind: "text", content: "" }) };
+    const run = await runAgent(newRun(), decider, io);
+    expect(run.status).toBe("failed");
+    expect(run.summary).toContain("N-am reușit să încep");
+  });
+
+  it("maxSteps după Păstrez și încă un pas (notă în profil): rularea tot reușește", async () => {
+    const { io } = fakeIO({
+      callWebTool: async (name) =>
+        name === "propose_changes" ? { ok: true, data: { proposalId: "p", decision: "keep" } } : { ok: true, data: {} },
+      callServerTool: async () => ({ ok: true, data: { updatedAt: "t" } }),
+    });
+    let n = 0;
+    const decider: Decider = {
+      model: "test",
+      decide: async () => {
+        n++;
+        if (n === 14) return toolCall("propose_changes", { title: "B", summary: "Butonul e în antet.", risk: "low" });
+        if (n === 15) return toolCall("update_profile", { patch: [] });
+        return toolCall("get_page_snapshot", { regionId: `r.${n}` });
+      },
+    };
+    const run = await runAgent(newRun(), decider, io);
+    expect(run.status).toBe("succeeded");
+    expect(run.summary).toBe("Butonul e în antet.");
+  });
+
   it("OpenRouter nu răspunde (după reîncercări): mesaj de conexiune și oprire curată", async () => {
     const { io, sent } = fakeIO();
     const decider: Decider = {
