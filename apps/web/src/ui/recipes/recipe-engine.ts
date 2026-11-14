@@ -21,6 +21,7 @@ import {
 } from "../../validation";
 import type { RecipeView } from "../page-registry/registry";
 import { checkOps, createDomOpsApplier } from "./dom-ops";
+import { fadeOut, measureLeaving } from "./fade";
 import { clearRecipe, loadRecipe, saveRecipe, type RecipeStorage, type StoredRecipe } from "./recipe-store";
 
 /** Id-ul <style>-ului rețetei: conține „uishapeshifter”, deci CSS-ul agentului nu-l poate ținti. */
@@ -316,6 +317,11 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
         );
       }
 
+      // Ce ascund operațiile noi și se vede acum: măsurat înainte, pentru urma vizuală de după (fade.ts).
+      const leaving = measureLeaving(
+        accepted.flatMap(({ op }) => (op.op === "remove" ? [...doc.querySelectorAll(op.selector)] : [])),
+      );
+
       // Aplicăm rețeta de acum plus operațiile noi; în rețetă rămân doar cele noi care chiar s-au aplicat.
       let outcomes: ReturnType<typeof domOps.sync> = [];
       mutate(() => (outcomes = domOps.sync([...current, ...accepted.map((a) => a.op)])));
@@ -349,6 +355,12 @@ export function createRecipeEngine(options: RecipeEngineOptions): RecipeEngine {
           { revision, css: stored.recipe.css, ops: nextOps, reason, runId, at } satisfies RecipeRevision,
         ].slice(-RECIPE_LIMITS.maxRevisions),
       };
+      // Elementele sunt deja ascunse (snapshot-ul le vede `hiddenBy: "recipe"`); peste locul lor rămâne o urmă care se
+      // stinge. Doar la schimbările agentului: la încărcare și la reaplicare, rețeta apare fără animație.
+      fadeOut(
+        leaving.filter(({ element }) => element.isConnected && getComputedStyle(element).display === "none"),
+        doc,
+      );
       await saveRecipe(options.storage, stored);
       return { ok: true, data: { revision, applied: added.length, skipped, htmlDropped } };
     },

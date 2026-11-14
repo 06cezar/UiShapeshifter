@@ -127,7 +127,14 @@ function measurePage(
   const walker = doc.createTreeWalker(options.root ?? doc.body ?? doc.documentElement, NodeFilter.SHOW_ELEMENT, {
     acceptNode(node) {
       const element = node as Element;
-      if (SKIPPED_TAGS.has(element.localName) || element.id === options.ourHostId) return NodeFilter.FILTER_REJECT;
+      // `data-agent-id`: elementele noastre din pagina site-ului (ex. urma care se stinge după o ascundere, fade.ts)
+      if (
+        SKIPPED_TAGS.has(element.localName) ||
+        element.id === options.ourHostId ||
+        element.hasAttribute("data-agent-id")
+      ) {
+        return NodeFilter.FILTER_REJECT;
+      }
       return NodeFilter.FILTER_ACCEPT;
     },
   });
