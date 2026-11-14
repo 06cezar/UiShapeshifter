@@ -47,6 +47,7 @@ const TOOL_VERBS: Partial<Record<string, string>> = {
   wait_for_user_click: "Aștept să apeși",
   ask_user: "Te întreb ceva",
   propose_changes: "Îți arăt schimbările",
+  undo_request: "Anulez o cerere de mai demult",
   audit_ui: "Verific accesibilitatea",
   say: "Îți spun ceva",
   get_profile: "Citesc ce știu despre tine",

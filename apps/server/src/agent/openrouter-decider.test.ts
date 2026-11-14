@@ -119,6 +119,7 @@ describe("createOpenRouterDecider", () => {
     const system = sent[0].messages[0].content ?? "";
     expect(system).toContain("introduced: true");
     expect(system).toContain("propose_changes");
+    expect(system).toContain("recipe.requests are"); // „anulează ce am cerut cu X” → undo_request (#126)
     expect(system).toContain("Dacă mesajul începe cu „Conversația de până acum”"); // „și mai mult” după o cerere
     expect(system).toContain("Acțiune de o singură dată"); // proba Iuliei: „dă-i play” lăsa un buton permanent
     expect(system).toContain("Nu legi (bind) de elemente care apar doar la hover"); // proba Iuliei pe YouTube
