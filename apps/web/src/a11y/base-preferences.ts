@@ -68,7 +68,8 @@ const MAX_GRID_CELLS_PER_TEXT = 64;
  * Proprietățile scrise de noi care măresc textul, respectiv ținta; doar pe ele le anulăm la verificare. Cu fontul pleacă
  * și rândul scris pentru el: altfel eticheta rămânea cu fontul site-ului, dar cu un rând mai înalt decât al vecinilor.
  */
-const FONT_GROWTH = ["font-size", "line-height"];
+/** Ce se anulează odată cu fontul: și spațiul de la capăt pus pentru un colț (roomForCorners), altfel ar rămâne gol. */
+const FONT_GROWTH = ["font-size", "line-height", "padding-inline-end"];
 /**
  * Cel mai mare „colț” pus peste capătul unui text (ora și «Editat» din bula WhatsApp). Ce e mai mare e o casetă, nu
  * un colț, și nu-i facem loc împingând textul.
@@ -309,6 +310,8 @@ export function startBasePreferences(options: BasePreferencesOptions): BasePrefe
     const room: [HTMLElement, number][] = [];
     for (const element of kept) {
       if (isOutOfFlow(element, outOfFlow)) continue;
+      // calculul presupune colțul la dreapta, unde se termină rândul; la scrisul de la dreapta la stânga nu se aplică
+      if (getComputedStyle(element).direction === "rtl") continue;
       const elementBefore = measured.rects.get(element);
       const elementNow = afterOf(element);
       // rândurile se citesc doar pentru textele care chiar au un colț aproape (puține), nu pentru toate cele mărite

@@ -313,6 +313,23 @@ describe("verificarea de după scriere (Teams, WhatsApp, Instagram, găsite de A
     expect(el("mesaj-mare").style.getPropertyValue("padding-inline-end")).toBe("");
   });
 
+  it("la scrisul de la dreapta la stânga nu se pune spațiu pentru colț (nota lui D)", () => {
+    page(`
+      <div id="bula-rtl" data-rect="300,40">
+        <span id="mesaj-rtl" style="font-size: 14px; direction: rtl">رسالة طويلة بما يكفي لتصل إلى الزاوية</span>
+        <div style="position: absolute"><span id="ora-rtl" style="font-size: 11px">08:58</span></div>
+      </div>`);
+    const scale = () => px(el("mesaj-rtl").style.fontSize, 14) / 14;
+    layout("mesaj-rtl", () => new DOMRect(0, 0, 200 * scale(), 24 * scale()));
+    layout("ora-rtl", (e) => {
+      const own = px(e.style.fontSize, 11) / 11;
+      return new DOMRect(300 - 30 * own, 24 * scale() - 14 * own, 30 * own, 14 * own);
+    });
+    base = startBasePreferences({ needs: MARIA, ourHostId: HOST_ID });
+    expect(fontOf("mesaj-rtl")).toBe(20);
+    expect(el("mesaj-rtl").style.getPropertyValue("padding-inline-end")).toBe("");
+  });
+
   it("Instagram: linkul din jurul unei poze nu se mărește dacă poza ar crește odată cu el", () => {
     page(
       `<p id="nume-ig" style="font-size: 20px">utilizator</p><a id="link" href="/u"><img id="poza" alt="profil"></a>`,
