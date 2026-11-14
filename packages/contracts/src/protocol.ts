@@ -63,7 +63,8 @@ export type ServerMessage =
 // Conturi (opționale, specs/08): corpurile și răspunsurile sunt în accounts.ts
 // POST /api/accounts/register              <- RegisterRequest   -> AuthResult
 // POST /api/accounts/login                 <- LoginRequest      -> AuthResult
-// GET  /api/sync                           (Authorization: Bearer) -> SyncBundle
+// GET  /api/sync                           (Authorization: Bearer) -> SyncBundle (profile, recipes, history?)
 // PUT  /api/sync                           (Authorization: Bearer) <- SyncBundle -> { updatedAt }
+//      (history absent = serverul păstrează istoricul lui; prezent = se îmbină pe gazdă; reguli în accounts.ts)
 
 export type RunListItem = Pick<AgentRun, "runId" | "goal" | "status" | "startedAt" | "origin">;

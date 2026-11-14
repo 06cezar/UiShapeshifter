@@ -36,15 +36,25 @@ export interface AuthResult {
   userId: string;
 }
 
-/** Tot ce se sincronizează: ce are omul și ce a refăcut pe site-uri. */
+/**
+ * Tot ce se sincronizează: ce are omul și ce a refăcut pe site-uri.
+ * De făcut după îngheț (specs/08, pct. 5): o limită de mărime a pachetului, sub 1 MB-ul primit de server, cu istoricul
+ * scurtat primul. Azi un pachet prea mare e refuzat de server și sincronizarea nu se face.
+ */
 export interface SyncBundle {
   profile: UserProfile;
   recipes: SiteRecipe[];
-  /** Istoricul rețetelor pe site, ca „Anulez” pe o cerere din istoric să meargă și pe alt dispozitiv. Lipsește la clienții vechi. */
+  /**
+   * Istoricul rețetelor pe site, ca „Anulez” pe o cerere din istoric să meargă și pe alt dispozitiv.
+   * Absent la `PUT /api/sync` (client vechi): serverul păstrează istoricul pe care îl are. Prezent: se îmbină pe gazdă.
+   * Îmbinarea: istoricul urmează rețeta. Câștigă rețeta cu `updatedAt` mai nou, iar istoricul gazdei se ia întreg din
+   * aceeași parte; nu se amestecă revizii de pe două dispozitive.
+   */
   history?: SiteRecipeHistory[];
   updatedAt: string;
 }
 
+/** Reviziile unei gazde; cea mai veche are `revision` cel mai mic. Îmbinarea: `SyncBundle.history`. */
 export interface SiteRecipeHistory {
   host: string;
   revisions: RecipeRevision[];
