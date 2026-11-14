@@ -419,3 +419,14 @@ describe("rândurile de tabel (facturile de pe site-ul de test)", () => {
     expect(rows.some((r) => r.label.startsWith("Nr. factură"))).toBe(false);
   });
 });
+
+describe("cererile din rețetă în snapshot (undo_request)", () => {
+  test("cererile care mai au efect intră în recipe.requests; fără cereri, câmpul lipsește", () => {
+    document.body.innerHTML = `<main><p>Text</p></main>`;
+    const requests = [{ requestId: "run-1", reason: "ascunde reclamele", at: "2026-11-14T08:00:00.000Z" }];
+    const cu = createPageRegistry({ ourHostId: HOST, recipe: () => ({ revision: 2, css: "", requests }) });
+    expect(cu.snapshot().recipe.requests).toEqual(requests);
+    const fara = createPageRegistry({ ourHostId: HOST, recipe: () => ({ revision: 0, css: "", requests: [] }) });
+    expect("requests" in fara.snapshot().recipe).toBe(false);
+  });
+});
