@@ -17,6 +17,7 @@ describe("fundalul paginii peste tot", () => {
     expect(isLightOpaque("rgb(249, 249, 249)")).toBe(true);
     expect(isLightOpaque("rgb(33, 150, 243)")).toBe(false);
     expect(isLightOpaque("rgba(255, 255, 255, 0)")).toBe(false);
+    expect(isLightOpaque("rgba(255, 255, 255, 0.85)")).toBe(true);
   });
 
   test("cutia mare albă se colorează, butonul și cutia mică nu; la oprire revin", () => {

@@ -3,13 +3,18 @@
 // și cutiile mari și deschise la culoare care acoperă pagina, fără AI. Butoanele, pozele, bannerele colorate și
 // elementele mici rămân cum sunt. Pe site-urile întunecate nu schimbăm nimic (cutiile lor nu sunt deschise).
 
-/** O cutie „acoperă pagina” dacă e cel puțin atât de lată (din ecran) și atât de înaltă. */
-const MIN_WIDTH_RATIO = 0.5;
-const MIN_HEIGHT_PX = 80;
+/** Cutii care „acoperă pagina”: conținutul (lat și înalt), benzile de sus/jos (foarte late, joase) și coloanele de pe
+ * margini (înalte, înguste). Ce e mai mic (carduri, butoane) rămâne al site-ului. */
+const BLOCK_WIDTH_RATIO = 0.5;
+const BLOCK_MIN_HEIGHT_PX = 80;
+const BAR_WIDTH_RATIO = 0.9;
+const BAR_MIN_HEIGHT_PX = 40;
+const COLUMN_HEIGHT_RATIO = 0.6;
+const COLUMN_MIN_WIDTH_PX = 120;
 /** Doar fundalurile deschise (alb, gri deschis): pe cele colorate sau întunecate le lasă site-ului. */
 const LIGHT_LUMINANCE = 0.8;
-/** Fundal opac: unul transparent lasă oricum să se vadă culoarea de dedesubt. */
-const OPAQUE_ALPHA = 0.95;
+/** Fundal aproape opac (un alb de 85% acoperă la fel); unul transparent lasă oricum să se vadă culoarea de dedesubt. */
+const OPAQUE_ALPHA = 0.6;
 /** Site-urile își încarcă bucăți după încărcare (SPA): recolorăm după o scurtă pauză. */
 const REPAINT_DEBOUNCE_MS = 700;
 /** Elemente care nu sunt „fundal de pagină”, oricât de mari. */
@@ -86,12 +91,16 @@ export function startPageBackground(color: string, options: PageBackgroundOption
 
   function paint() {
     const ourHost = doc.getElementById(options.ourHostId);
-    const minWidth = view.innerWidth * MIN_WIDTH_RATIO;
+    const { innerWidth: vw, innerHeight: vh } = view;
+    const coversPage = ({ width, height }: { width: number; height: number }) =>
+      (width >= vw * BLOCK_WIDTH_RATIO && height >= BLOCK_MIN_HEIGHT_PX) ||
+      (width >= vw * BAR_WIDTH_RATIO && height >= BAR_MIN_HEIGHT_PX) ||
+      (height >= vh * COLUMN_HEIGHT_RATIO && width >= COLUMN_MIN_WIDTH_PX);
     for (const element of doc.body?.querySelectorAll<HTMLElement>("*") ?? []) {
       if (painted.has(element) || NOT_BACKGROUND.has(element.tagName.toUpperCase())) continue;
       if (ourHost && (element === ourHost || ourHost.contains(element))) continue;
       const rect = rectOf(element);
-      if (rect.width < minWidth || rect.height < MIN_HEIGHT_PX) continue;
+      if (!coversPage(rect)) continue;
       const style = getComputedStyle(element);
       const image = style.backgroundImage;
       if ((image && image !== "none") || !isLightOpaque(style.backgroundColor)) continue;
