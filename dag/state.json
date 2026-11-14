@@ -19,9 +19,9 @@
       }
     }
   },
-  "last_comms_sha": "53defde888b5886467656e15cc4392d18a4f2c4b",
-  "last_run": "2026-11-14T04:48:41Z",
-  "last_sha": "d4c7cd1e7a2833ff1d3e6534c618a8e0e4e34acc",
+  "last_comms_sha": "9bf5880406ff7d5deba675352e75a4044d1ad7c0",
+  "last_run": "2026-11-14T04:52:39Z",
+  "last_sha": "ddd7c5f4281b90429007cfe2bc66aeca77d6668b",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -75,8 +75,8 @@
     },
     "108": {
       "head": "c-audit-impins-afara",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-14T04:52:33Z",
+      "state": "MERGED"
     },
     "109": {
       "head": "c-c4-verifica-dupa",
@@ -87,6 +87,11 @@
       "head": "d4-panou",
       "merged_at": "2026-11-13T14:48:00Z",
       "state": "MERGED"
+    },
+    "110": {
+      "head": "e7-facturi-stramt",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "12": {
       "head": "e1-tmp-unic",
