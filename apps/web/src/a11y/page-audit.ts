@@ -223,10 +223,12 @@ function isInHorizontalScroller(element: Element, viewportWidth: number): boolea
 
 /** Valorile `overflow-y` cu care o cutie ascunde ce iese din ea (fără bară de derulare). */
 const HIDING_OVERFLOW = new Set(["hidden", "clip"]);
+/** Până la atâta înălțime, cutia e închisă voit (acordeon cu max-height: 0, meniu strâns), nu strâmtă. */
+const MIN_CLIPPING_BOX_PX = 2;
 
 /**
- * Cutia părinte care taie elementul pe verticală: se vede doar o parte din el (nu e ascuns de tot, ca într-un meniu
- * închis). Doar pentru elementele interactive: un buton pe jumătate ascuns nu se poate apăsa sigur. Cazul de demo:
+ * Cutia părinte care taie elementul pe verticală: se vede doar o parte din el sau a fost împins complet sub ea. O cutie
+ * închisă de tot (sub MIN_CLIPPING_BOX_PX, ca un meniu strâns) nu se socotește. Doar pentru elementele interactive: un buton pe jumătate ascuns nu se poate apăsa sigur. Cazul de demo:
  * scurtătura pusă de agent într-un antet cu înălțime fixă, crescută apoi la ținta minimă (specs/12, pasul 4).
  */
 function clippingAncestorOf(element: Element, rect: DOMRect): Element | undefined {
@@ -236,8 +238,12 @@ function clippingAncestorOf(element: Element, rect: DOMRect): Element | undefine
     // `overflow` scurt, unde motorul nu desface `overflow-y` (happy-dom în teste)
     if (!HIDING_OVERFLOW.has(style.overflowY || style.overflow)) continue;
     const box = node.getBoundingClientRect();
-    const cutBelow = rect.bottom > box.bottom + OFFSCREEN_EPS_PX && rect.top < box.bottom;
-    const cutAbove = rect.top < box.top - OFFSCREEN_EPS_PX && rect.bottom > box.top;
+    // O cutie închisă de tot (acordeon cu max-height: 0) își ascunde conținutul voit: nu e tăiere.
+    if (box.height < MIN_CLIPPING_BOX_PX) continue;
+    // Tăiat pe jumătate sau împins complet afară (rândurile de tabel de sub o secțiune strâmtată, găsit de A):
+    // oricum, omul nu-l mai poate apăsa întreg.
+    const cutBelow = rect.bottom > box.bottom + OFFSCREEN_EPS_PX;
+    const cutAbove = rect.top < box.top - OFFSCREEN_EPS_PX;
     if (cutBelow || cutAbove) return node;
   }
   return undefined;
