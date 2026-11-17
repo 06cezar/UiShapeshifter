@@ -26,7 +26,7 @@
     }
   },
   "last_comms_sha": "0efc05e4999397ff841e4426157aff83e5c387ff",
-  "last_run": "2026-11-14T11:19:12Z",
+  "last_run": "2026-11-17T07:34:36Z",
   "last_sha": "4c5d5ed3819c7129ac784fd344314e18fbd1f60c",
   "prs": {
     "1": {
@@ -403,6 +403,11 @@
       "head": "d6-pitch-cifre",
       "merged_at": "2026-11-14T11:19:09Z",
       "state": "MERGED"
+    },
+    "167": {
+      "head": "d-comms-v3",
+      "merged_at": null,
+      "state": "OPEN"
     },
     "17": {
       "head": "c2-reparatii",
