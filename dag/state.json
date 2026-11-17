@@ -26,7 +26,7 @@
     }
   },
   "last_comms_sha": "0efc05e4999397ff841e4426157aff83e5c387ff",
-  "last_run": "2026-11-17T07:34:36Z",
+  "last_run": "2026-11-17T09:05:32Z",
   "last_sha": "4c5d5ed3819c7129ac784fd344314e18fbd1f60c",
   "prs": {
     "1": {
@@ -406,6 +406,11 @@
     },
     "167": {
       "head": "d-comms-v3",
+      "merged_at": null,
+      "state": "OPEN"
+    },
+    "168": {
+      "head": "docs-analiza-comms-dag",
       "merged_at": null,
       "state": "OPEN"
     },
