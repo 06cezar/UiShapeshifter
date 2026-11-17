@@ -39,6 +39,10 @@ SYNC_EVERY = float(os.environ.get("COMMS_SYNC_EVERY", "60"))   # secunde între 
 # ca să termine sigur înainte să fie omorât (un hook omorât lasă lock-ul în urmă).
 NET = {"fetch": 20, "push": 30}
 NET_HOOK = {"fetch": 8, "push": 10}
+# Cât are voie `inbox` să stea în rețea, în total. Cu INBOX_PATIENCE și citirea JSON-ului de pe stdin rămâne sub 30 s,
+# deci hook-ul își termină singur treaba și nu rămâne un proces orfan care ține lock-ul.
+HOOK_BUDGET = 15
+DEADLINE = []                                 # ora până la care comanda mai are voie în rețea; gol = fără termen
 INBOX_PATIENCE = 8                            # secunde cât așteaptă `inbox` o altă comandă comms din aceeași clonă
 STALE_LOCK = 90                               # un lock neatins de atâtea secunde e părăsit, chiar dacă nu știm cine l-a luat
 ENV = {k: v for k, v in os.environ.items()
@@ -217,6 +221,14 @@ def heal(c):
             git("checkout", "--quiet", "--force", "comms", cwd=c.wt, check=False)
 
 
+def net_time(kind):
+    """Cât poate aștepta următorul apel de rețea: limita lui, tăiată la cât a mai rămas din termen. None = nimic."""
+    if not DEADLINE:
+        return NET[kind]
+    left = DEADLINE[0] - time.time()
+    return min(NET[kind], left) if left >= 1 else None
+
+
 def sync(c, force=True, fetch=True):
     """Aduce mesajele noi și împinge ce a rămas local. Întoarce False dacă remote-ul nu a răspuns."""
     stamp = os.path.join(c.state, "last-sync")
@@ -231,16 +243,22 @@ def sync(c, force=True, fetch=True):
     if OFFLINE:
         return False                           # un fetch din aceeași comandă tocmai a picat: nu mai așteptăm rețeaua
     open(stamp, "w").close()
-    for attempt in range(TRIES):
+    # Cu termen (hook), o singură încercare de push: un commit refuzat rămâne local și pleacă la următoarea comandă.
+    tries = TRIES if not DEADLINE else 1 if fetch else 2
+    for attempt in range(tries):
         try:
             os.utime(os.path.join(c.state, "lock"))    # lucrăm încă: lock-ul nu e părăsit
         except OSError:
             pass
         blind = not fetch and attempt == 0     # abia am făcut fetch: încercăm întâi direct push
         if not blind:
+            wait_for = net_time("fetch")
+            if wait_for is None:               # termenul s-a dus: ce e local pleacă data viitoare
+                OFFLINE.append(True)
+                return False
             # mesajele lui git în engleză, ca să recunoaștem „branch-ul încă nu există” (remote-ul a răspuns)
             r = git("fetch", "--quiet", "origin", "+refs/heads/comms:" + UPSTREAM, cwd=c.wt, check=False,
-                    timeout=NET["fetch"], env=dict(ENV, LC_ALL="C", LANGUAGE="C"))
+                    timeout=wait_for, env=dict(ENV, LC_ALL="C", LANGUAGE="C"))
             if r.returncode and "couldn't find remote ref" not in (r.stderr or ""):
                 OFFLINE.append(True)           # fără rețea (sau remote-ul nu răspunde): fără push, ar aștepta degeaba
                 return False
@@ -254,8 +272,11 @@ def sync(c, force=True, fetch=True):
             head = c.rev("HEAD")
         if up == head:
             return True                        # nimic de împins
+        wait_for = net_time("push")
+        if wait_for is None:
+            return False
         pushed = git("push", "--quiet", "--no-verify", "origin", "HEAD:refs/heads/comms",
-                     cwd=c.wt, check=False, timeout=NET["push"])
+                     cwd=c.wt, check=False, timeout=wait_for)
         if pushed.returncode == 0:
             git("update-ref", UPSTREAM, head, cwd=c.wt)
             return True
@@ -538,17 +559,19 @@ def hook_event():
                 if not chunk:
                     break
                 data += chunk
+                try:                           # primul obiect întreg ajunge: nu mai așteptăm să se închidă stdin-ul
+                    box.append(json.JSONDecoder().raw_decode(data.decode("utf-8", "replace").lstrip())[0])
+                    return
+                except ValueError:
+                    continue
         except OSError:
             pass
-        box.append(data)
 
     reader = threading.Thread(target=read, daemon=True)
     reader.start()
     reader.join(HOOK_INPUT_WAIT)               # un stdin deschis și gol nu ține comanda pe loc
-    try:
-        return HOOK_EVENTS.get(json.loads(box[0].decode("utf-8", "replace")).get("hook_event_name"), "") if box else ""
-    except (ValueError, AttributeError):
-        return ""
+    event = box[0].get("hook_event_name") if box and isinstance(box[0], dict) else None
+    return HOOK_EVENTS.get(event, "") if isinstance(event, str) else ""
 
 
 def hook_stamp(c):
@@ -574,8 +597,9 @@ def hooks_alive(c):
 
 def fetch_base(top, base):
     """Aduce branch-ul comun, ca verificarea să compare cu ce e acum pe remote, nu cu ce avea clona de ieri."""
-    if not OFFLINE and git("config", "remote.origin.url", cwd=top, check=False).returncode == 0:
-        if git("fetch", "--quiet", "origin", base, cwd=top, check=False, timeout=NET_HOOK["fetch"]).returncode:
+    wait_for = min(net_time("fetch") or 0, NET_HOOK["fetch"])
+    if not OFFLINE and wait_for and git("config", "remote.origin.url", cwd=top, check=False).returncode == 0:
+        if git("fetch", "--quiet", "origin", base, cwd=top, check=False, timeout=wait_for).returncode:
             OFFLINE.append(True)
 
 
@@ -1146,7 +1170,7 @@ def cmd_team(c, a):
             parts = [line.replace(": ok", " ok").replace(": NU", " NU").replace(": - ", " ") for line in report[1:]]
             parts.append("raport " + report[0][5:])
         else:
-            parts = ["fără raport: unealta e dinainte de v3 (git pull, apoi python tools/comms/install.py)"]
+            parts = ["fără raport: unealta e dinainte de v3 (pe main: git pull, apoi python tools/comms/install.py)"]
         if name in last:
             parts.append("ultimul mesaj %s %s:%s" % (last[name].day[5:], last[name].id[:2], last[name].id[2:4]))
         if name in gone:
@@ -1260,6 +1284,8 @@ def main(argv=None):
         NET.update(NET_HOOK)
         if not a.hook and not a.tool_hook:
             a.hook = hook_event()
+        if a.hook or a.tool_hook:
+            DEADLINE.append(time.time() + HOOK_BUDGET)
     try:
         c = Ctx(a.me)
         if a.cmd == "wait":

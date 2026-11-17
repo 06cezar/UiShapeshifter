@@ -13,8 +13,14 @@ Apoi **pornește Claude Code din folderul proiectului**, nu din cel de deasupra 
 încarcă doar așa. Cere-i agentului `git comms doctor`; instalarea e gata când nu mai are niciun rând cu `NU`.
 
 - **Când liderul schimbă unealta sau regulile:** agentul află singur la începutul sesiunii (rânduri
-  `[comms] instalare:`) și rulează `git comms update`. Dacă liderul îți scrie să reinstalezi: `git pull`, apoi
-  `python tools/comms/install.py`, fără literă.
+  `[comms] instalare:`) și rulează `git comms update`. Dacă liderul îți scrie să reinstalezi, o faci de pe `main`,
+  ca să rulezi unealta nouă, nu pe cea de pe branch-ul tău (comite sau pune deoparte întâi lucrul nesalvat):
+
+  ```bash
+  git switch main && git pull
+  python tools/comms/install.py                    # fără literă
+  git switch -                                     # înapoi pe branch-ul tău
+  ```
 - **Regulile tale proprii** le scrii la sfârșitul lui `CLAUDE.local.md`; `git comms update` aduce la zi ce e deasupra
   lor și le păstrează.
 - **Liderul vede instalarea fiecăruia** cu `git comms team`.
