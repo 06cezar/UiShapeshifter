@@ -26,8 +26,8 @@
     }
   },
   "last_comms_sha": "0efc05e4999397ff841e4426157aff83e5c387ff",
-  "last_run": "2026-11-17T09:05:32Z",
-  "last_sha": "4c5d5ed3819c7129ac784fd344314e18fbd1f60c",
+  "last_run": "2026-11-17T20:02:23Z",
+  "last_sha": "cb601b37dff098ae494c5170698f183e2d39c4ff",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -406,8 +406,8 @@
     },
     "167": {
       "head": "d-comms-v3",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-17T20:02:13Z",
+      "state": "MERGED"
     },
     "168": {
       "head": "docs-analiza-comms-dag",
