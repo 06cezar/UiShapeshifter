@@ -100,7 +100,7 @@ Sursa țintelor: `tasks-depend-DAG/docs/DAG-PLAN.md`, `IDEI.md`, `AGENTS.md` (�
 - [M] **Graful a fost tras, nu împins:** cei patru au primit împreună 6 anunțuri de la bot (C niciunul) și au citit graful de 112 ori. Starea au aflat-o întrebând, nu din „poate începe”.
 - [M] O citire a `DAG.md` aduce ~2 k caractere la A, E și C (citiri filtrate) și ~8 k la B (fișierul întreg). Fișierul pe om din `dag/pe-om/` are sub 1 k.
 - [M] La E și la C, graful e 46% și 60% din tot textul de coordonare, mai mult decât oricare comandă `git comms` luată separat.
-- [?] La A și E sesiunile au pornit din folderul părinte al repo-ului, deci nu se vede dacă regulile despre graf din `CLAUDE.local` (~2,3 k tokeni pe apel) au fost în context. La B, `CLAUDE.local` era dinaintea pivotului, cu taskurile vechi în „Taskurile tale”; A a trecut la versiunea nouă vineri la 18:10, iar Claude Code a încărcat-o în context (sâmbătă, 07:20).
+- [?] La E sesiunea a pornit din folderul părinte al repo-ului, deci nu se vede dacă regulile despre graf din `CLAUDE.local` (~2,3 k tokeni pe apel) au fost în context. La A, pornit tot de acolo, se vede: Claude Code a încărcat `CLAUDE.local.md` din repo vineri la 15:18 (versiunea veche) și sâmbătă la 07:20 (cea nouă, de la 18:10). La B, `CLAUDE.local` era dinaintea pivotului, cu taskurile vechi în „Taskurile tale”.
 - [?] Din C au rămas doar 4,5 ore de transcrieri (vineri 16:13–20:47); cifrele lui sunt pentru acest interval.
 - [D] **Verdict:** la rulare, graful costă de ~7 ori mai puțin decât la SmartHack. Cu tot cu construcție și reparații, hackathonul acesta a ieșit cam la egal (~8 M față de ~6,7 M); câștigul vine de acum. Pentru cei patru non-lideri, ~2,3 k tokeni pe apel n-au cumpărat nimic măsurabil.
 
