@@ -646,9 +646,15 @@ def check_rules(c, top, base):
     if not versions:
         return None, "proiectul nu are un șablon la %s" % path, None
     latest = versions[0]
-    local = read_text(os.path.join(top, "CLAUDE.local.md"))
-    if not local.strip():
+    try:                                       # nu prin read_text: acolo un fișier necitibil arată ca unul lipsă
+        with open(os.path.join(top, "CLAUDE.local.md"), encoding="utf-8") as f:
+            local = f.read()
+    except FileNotFoundError:
         return False, "lipsește", latest
+    except (OSError, UnicodeDecodeError):      # de exemplu UTF-16, cum scrie `>` în Windows PowerShell 5.1
+        return None, "nu se poate citi ca UTF-8 (de exemplu, e UTF-16); unealta nu-l atinge", None
+    if not local.strip():
+        return False, "e gol", latest
     local = tidy(local)
     for behind, old in enumerate(versions):
         own = extra(local, old)
@@ -964,8 +970,25 @@ def cmd_back(c, a):
     post(c, [cover], "M-am întors și preiau eu de aici. Mulțumesc!", "fyi", force=True)
 
 
+def emit(text):
+    """Tipărește pentru agent. False dacă n-a ajuns: pipe-ul e închis (hook omorât la timeout sau abandonat)."""
+    try:
+        print(text)
+        sys.stdout.flush()
+        return True
+    except OSError:
+        return False
+
+
 def cmd_inbox(c, a):
+    if a.hook or a.tool_hook:                  # urma după care știm că hook-urile rulează în sesiunea asta
+        hook_ran(c, start=a.hook == "start")
     sync(c, force=not a.new)                   # la fiecare prompt (--new): fetch cel mult o dată pe minut
+    rows = []
+    if a.hook == "start":                      # la începutul sesiunii: și ce nu e în regulă cu instalarea.
+        rows = checks(c, fresh=True)           # Rețeaua vine înaintea cursorului: un hook omorât aici nu pierde
+        if publish(c, rows):                   # niciun mesaj, fiindcă îl arată următorul.
+            sync(c, fetch=False)
     new = unread(c)
     lines = [m.line("nou") for m in new or []]
     if new is None or not a.new:               # fără cursor sau la început de sesiune: și firele încă deschise
@@ -982,23 +1005,16 @@ def cmd_inbox(c, a):
         if waiting:
             lines.append("[comms] aștepți răspuns în %d fire: %s%s" % (
                 len(waiting), ", ".join(waiting[-8:]), " (cele mai noi)" if len(waiting) > 8 else ""))
-    set_cursor(c)
-    if a.hook or a.tool_hook:                  # urma după care știm că hook-urile rulează în sesiunea asta
-        hook_ran(c, start=a.hook == "start")
     if a.hook:                                 # la început de sesiune și la fiecare prompt, nu după fiecare unealtă
         lines += state_reminder(c)
-    if a.hook == "start":                      # la începutul sesiunii: și ce nu e în regulă cu instalarea
-        rows = checks(c, fresh=True)
-        if publish(c, rows):
-            sync(c, fetch=False)
-        lines += install_lines(rows)
-    if a.tool_hook:                            # hook PostToolUse: aici doar acest JSON ajunge la agent
-        if lines:
-            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                                     "additionalContext": "\n".join(lines + [DATA_NOTE])}},
-                             ensure_ascii=False))
-    elif lines:
-        print("\n".join(lines))
+    lines += install_lines(rows)
+    if a.tool_hook and lines:                  # hook PostToolUse: aici doar acest JSON ajunge la agent
+        lines = [json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                                    "additionalContext": "\n".join(lines + [DATA_NOTE])}},
+                            ensure_ascii=False)]
+    if lines and not emit("\n".join(lines)):
+        return                                 # n-a ajuns la agent: mesajele rămân noi pentru data viitoare
+    set_cursor(c)                              # abia acum: după ce rândurile au plecat, nimic lent între ele
 
 
 def cmd_show(c, a):
