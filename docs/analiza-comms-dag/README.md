@@ -16,7 +16,7 @@ Analiza a fost făcută pe 15–16 nov. 2026. Din propuneri nu e implementat nim
 |---|---|
 | `PROMPT-MASURATOARE.md` | Promptul cu care agentul fiecăruia și-a măsurat propriile sesiuni. |
 | `rapoarte/ANALIZA-A.md` … `ANALIZA-E.md` | Rapoartele brute, câte unul pe agent, nemodificate. Excepție: din raportul lui B au fost scoase căile locale de pe calculatorul lui. |
-| `rapoarte/CLAUDE.local-A.md` … `CLAUDE.local-E.md` | `CLAUDE.local.md` al fiecărui agent, așa cum era la hackathon. |
+| `rapoarte/CLAUDE.local-A.md` … `CLAUDE.local-E.md` | `CLAUDE.local.md` al fiecărui agent, așa cum era pe 16 nov., când s-a făcut măsurătoarea. |
 
 Cifrele despre mesaje au fost verificate separat pe branch-ul `comms`, cu aceeași metodă pentru toți cinci.
 Marcajele: **[M]** măsurat, **[D]** dedus, **[?]** nu se poate ști.
@@ -26,7 +26,7 @@ Fișierele sunt în `rapoarte/`. Coloana a doua spune cu ce versiune din istoric
 
 | Agent | Identic cu | Observații |
 |---|---|---|
-| A | `ace6820` (vineri 14:41), prima versiune | dinaintea pivotului; trei versiuni mai noi |
+| A | `ace6820` (vineri 14:41), prima versiune | dinaintea pivotului; trei versiuni mai noi. [?] Raportul lui A măsoară însă 13.929 de caractere, cât `b6a1603`: de confirmat ce fișier a avut agentul în sesiune |
 | B | niciuna: `3d590ac` (vineri 15:50), a treia, plus o secțiune proprie de 5 rânduri la final | dinaintea pivotului |
 | C | `b6a1603` (vineri 17:36), ultima | |
 | D | `b6a1603` (vineri 17:36), ultima | luat din repo: fișierul local a fost scurtat pe 16 nov., după analiză |

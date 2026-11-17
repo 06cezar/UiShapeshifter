@@ -5,10 +5,10 @@
 2. **Consumul total nu a scăzut.** La D, comms a adus ~29 k caractere de context pe oră, față de ~25 k în v1 (~3,1% din contextul nou față de ~3,8%). Economia pe mesaj s-a dus pe trafic de 1,8 ori mai mare, pe pornirea sesiunilor și pe `wait`.
 3. **Locul scump e începutul de sesiune, nu mesajele:** hook-ul de pornire și `brief` fac ~51% din contextul comms al lui D, iar `wait` încă ~23%; mesajele noi aduse de hook-uri, calea gândită ca principală, fac ~4%.
 4. **Mesajele nu s-au mutat „unde le e locul”:** 59% pomenesc un PR, 57 sunt cereri de review, 35 anunță ce e unit. Liderul e o strangulare mai mare decât în v1 (41% din mesaje îi sunt adresate, față de 30%).
-5. **`wait` a scos omul din rolul de curier, dar cu un cost ascuns:** sâmbătă 03:00–09:00 agentul lui D a lucrat cu un singur prompt de la om, iar bucla a citit din cache 126 M de tokeni (20% din tot hackathonul), fiindcă fiecare trezire recitește o sesiune deja mare.
+5. **`wait` a scos omul din rolul de curier, dar cu un cost ascuns:** sâmbătă 03:00–07:00 agentul lui D a lucrat patru ore fără niciun prompt de la om, iar între 03:00 și 09:00 bucla a citit din cache 126 M de tokeni (20% din tot hackathonul), fiindcă fiecare trezire recitește o sesiune deja mare.
 
 Legendă: **[M]** = măsurat (sursa în paranteză), **[D]** = dedus, **[?]** = nu se poate ști din date. Orele sunt locale.
-Limite: §1–§7 folosesc transcrierile lui D (cel mai încărcat din echipă), verificate pe 15 nov. cu o a doua măsurătoare independentă (`rapoarte/ANALIZA-D.md`); §8 adaugă măsurătorile agenților A, B, C și E, făcute de ei; la C au rămas doar 4,5 ore din 24, restul transcrierilor fiind șterse. Din v1 au rămas pe disc doar ultimele 5 ore (8 nov., 10:13–15:16).
+Limite: §1–§7 folosesc transcrierile lui D (cel mai încărcat din echipă), verificate pe 15 nov. cu o a doua măsurătoare independentă (`rapoarte/ANALIZA-D.md`). Diferențele mici rămase (3073 de apeluri aici, 3 064 în raport; 27 de citiri ale `tasks.yaml` aici, 29 în raport) vin din felul în care sunt numărate o singură dată sesiunile bifurcate; §8 adaugă măsurătorile agenților A, B, C și E, făcute de ei; la C au rămas doar 4,5 ore din 24, restul transcrierilor fiind șterse. Din v1 au rămas pe disc doar ultimele 5 ore (8 nov., 10:13–15:16).
 Punctele 3 și 5 din verdict arată diferit la A, B, C și E: puține porniri de sesiune, dar sesiuni uriașe, recitite la fiecare apel (§8).
 Tokenii din caractere sunt estimați la ~3 caractere pe token [D].
 
@@ -36,7 +36,7 @@ Tokenii din caractere sunt estimați la ~3 caractere pe token [D].
 ## 2. Firele și răspunsurile (doar v2; v1 nu avea fire)
 - [M] 324 de fire: 130 pornite cu `fyi`, 190 cu o cerere (`ask`, `review`, `contract`). **La final au rămas deschise 11.**
 - [M] Din cele 190 de cereri, 164 au primit răspuns de la altcineva: **mediana 5 minute**, 87 în cel mult 5 minute, 31 după peste o oră.
-  Pe cel care răspunde: A 2 min, B 4, C 4, **D 13 (p90 ~5 h)**, E 19.
+  Pe destinatar, cu aceeași metodă ca în §8: A 2 min, B 4, C 3, **D 13 (p90 ~6 h)**, E 18.
   Pe toate cele 107 cereri către D, nu doar pe primul mesaj din fir (`rapoarte/ANALIZA-D.md`): mediana 16 min, p90 ~6,5 h; 36 în cel mult 5 minute, 35 după peste o oră.
 - [M] **124 din cele 190 de cereri (65%) sunt despre un review sau un PR**, cele mai multe scrise ca `ask`, nu ca `review`.
 - [M] 26 de cereri n-au primit niciun răspuns în comms (14 către E), dar **22 dintre ele cer review sau pomenesc un PR**, deci verdictul s-a dat pe GitHub.
@@ -60,7 +60,7 @@ Tokenii din caractere sunt estimați la ~3 caractere pe token [D].
   Totalurile din titlu sunt aceleași ca în `ANALIZA-DAG.md` (fără sub-agenți; cu ei sunt ~3100 de apeluri și 7,6 M tokeni noi).
 - [M] Tabelul e corectat după `rapoarte/ANALIZA-D.md`. Prima variantă număra de două ori hook-urile `PostToolUse` (fiecare lasă două rânduri în transcriere: 31 reale, nu 62) și nu număra citirile ieșirii lui `wait` (120 de citiri, 64 k caractere) și 52 dintre notificări.
   A doua măsurătoare dă pentru comms 627 k caractere (2,85%), fără notificări; diferența față de tabel e sub 10%.
-- [M] D a rulat mai ales pe Opus 5.5 (2385 din 3064 de apeluri), apoi pe Fable 5.2 (368) și Sonnet 5.5 (296).
+- [M] D a rulat mai ales pe Opus 5.5 (2385 din 3064 de apeluri, după raportul lui D), apoi pe Fable 5.2 (368) și Sonnet 5.5 (296).
 - [M] **Calea ieftină a ieșit cum a fost gândită.** Hook-ul de la prompt a afișat ceva la 33 de prompturi din ~360 și zero caractere la restul; trimiterea unui mesaj întoarce 45 de caractere la mediană.
 - [M] **Pornirea sesiunii e scumpă din cauza firelor de review.** Cele 724 de rânduri „deschis” acoperă doar 52 de fire; cele mai vechi au fost reafișate de 25 de ori.
   454 de rânduri (63%) sunt cereri de `review`: verdictul s-a dat pe PR, cum cere regula, deci nimeni n-a mai închis firul din comms.
@@ -84,7 +84,7 @@ Tokenii din caractere sunt estimați la ~3 caractere pe token [D].
 | Mesaje lungi (~500) | **Rezolvat**, cu 15% ocoliri | 0 peste 300; 95 rupte în bucăți |
 | Nicio stare, niciun fir | **Rezolvat** | 324 de fire, 11 deschise la final |
 | Comutări de branch la fiecare mesaj | **Rezolvat complet** | 0 commit-uri de mesaje pe `main` (42% în v1); dispar și ~790 de minute de CI |
-| Liderul ca strangulare | **Mai rău** | D: 41% din mesaje, mediana lui 13 min, p90 ~5 h; auto-merge neconstruit |
+| Liderul ca strangulare | **Mai rău** | D: 41% din mesaje, mediana lui 13 min, p90 ~6 h; auto-merge neconstruit |
 | Oamenii transmiteau între agenți | **Parțial** | §6 |
 | Istoricul conversației crește | **Nerezolvat** | 78 de sesiuni la D, fiecare pornire ~4–5 k caractere de comms |
 | Mai puține mesaje (mutate pe PR, în `specs/`, în scripturi) | **Nu s-a întâmplat** | 369 pomenesc un PR; 57 cereri de review; 35 `fyi` „e unit / e pe main”; 4 `--saved-to` la 17 contracte |
@@ -95,7 +95,7 @@ Tokenii din caractere sunt estimați la ~3 caractere pe token [D].
 - [M] `wait` a fost pornit de 123 de ori, mereu în fundal, în 11 sesiuni; 120 s-au încheiat cu un mesaj și 4 au fost oprite (`rapoarte/ANALIZA-D.md`).
 - [M] **Sesiunile paralele ale aceluiași agent se trezesc toate la același mesaj.** Sâmbătă la 00:56, două sesiuni ale lui D au fost trezite în același minut, apoi au ținut câte un `wait` peste 90 de minute; la 11:19 erau 4 `wait`-uri pornite deodată.
 - [M] Livrarea în mijlocul lucrului merge: din 31 de hook-uri `PostToolUse` cu mesaj nou, 22 au fost urmate de un răspuns în cel mult 10 minute, în aceeași sesiune.
-- [M] **Sâmbătă 03:00–08:59: un singur prompt de la om, 423 de apeluri, 51 de mesaje trimise de D, 126 M tokeni citiți din cache** (20% din fereastra hackathonului).
+- [M] **Sâmbătă 03:00–06:59: niciun prompt de la om, 290 de apeluri. Pe 03:00–08:59: 6 prompturi, 421 de apeluri, 126 M tokeni citiți din cache** (20% din fereastra hackathonului; orele din `rapoarte/ANALIZA-D.md`).
   Între 06:00 și 09:00, un apel citea 340–460 k tokeni: sesiunea era deja mare, iar fiecare trezire o recitește.
 - [M] Ziua, omul a rămas parțial curier: ~10 prompturi de tipul „verifică mesaje” sau „răspunde la mesaje” (lista din transcrieri).
 - [M] `state` a fost folosit cu adevărat: 118 commit-uri (D 40, C 39, A 18, B 12, E 9). Predarea: 3 `handoff` (D→E, B→C, E→A) și 3 `back`.
@@ -129,14 +129,15 @@ Cifrele sunt măsurate de agentul fiecăruia pe transcrierile lui (`rapoarte/ANA
 | `close` trimise | 50 | 0 | 3 | 2 | 0 |
 | Cereri de `review` trimise | 4 | 26 | 0 | 0 (32 de `ask` despre PR-uri) | 2 (31 de cereri despre PR-uri) |
 | Etichete pentru graf / citiri `DAG.md` | 6 / 33 | 0 / 27 | 0 / 2 | 0 / 33 (plus 16 ale `tasks.yaml`) | 0 / 11 (plus 7 ale `tasks.yaml`) |
-| `CLAUDE.local.md` față de repo | ultima versiune (17:36) | prima (14:41) | a treia (15:50), plus o regulă proprie | ultima versiune (17:36) | ultima versiune (17:36) |
+| `CLAUDE.local.md` față de repo | ultima versiune (17:36) | prima (14:41), de confirmat [?] | a treia (15:50), plus o regulă proprie | ultima versiune (17:36) | ultima versiune (17:36) |
 | Comms și graf din tokenii noi | ~4% | ~5,9% | ~1,9% | ~4,2% | ~3,4% |
-| Limita de usage atinsă | de 4 ori | o dată | de 2 ori | de 2 ori | 0 în ce a rămas [?] |
+| Limita de usage atinsă | de 4 ori | o dată | de 2 ori | o dată măsurat, a doua oară nesigur [?] | 0 în ce a rămas [?] |
 
 ### A
 - [M] **La A, hook-urile n-au rulat deloc.** Agentul a pornit din folderul părinte al repo-ului, iar toate cele 289 de comenzi `git comms` sunt înlănțuite cu `cd … &&`.
   Confirmat în a doua rundă a raportului: în folderul de pornire nu există `.claude/settings.json`, iar cel din repo, cu cele trei hook-uri, nu a fost încărcat.
 - [M] **`CLAUDE.local.md` al lui A a rămas la prima versiune** (identic cu `docs/agenti/CLAUDE.local-A.md` din `ace6820`, vineri 14:41), cu trei versiuni în urmă.
+  [?] De confirmat cu A: raportul lui măsoară un `CLAUDE.local.md` de 13.929 de caractere, exact cât `b6a1603` (ultima versiune), iar copia trimisă are 11.188 (`ace6820`). Copia e din 16 nov., deci nu știm sigur ce fișier a avut agentul în sesiune.
   Îi lipsesc reparațiile la etichete (`ce58deb`), `send --each` (`3d590ac`) și tot pivotul cu etapele (`b6a1603`, 17:36): descrie produsul vechi (aplicație de mesaje pentru vârstnici) și 4 taskuri vechi, în loc de cele 6 din planul final (A2–A4 redefinite, A5 și A6 lipsă), fără puncte de control.
   [?] Cât din el a fost în context, cu sesiunea pornită din folderul părinte, nu se vede.
 - [M] Fără hook-uri, mesajele au venit doar prin `wait`: un mesaj primit a costat ~1,1 k caractere, de ~4 ori mai mult decât prin hook la D (~250 de caractere), iar omul a cerut de 15 ori verificarea mesajelor.
@@ -154,7 +155,7 @@ Cifrele sunt măsurate de agentul fiecăruia pe transcrierile lui (`rapoarte/ANA
 - [M] Toate cele 130 de comenzi `git comms` sunt înlănțuite, 127 cu `cd`, inclusiv în sesiunea pornită din repo, deși regula spune „fără `cd`”.
 - [M] **Predarea a mers la minut, dar numai când a făcut-o omul.** `handoff` către C la 16:53, cu un minut înainte de limită; `back` la 19:54. La a doua limită (21:06) n-a mai fost nicio predare, iar B a lipsit până la 00:52.
   În acest interval și imediat după, C i-a scris de trei ori că îi preia taskurile (`2335-C-k65`, `0209-C-qa7`, `0318-C-tn3`); niciunul n-a primit răspuns.
-- [M] Din cele 8 cereri către B fără răspuns de la el: la 4 a răspuns alt destinatar, una a fost închisă de D și 3 sunt cele de mai sus. B a răspuns la 20 din 28, cu mediana 5,3 min și p90 105 min.
+- [M] Din cele 8 cereri către B fără răspuns de la el: la 4 a răspuns alt destinatar, una a fost închisă de D și 3 sunt cele de mai sus. B a răspuns la 20 din 28, cu mediana 5,3 min și p90 105 min (după raportul lui B; cu metoda de la „Concluzii”: 4 și 120 min, pe 19 cereri).
 - [M] B a folosit puțin graful: 2 citiri ale `DAG.md`, nicio etichetă. Singurul mesaj semnat automat „for” din tot hackathonul e al lui C pentru B (`1657-C-vga`).
 - [M] Cele 2 refuzuri ale lui B au un motiv în afara celor patru categorii. [D] Cel mai probabil e refuzul „i-ai predat lucrul lui C, rulează întâi `git comms back`” (`comms.py`, `post`), fiindcă B a predat între 16:53 și 19:54.
 ### E
@@ -180,7 +181,7 @@ Cifrele sunt măsurate de agentul fiecăruia pe transcrierile lui (`rapoarte/ANA
 ### Concluzii din cei cinci
 - [D] **Costul mare nu e textul mesajelor (1,9–5,9% din tokenii noi), ci contextul recitit la fiecare apel.** A, B, C și E au citit din cache 357–508 k tokeni pe apel, de 1,7–2,5 ori cât D, fiindcă au ținut sesiuni lungi. D l-a plătit noaptea, ceilalți tot timpul. A și E, cu câte o singură sesiune de 24 de ore, au citit fiecare ~700 M, mai mult decât D în 78 de sesiuni.
 - [M] **Instalarea n-a ținut la 3 din 5 agenți:** sesiuni pornite din afara repo-ului (A și E tot timpul, B 6,5 ore) și instrucțiuni locale rămase înaintea pivotului (A și B). Hook-urile au rulat tot timpul doar la D și, în intervalul rămas, la C.
-- [M] **Viteza de răspuns ține de `wait`, nu de hook-uri.** Mediana până la răspuns, cu aceeași metodă pentru toți, pe `origin/comms`: A 2 min (p90 7), C 3 (p90 29), B 4 (p90 120), D 13 (p90 ~6 h), E 18 (p90 54). A n-a avut niciun hook, dar a ținut un `wait` pornit tot timpul (146); E n-a avut nici hook-uri, nici `wait` continuu (18). D e lent din alt motiv: 107 cereri către el, cât A și C la un loc.
+- [M] **Viteza de răspuns ține de `wait`, nu de hook-uri.** Mediana până la răspuns, cu aceeași metodă pentru toți, pe `origin/comms`: A 2 min (p90 7), C 3 (p90 29), B 4 (p90 120), D 13 (p90 ~6 h), E 18 (p90 54). Rapoartele dau cifre puțin diferite, fiindcă fiecare agent a măsurat altfel (de exemplu B 5,3 și 105, E 18,5 și 44, p90 la A 6). A n-a avut niciun hook, dar a ținut un `wait` pornit tot timpul (146); E n-a avut nici hook-uri, nici `wait` continuu (18). D e lent din alt motiv: 107 cereri către el, cât A și C la un loc.
 - [M] **Omul a rămas curier acolo unde hook-urile n-au mers:** 15 din 67 de prompturi la A, 11 din 63 la B și 16 din 214 la E cer verificarea mesajelor, față de ~10 din ~360 la D și 3 din 44 la C. La E procentul e aproape cât la C (7%), fiindcă agentul a rulat singur `inbox`.
 - [M] **Fără hook-uri, agentul plătește altă cale, mai scumpă:** A prin `wait` (146), B prin `brief` (45), E prin `inbox` de mână (73). Toate trei reafișează firele deschise cu textul întreg.
 - [M] **Graful se citește întreg ca să afli ce e al tău:** 33 de citiri ale `DAG.md` la D și la E, 27 la A. Graful e 46% din textul de coordonare la E și 60% la C, iar nimeni în afară de D n-a pus vreo etichetă.
@@ -197,7 +198,7 @@ Cifrele sunt măsurate de agentul fiecăruia pe transcrierile lui (`rapoarte/ANA
    `brief` nu mai repetă ce a arătat hook-ul și primește rândurile tale din graf; împreună, pornirea scade la sub 1 k caractere.
 2. **Un fir de `review` se închide singur când PR-ul e aprobat sau unit** (botul vede asta), iar cererea de review o scrie botul la deschiderea PR-ului. Dispar 63% din reafișări, cele 57 de cereri și cele 35 de anunțuri.
 3. **Bucla de noapte rulează într-o sesiune scurtă:** `wait` trezește o sesiune proaspătă care citește `brief`, răspunde și se închide, în loc să recitească o sesiune de 400 k tokeni la fiecare mesaj. Aici e cel mai mare câștig de usage (126 M tokeni din cache într-o noapte).
-4. **Auto-merge pe reguli** (faza 3, neconstruită): PR care atinge doar fișierele autorului și are CI verde. E singura piesă care scade coada de la D (41% din mesaje, p90 ~5 h).
+4. **Auto-merge pe reguli** (faza 3, neconstruită): PR care atinge doar fișierele autorului și are CI verde. E singura piesă care scade coada de la D (41% din mesaje, p90 ~6 h).
 5. **`git comms checkpoint Mx probat|ok|pică`** (propunerea din `ANALIZA-DAG.md`): „probat” îl pune oricine, „ok” liderul sau înlocuitorul lui, iar botul îi cere liderului punctul de control printr-un `ask`. Înlocuiește etichetele scrise de mână.
 6. Al doilea mesaj către aceiași destinatari în 2 minute se lipește de primul ca același fir, ca ruperea în bucăți să nu deschidă fire noi.
 

@@ -75,9 +75,9 @@ Sursa țintelor: `tasks-depend-DAG/docs/DAG-PLAN.md`, `IDEI.md`, `AGENTS.md` (�
 - [M] `dag` verde a fost citat ca verificare a unui PR (cdc041f5, sâm 12:53), deși nu spune nimic despre cod.
 
 ## 7. Costul în tokeni (măsurat pe mașina lui D)
-- [M] Consumul lui D în fereastra hackathonului, cu sesiunile bifurcate numărate o dată: 78 de sesiuni, 3073 de apeluri, 7,33 M tokeni noi, 630 M citiți din cache, 1,84 M scriși.
+- [M] Consumul lui D în fereastra hackathonului, cu sesiunile bifurcate numărate o dată: 78 de sesiuni, 3073 de apeluri (raportul lui D, cu altă deduplicare: 3 064), 7,33 M tokeni noi, 630 M citiți din cache, 1,84 M scriși.
 - [M] Reguli despre graf în fiecare apel: 5,1 k caractere în șase secțiuni din `CLAUDE.local`, 6,5 k cu bucățile din „Ce nu faci” și „Dacă ceva nu merge”, plus 0,6 k în `CLAUDE.md`: **~7,1 k caractere ≈ 2,3 k tokeni** [D: ~3 caractere pe token]. La 3073 de apeluri: ~7,1 M tokeni din cache, **1,1%** din 630 M. În plus, „Taskurile tale” e o copie a planului (1,9–4,4 k caractere) care nu se actualizează.
-- [M] Citiri: 33 ale `DAG.md` (14 întreg sau `head`, ~10 k caractere bucata; 19 filtrate), 27 ale `tasks.yaml`, 10 scrieri, 6 rulări locale. Rezultatele au **cel mult 334 k caractere ≈ 110 k tokeni, 1,5% din contextul nou** (unele comenzi aduc și altceva).
+- [M] Citiri: 33 ale `DAG.md` (14 întreg sau `head`, ~10 k caractere bucata; 19 filtrate), 27 ale `tasks.yaml` (raportul lui D: 29), 10 scrieri, 6 rulări locale. Rezultatele au **cel mult 334 k caractere ≈ 110 k tokeni, 1,5% din contextul nou** (unele comenzi aduc și altceva).
 - [M] `DAG.md` are între 8,3 k și 19,7 k caractere (vârf vin 18:06), 9,7 k la final. **Blocul Mermaid e 43% la vârf și 85% la final**; agentul nu-l vede desenat, iar titlurile apar a doua oară în liste.
 - [M] Construcția, înainte de hackathon (c526a027 și 85f69f31 până la 14:00): 0,84 M tokeni noi, 15 M din cache, 0,18 M scriși.
 - [M] Reparațiile din prima oră și ceva (85f69f31, vin 14:48–16:00, împărțite cu comms): 152 de apeluri, 0,2 M noi, **57,8 M din cache**, 0,14 M scriși, într-o conversație cu ~380 k tokeni de context pe apel. Sunt și ~70 de minute din atenția liderului.
