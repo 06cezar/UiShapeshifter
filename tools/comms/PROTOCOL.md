@@ -21,10 +21,13 @@ python tools/comms/install.py D
 | `git comms show <id>` | Firul întreg și starea lui. |
 | `git comms wait` | Stă până sosește un mesaj pentru tine, îl afișează și se oprește. |
 | `git comms log [--from <zi>] [--to <zi>]` | Scrie `.comms/log.md` pentru oameni, grupat pe fire. |
-| `git comms state "<text>"` | Salvează starea ta de lucru: gata, urmează, blocat. |
+| `git comms state "<text>"` | Salvează starea ta de lucru: gata, urmează, blocat. Dacă rămâne în urmă cu peste o oră și au apărut commit-uri, agentul primește un rând `[comms] stare:`, cel mult o dată pe oră. |
 | `git comms handoff <coleg> ["notă"]` | Predă lucrul: împinge branch-ul, scrie nota de predare și anunță colegul. Nu cere tokeni. |
 | `git comms back` | Te-ai întors: încheie predarea. |
 | `git comms brief` | Unde ai rămas: stare, branch, mesaje noi, fire deschise. Pentru o sesiune nouă, cu orice agent. |
+| `git comms doctor` | E în regulă instalarea? Unealta, hook-urile din proiect, hook-urile din sesiune, `CLAUDE.local.md`. Fiecare `NU` spune ce ai de făcut. |
+| `git comms update` | Aduce la zi unealta din `.git/comms/` și `CLAUDE.local.md`, de pe branch-ul comun. Nu atinge proiectul. |
+| `git comms team` | Pentru lider: instalarea fiecărui coleg (din `health/` pe branch-ul `comms`) și ultimul lui mesaj. |
 
 Un `<id>` arată ca `1812-A-k3f`; merge și doar finalul, `k3f`. Textul `-` se citește de la stdin, util când are ghilimele sau `$`.
 
