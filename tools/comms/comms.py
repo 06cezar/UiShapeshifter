@@ -7,6 +7,7 @@ Folosire (aliasul `git comms` îl pune install.py):
     git comms close <id> [--saved-to <cale>]
     git comms state "<gata / urmează / blocat>"     git comms handoff <coleg> ["notă"]     git comms back
     git comms brief
+    git comms doctor     git comms update     git comms team          (instalarea: e în regulă? adu-o la zi; echipa)
 
 Doar biblioteca standard. Regulile sunt în PROTOCOL.md.
 """
@@ -19,8 +20,10 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 
+VERSION = 3                                   # crește când colegii trebuie să aducă unealta la zi (`git comms update`)
 LIMIT = 300                                   # caractere pe mesaj
 DAG_TAG = re.compile(r"\[\s*(blocat|deblocat|gata)\s+[A-Za-z][\w.-]*[^\]]*\]", re.IGNORECASE)   # ca în build_dag.py
 SECRETS = ("**/.env", "**/.env.*", "**/*.pem", "**/*.key", "**/id_rsa*", "**/*credentials*", "**/*secret*")
@@ -36,12 +39,33 @@ SYNC_EVERY = float(os.environ.get("COMMS_SYNC_EVERY", "60"))   # secunde între 
 # ca să termine sigur înainte să fie omorât (un hook omorât lasă lock-ul în urmă).
 NET = {"fetch": 20, "push": 30}
 NET_HOOK = {"fetch": 8, "push": 10}
+# Cât are voie `inbox` să stea în rețea, în total. Cu INBOX_PATIENCE și citirea JSON-ului de pe stdin rămâne sub 30 s,
+# deci hook-ul își termină singur treaba și nu rămâne un proces orfan care ține lock-ul.
+HOOK_BUDGET = 15
+DEADLINE = []                                 # ora până la care comanda mai are voie în rețea; gol = fără termen
 INBOX_PATIENCE = 8                            # secunde cât așteaptă `inbox` o altă comandă comms din aceeași clonă
 STALE_LOCK = 90                               # un lock neatins de atâtea secunde e părăsit, chiar dacă nu știm cine l-a luat
 ENV = {k: v for k, v in os.environ.items()
        if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_PREFIX", "GIT_COMMON_DIR")}
 ENV["GIT_TERMINAL_PROMPT"] = "0"              # într-un hook nu are cine să tasteze o parolă
 OFFLINE = []                                  # nevid după un fetch eșuat: restul comenzii nu mai încearcă rețeaua
+# Instalarea: ce verifică `doctor` și ce aduce la zi `update`.
+KIT_TOOL = "tools/comms/comms.py"             # unde stă unealta în proiect
+RULES = "docs/agenti/CLAUDE.local-{me}.md"    # șablonul regulilor locale în repo; `git config comms.rules` îl schimbă
+# Comenzile din .claude/settings.json sunt cele din v2: cine trage proiectul fără să reinstaleze rămâne cu hook-uri
+# care merg. Că rularea vine dintr-un hook se vede din JSON-ul pe care Claude Code i-l dă pe stdin.
+HOOKS = {"SessionStart": "git comms inbox", "UserPromptSubmit": "git comms inbox --new",
+         "PostToolUse": "git comms inbox --new --tool-hook"}
+HOOK_EVENTS = {"SessionStart": "start", "UserPromptSubmit": "prompt"}
+HOOK_INPUT_WAIT = 2                           # secunde cât așteptăm JSON-ul hook-ului pe stdin
+SESSION_ID = "CLAUDE_CODE_SESSION_ID"         # Claude Code o pune comenzilor și hook-urilor lui, cu id-ul sesiunii
+STAMPS_KEEP = 7 * 24 * 3600                   # urmele sesiunilor mai vechi de atât se șterg
+STATE_OLD = 60 * 60                           # stare mai veche de atât, cu commit-uri de atunci: agentul e rugat s-o
+                                              # salveze, cel mult o dată la același interval
+WARN_EVERY = 30 * 60                          # cel mult o verificare a instalării la atâtea secunde, din comenzile de mână
+VERSIONS_BACK = 30                            # câte versiuni vechi ale regulilor locale comparăm
+WAIT_STALE = 180                              # un `wait` care nu și-a atins fișierul atâtea secunde nu mai rulează
+QUIET_CMDS = ("doctor", "update", "team")     # comenzile care spun ele însele starea instalării
 
 
 class Fail(Exception):
@@ -197,6 +221,14 @@ def heal(c):
             git("checkout", "--quiet", "--force", "comms", cwd=c.wt, check=False)
 
 
+def net_time(kind):
+    """Cât poate aștepta următorul apel de rețea: limita lui, tăiată la cât a mai rămas din termen. None = nimic."""
+    if not DEADLINE:
+        return NET[kind]
+    left = DEADLINE[0] - time.time()
+    return min(NET[kind], left) if left >= 1 else None
+
+
 def sync(c, force=True, fetch=True):
     """Aduce mesajele noi și împinge ce a rămas local. Întoarce False dacă remote-ul nu a răspuns."""
     stamp = os.path.join(c.state, "last-sync")
@@ -211,16 +243,22 @@ def sync(c, force=True, fetch=True):
     if OFFLINE:
         return False                           # un fetch din aceeași comandă tocmai a picat: nu mai așteptăm rețeaua
     open(stamp, "w").close()
-    for attempt in range(TRIES):
+    # Cu termen (hook), o singură încercare de push: un commit refuzat rămâne local și pleacă la următoarea comandă.
+    tries = TRIES if not DEADLINE else 1 if fetch else 2
+    for attempt in range(tries):
         try:
             os.utime(os.path.join(c.state, "lock"))    # lucrăm încă: lock-ul nu e părăsit
         except OSError:
             pass
         blind = not fetch and attempt == 0     # abia am făcut fetch: încercăm întâi direct push
         if not blind:
+            wait_for = net_time("fetch")
+            if wait_for is None:               # termenul s-a dus: ce e local pleacă data viitoare
+                OFFLINE.append(True)
+                return False
             # mesajele lui git în engleză, ca să recunoaștem „branch-ul încă nu există” (remote-ul a răspuns)
             r = git("fetch", "--quiet", "origin", "+refs/heads/comms:" + UPSTREAM, cwd=c.wt, check=False,
-                    timeout=NET["fetch"], env=dict(ENV, LC_ALL="C", LANGUAGE="C"))
+                    timeout=wait_for, env=dict(ENV, LC_ALL="C", LANGUAGE="C"))
             if r.returncode and "couldn't find remote ref" not in (r.stderr or ""):
                 OFFLINE.append(True)           # fără rețea (sau remote-ul nu răspunde): fără push, ar aștepta degeaba
                 return False
@@ -234,8 +272,11 @@ def sync(c, force=True, fetch=True):
             head = c.rev("HEAD")
         if up == head:
             return True                        # nimic de împins
+        wait_for = net_time("push")
+        if wait_for is None:
+            return False
         pushed = git("push", "--quiet", "--no-verify", "origin", "HEAD:refs/heads/comms",
-                     cwd=c.wt, check=False, timeout=NET["push"])
+                     cwd=c.wt, check=False, timeout=wait_for)
         if pushed.returncode == 0:
             git("update-ref", UPSTREAM, head, cwd=c.wt)
             return True
@@ -456,6 +497,284 @@ def report(sent, mid, to, typ):
                                       "aglomerat; pleacă singur la următoarea comandă comms):", mid, ",".join(to), typ))
 
 
+# ---------------------------------------------------------------- instalarea: hook-uri, unealtă, reguli locale
+
+
+def age(path):
+    """Câte secunde au trecut de când a fost atins fișierul; None dacă nu există."""
+    try:
+        return time.time() - os.path.getmtime(path)
+    except OSError:
+        return None
+
+
+def touch(path):
+    open(path, "w").close()
+
+
+def ago(seconds):
+    if seconds is None:
+        return "niciodată"
+    minutes = int(seconds // 60)
+    return "acum sub un minut" if minutes < 1 else "acum %d min" % minutes if minutes < 120 else "acum %d h" % (minutes // 60)
+
+
+def read_text(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read().replace("\r\n", "\n")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def write_text(path, text):
+    """Scrie întâi alături și apoi înlocuiește: un fișier citit de altcineva nu rămâne pe jumătate."""
+    with open(path + ".tmp", "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+    os.replace(path + ".tmp", path)
+
+
+def session():
+    """Id-ul sesiunii Claude Code din care vine comanda; gol pentru un om într-un terminal sau pentru alt agent.
+    (`CLAUDECODE` nu ajunge: îl au și terminalele din IDE, unde tastează omul.)"""
+    return re.sub(r"[^\w-]", "", os.environ.get(SESSION_ID, ""))
+
+
+def hook_event():
+    """Hook-ul Claude Code din care vine comanda: "start", "prompt" sau "" dacă e rulată de mână.
+    Claude Code îi dă fiecărui hook un JSON pe stdin (`hook_event_name`); omul și agentul nu dau nimic."""
+    try:
+        if sys.stdin is None or sys.stdin.isatty():
+            return ""
+        fd = sys.stdin.fileno()
+    except (ValueError, OSError):
+        return ""
+    box = []
+
+    def read():                                # direct din descriptor: un fir blocat aici nu ține procesul la ieșire
+        data = b""
+        try:
+            while len(data) < 1 << 20:
+                chunk = os.read(fd, 65536)
+                if not chunk:
+                    break
+                data += chunk
+                try:                           # primul obiect întreg ajunge: nu mai așteptăm să se închidă stdin-ul
+                    box.append(json.JSONDecoder().raw_decode(data.decode("utf-8", "replace").lstrip())[0])
+                    return
+                except ValueError:
+                    continue
+        except OSError:
+            pass
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    reader.join(HOOK_INPUT_WAIT)               # un stdin deschis și gol nu ține comanda pe loc
+    event = box[0].get("hook_event_name") if box and isinstance(box[0], dict) else None
+    return HOOK_EVENTS.get(event, "") if isinstance(event, str) else ""
+
+
+def hook_stamp(c):
+    return os.path.join(c.state, "hook-" + session())
+
+
+def hook_ran(c, start=False):
+    """Urma lăsată de fiecare hook: una pe clonă (ține și rărirea hook-ului PostToolUse) și una pe sesiune."""
+    touch(os.path.join(c.state, "last-hook"))
+    if session():
+        touch(hook_stamp(c))
+    if start:                                  # la început de sesiune: curățenie printre urmele sesiunilor vechi
+        for name in os.listdir(c.state):
+            if name.startswith("hook-") and (age(os.path.join(c.state, name)) or 0) > STAMPS_KEEP:
+                os.remove(os.path.join(c.state, name))
+
+
+def hooks_alive(c):
+    """A rulat vreun hook în sesiunea din care vine comanda? Dacă nu, sesiunea nu le are: de obicei a pornit
+    din alt folder decât repo-ul. Pe id-ul sesiunii, nu pe ceas: merge și cu două sesiuni în aceeași clonă."""
+    return os.path.exists(hook_stamp(c))
+
+
+def fetch_base(top, base):
+    """Aduce branch-ul comun, ca verificarea să compare cu ce e acum pe remote, nu cu ce avea clona de ieri."""
+    wait_for = min(net_time("fetch") or 0, NET_HOOK["fetch"])
+    if not OFFLINE and wait_for and git("config", "remote.origin.url", cwd=top, check=False).returncode == 0:
+        if git("fetch", "--quiet", "origin", base, cwd=top, check=False, timeout=wait_for).returncode:
+            OFFLINE.append(True)
+
+
+def tool_version(text):
+    m = re.search(r"^VERSION = (\d+)", text or "", re.M)
+    return int(m.group(1)) if m else 0
+
+
+def repo_file(top, base, path):
+    """Fișierul de pe branch-ul comun, așa cum îl are clona acum; None dacă nu există acolo."""
+    for ref in ("origin/" + base, base):
+        r = git("show", "%s:%s" % (ref, path), cwd=top, check=False)
+        if r.returncode == 0:
+            return r.stdout.replace("\r\n", "\n")
+    return None
+
+
+def check_tool(c, top, base):
+    """Unealta instalată (.git/comms/comms.py) față de cea de pe branch-ul comun.
+    Întoarce (în regulă?, ce se vede, textul nou dacă e de adus)."""
+    have, want = read_text(os.path.join(c.state, "comms.py")), repo_file(top, base, KIT_TOOL)
+    mine_v, repo_v = tool_version(have), tool_version(want)
+    if want is None:
+        return None, "v%d; proiectul nu are %s pe %s" % (mine_v, KIT_TOOL, base), None
+    if have == want:
+        return True, "v%d, la zi" % mine_v, None
+    if mine_v > repo_v:                        # cineva probează o versiune mai nouă: nu o dăm înapoi
+        return True, "v%d, mai nouă decât cea de pe %s (v%d)" % (mine_v, base, repo_v), None
+    return False, ("v%d instalată, v%d pe %s" % (mine_v, repo_v, base) if repo_v > mine_v
+                   else "v%d, dar diferă de cea de pe %s" % (mine_v, base)), want
+
+
+def check_settings(top):
+    """Hook-urile din .claude/settings.json al proiectului: sunt toate trei? Întoarce (în regulă?, text)."""
+    try:
+        settings = json.loads(read_text(os.path.join(top, ".claude", "settings.json")) or "{}")
+        hooks = settings.get("hooks", {})
+    except (ValueError, AttributeError):
+        return False, "nu pot citi .claude/settings.json"
+    have = dict((event, json.dumps(hooks.get(event, ""))) for event in HOOKS)
+    missing = [event for event in HOOKS if "git comms inbox" not in have[event]]
+    if missing:
+        return False, "lipsesc din .claude/settings.json: " + ", ".join(missing)
+    return True, "în .claude/settings.json"
+
+
+def rules_path(c):
+    return (git("config", "comms.rules", check=False).stdout.strip() or RULES).replace("{me}", c.me)
+
+
+def check_rules(c, top, base):
+    """CLAUDE.local.md față de șablonul din repo și de versiunile lui vechi.
+    Întoarce (în regulă?, ce se vede, textul nou dacă unealta îl poate aduce la zi fără să piardă ceva)."""
+    def tidy(text):
+        return text.replace("\r\n", "\n").rstrip() + "\n"
+
+    def extra(text, start):                    # rândurile adăugate de om după o versiune din repo
+        return text[len(start):] if text.startswith(start) and text[len(start):].strip() else None
+
+    path = rules_path(c)
+    known = git("rev-parse", "--verify", "-q", "origin/" + base, cwd=top, check=False).returncode == 0
+    versions = []
+    for commit_id in git("log", "--format=%H", "-%d" % VERSIONS_BACK, "origin/" + base if known else base, "--", path,
+                         cwd=top, check=False).stdout.split():
+        r = git("show", "%s:%s" % (commit_id, path), cwd=top, check=False)
+        if r.returncode == 0:
+            versions.append(tidy(r.stdout))
+    if not versions:
+        return None, "proiectul nu are un șablon la %s" % path, None
+    latest = versions[0]
+    try:                                       # nu prin read_text: acolo un fișier necitibil arată ca unul lipsă
+        with open(os.path.join(top, "CLAUDE.local.md"), encoding="utf-8") as f:
+            local = f.read()
+    except FileNotFoundError:
+        return False, "lipsește", latest
+    except (OSError, UnicodeDecodeError):      # de exemplu UTF-16, cum scrie `>` în Windows PowerShell 5.1
+        return None, "nu se poate citi ca UTF-8 (de exemplu, e UTF-16); unealta nu-l atinge", None
+    if not local.strip():
+        return False, "e gol", latest
+    local = tidy(local)
+    for behind, old in enumerate(versions):
+        own = extra(local, old)
+        if local != old and own is None:
+            continue
+        note = ", plus %d rânduri proprii la final" % len([x for x in own.splitlines() if x.strip()]) if own else ""
+        if behind == 0:
+            return True, "la zi" + note, None
+        return False, "în urmă cu %d %s%s" % (behind, "versiune" if behind == 1 else "versiuni", note), latest + (own or "")
+    changed = len(set(local.splitlines()) ^ set(latest.splitlines()))
+    return None, "are schimbări proprii (%d rânduri diferă de ultima versiune din repo); unealta nu-l atinge" % changed, None
+
+
+def waiting(c):
+    """PID-ul unui `git comms wait` care rulează acum în clona asta, sau 0."""
+    path = os.path.join(c.state, "wait.pid")
+    try:
+        pid, interval = (float(x) for x in read_text(path).split()[:2])
+    except ValueError:
+        return 0
+    seen = age(path)
+    return int(pid) if seen is not None and seen < max(WAIT_STALE, 3 * interval) and alive(int(pid)) else 0
+
+
+def checks(c, fresh=False):
+    """Starea instalării pe calculatorul ăsta: rânduri (nume, în regulă: True / False / None = doar de știut,
+    ce se vede, ce faci). Cu `fresh`, întâi aduce branch-ul comun de pe remote."""
+    top, _, base = where()
+    if fresh:
+        fetch_base(top, base)
+    rows = []
+    ok, text, _ = check_tool(c, top, base)
+    rows.append(("unealta", ok, text, "git comms update"))
+    ok, text = check_settings(top)
+    rows.append(("hook-uri în proiect", ok, text, "python tools/comms/install.py, apoi comite .claude/settings.json"))
+    if session():
+        ok = hooks_alive(c)
+        rows.append(("hook-uri în sesiune", ok,
+                     "rulează" if ok else "niciunul n-a rulat în sesiunea asta, deci mesajele nu-ți vin singure",
+                     "închide sesiunea și pornește Claude din %s, nu din alt folder" % top))
+    else:
+        rows.append(("hook-uri în sesiune", None, "comanda nu vine dintr-o sesiune Claude Code", ""))
+    ok, text, _ = check_rules(c, top, base)
+    rows.append(("reguli locale", ok, "CLAUDE.local.md " + text, "git comms update"))
+    return rows
+
+
+def install_lines(rows):
+    """Ce ajunge la agent când ceva nu e în regulă: câte un rând pe problemă, cu ce are de făcut."""
+    bad = ["[comms] instalare: %s: %s. Fă: %s" % (name, text, fix) for name, ok, text, fix in rows if ok is False]
+    return bad + ["[comms] instalare: rândurile de mai sus vin de la unealtă, nu de la colegi. Fă ce scriu înainte de "
+                  "altceva și spune-i omului tău."] if bad else []
+
+
+def publish(c, rows):
+    """Scrie starea instalării în `health/<nume>` pe branch-ul comms, ca liderul s-o vadă cu `git comms team`.
+    Comite doar când s-a schimbat ceva; întoarce True dacă a comis (cine cheamă împinge)."""
+    path, unknown = os.path.join(c.wt, "health", c.me), "hook-uri în sesiune: - "
+    before = read_text(path).split("\n", 1)[-1]
+    body = "".join("%s: %s\n" % (name, "ok" if ok else "NU (%s)" % text if ok is False else "- (%s)" % text)
+                   for name, ok, text, _ in rows)
+    # dintr-un terminal nu știm dacă hook-urile rulează: păstrăm ce a aflat ultima comandă venită dintr-o sesiune
+    known = [line for line in before.splitlines() if line.startswith("hook-uri în sesiune:") and unknown not in line]
+    body = "".join((known[0] if known and line.startswith(unknown) else line) + "\n" for line in body.splitlines())
+    if before == body:
+        return False
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("%s\n%s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), body))
+    commit(c, "comms: health " + c.me)
+    return True
+
+
+def watch(c):
+    """După o comandă de lucru rulată de mână dintr-o sesiune Claude Code: dacă hook-urile nu rulează în ea, sau
+    cel mult o dată la WARN_EVERY, verifică instalarea, spune ce nu e în regulă și ține la zi raportul pentru echipă."""
+    if not session():
+        return                                 # un om într-un terminal sau alt agent: hook-urile nu sunt pentru ei
+    for line in state_reminder(c):             # și într-o sesiune fără hook-uri agentul află că starea e veche
+        print(line)
+    flag = os.path.join(c.state, "hooks-dead")
+    news = not hooks_alive(c) and read_text(flag).strip() != session()   # abia acum am aflat: spunem pe loc, o dată
+    last = age(os.path.join(c.state, "last-check"))
+    if not news and last is not None and last < WARN_EVERY:
+        return
+    touch(os.path.join(c.state, "last-check"))
+    if news:
+        write_text(flag, session())
+    rows = checks(c, fresh=True)
+    if publish(c, rows):
+        sync(c, fetch=False)
+    lines = install_lines(rows)
+    if lines:
+        print("\n".join(lines))
+
+
 # ---------------------------------------------------------------- comenzi
 
 
@@ -537,8 +856,49 @@ def where():
     return top, branch, base.split("/", 1)[-1] or "main"
 
 
-def work_note(c, top, base, changes=None):
+def state_age(c, top, base):
+    """Cât de veche e starea salvată (secunde; None dacă nu există) și câte commit-uri ale omului au apărut de atunci
+    pe branch-ul curent. Fără stare, numără commit-urile branch-ului care nu sunt pe cel comun."""
+    first = read_text(os.path.join(c.wt, "state", c.me + ".md")).split("\n", 1)[0].strip()
+    try:
+        saved = datetime.datetime.strptime(first, "%Y-%m-%d %H:%M")
+    except ValueError:
+        saved = None
+    who = re.search(r"<([^>]+)>", git("var", "GIT_AUTHOR_IDENT", cwd=top, check=False).stdout)
+    args = ["rev-list", "--count", "--no-merges"] + (["-F", "--author=" + who.group(1)] if who else [])
+    if saved:                                  # starea se scrie după commit: cel din același minut e dinaintea ei
+        args += ["--since=" + (saved + datetime.timedelta(minutes=1)).strftime("%Y-%m-%d %H:%M"), "HEAD"]
+    else:
+        args += ["origin/%s..HEAD" % base]
+    count = git(*args, cwd=top, check=False).stdout.strip()
+    return (datetime.datetime.now() - saved).total_seconds() if saved else None, int(count) if count.isdigit() else 0
+
+
+def state_words(old, commits):
+    return "%s, cu %d %s %s" % ("salvată " + ago(old) if old is not None else "nesalvată", commits,
+                                "commit" if commits == 1 else "commit-uri", "de atunci" if old is not None else "pe branch")
+
+
+def state_reminder(c):
+    """Un rând pentru agent când starea a rămas în urma lucrului: din ea preia colegul la o predare."""
+    nag = os.path.join(c.state, "state-nag")
+    last = age(nag)
+    if last is not None and last < STATE_OLD:
+        return []
+    top, _, base = where()
+    old, commits = state_age(c, top, base)
+    if not commits or (old is not None and old < STATE_OLD):
+        return []
+    touch(nag)
+    return ['[comms] stare: %s. Salveaz-o acum: git comms state "gata: …; urmează: …; blocat: …". Din ea preia '
+            "colegul dacă omul tău rămâne fără limită." % state_words(old, commits)]
+
+
+def work_note(c, top, base, changes=None, stale=None):
     """Unde a rămas lucrul, strâns doar din git și din starea salvată: fără niciun token."""
+    old, commits = stale or state_age(c, top, base)
+    behind = "" if old is None else ("Stare %s: poate fi în urma lucrului." % state_words(old, commits) if commits
+                                     else "Stare salvată %s, fără commit-uri de atunci." % ago(old))
     msgs = load(c)
     byid = {m.id: m for m in msgs}
     opened = [last.line() for last in (pending(t) for t in threads(msgs).values())
@@ -548,7 +908,7 @@ def work_note(c, top, base, changes=None):
             state = f.read().strip()
     except OSError:
         state = "(agentul nu a scris nicio stare)"
-    return ["## Starea scrisă de agentul lui %s" % c.me, state, "",
+    return ["## Starea scrisă de agentul lui %s" % c.me, state, behind, "",
             "## Modificări necomise" + (" în momentul predării (acum sunt în commit-ul wip)" if changes else ""),
             (git("status", "--short", cwd=top, check=False).stdout.rstrip() if changes is None else changes)
             or "(nimic)", "",
@@ -589,6 +949,7 @@ def cmd_handoff(c, a):
         branch = "predare/%s-%s" % (c.me, now.strftime("%m%d-%H%M"))
         git("switch", "--quiet", "-c", branch, cwd=top)
     changes = git("status", "--short", cwd=top).stdout.rstrip()
+    stale = state_age(c, top, base)            # înainte de commit-ul `wip`, care nu e lucru făcut după stare
     if dirty:                                  # fișierele care arată a secrete rămân pe calculator, necomise
         git("add", "-A", "--", ".", *[":(exclude,glob)" + pat for pat in SECRETS], cwd=top)
         if git("diff", "--cached", "--quiet", cwd=top, check=False).returncode:
@@ -603,7 +964,7 @@ def cmd_handoff(c, a):
             "## Nota omului", a.note or "(fără)", ""]
     os.makedirs(os.path.join(c.wt, "handoffs"), exist_ok=True)
     with open(os.path.join(c.wt, note), "w", encoding="utf-8", newline="\n") as f:
-        f.write("\n".join(head + work_note(c, top, base, changes)))
+        f.write("\n".join(head + work_note(c, top, base, changes, stale)))
     sent = post(c, [cover], "Predare: preia lucrul lui %s de pe branch-ul %s. Citește întâi .comms/%s"
                 % (c.me, branch, note), "ask", force=a.force)
     os.makedirs(os.path.join(c.wt, "away"), exist_ok=True)
@@ -633,8 +994,25 @@ def cmd_back(c, a):
     post(c, [cover], "M-am întors și preiau eu de aici. Mulțumesc!", "fyi", force=True)
 
 
+def emit(text):
+    """Tipărește pentru agent. False dacă n-a ajuns: pipe-ul e închis (hook omorât la timeout sau abandonat)."""
+    try:
+        print(text)
+        sys.stdout.flush()
+        return True
+    except OSError:
+        return False
+
+
 def cmd_inbox(c, a):
+    if a.hook or a.tool_hook:                  # urma după care știm că hook-urile rulează în sesiunea asta
+        hook_ran(c, start=a.hook == "start")
     sync(c, force=not a.new)                   # la fiecare prompt (--new): fetch cel mult o dată pe minut
+    rows = []
+    if a.hook == "start":                      # la începutul sesiunii: și ce nu e în regulă cu instalarea.
+        rows = checks(c, fresh=True)           # Rețeaua vine înaintea cursorului: un hook omorât aici nu pierde
+        if publish(c, rows):                   # niciun mesaj, fiindcă îl arată următorul.
+            sync(c, fetch=False)
     new = unread(c)
     lines = [m.line("nou") for m in new or []]
     if new is None or not a.new:               # fără cursor sau la început de sesiune: și firele încă deschise
@@ -651,15 +1029,16 @@ def cmd_inbox(c, a):
         if waiting:
             lines.append("[comms] aștepți răspuns în %d fire: %s%s" % (
                 len(waiting), ", ".join(waiting[-8:]), " (cele mai noi)" if len(waiting) > 8 else ""))
-    set_cursor(c)
-    if a.tool_hook:                            # hook PostToolUse: aici doar acest JSON ajunge la agent
-        open(os.path.join(c.state, "last-hook"), "w").close()
-        if lines:
-            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
-                                                     "additionalContext": "\n".join(lines + [DATA_NOTE])}},
-                             ensure_ascii=False))
-    elif lines:
-        print("\n".join(lines))
+    if a.hook:                                 # la început de sesiune și la fiecare prompt, nu după fiecare unealtă
+        lines += state_reminder(c)
+    lines += install_lines(rows)
+    if a.tool_hook and lines:                  # hook PostToolUse: aici doar acest JSON ajunge la agent
+        lines = [json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                                    "additionalContext": "\n".join(lines + [DATA_NOTE])}},
+                            ensure_ascii=False)]
+    if lines and not emit("\n".join(lines)):
+        return                                 # n-a ajuns la agent: mesajele rămân noi pentru data viitoare
+    set_cursor(c)                              # abia acum: după ce rândurile au plecat, nimic lent între ele
 
 
 def cmd_show(c, a):
@@ -674,22 +1053,36 @@ def cmd_show(c, a):
 
 
 def cmd_wait(c, a):
-    start = time.time()
-    while True:
-        OFFLINE.clear()                        # fiecare tură încearcă din nou rețeaua
+    start, mark = time.time(), os.path.join(c.state, "wait.pid")
+    other = waiting(c)
+    if other and other != os.getpid():         # doi cititori pe același cursor își iau mesajele unul altuia
+        raise Fail("un alt `git comms wait` rulează deja în clona asta (PID %d). Nu porni al doilea: mesajele noi "
+                   "apar în output-ul lui." % other)
+    try:
         with Lock(c):
-            sync(c)
-            new = unread(c)
-            if not new:
-                set_cursor(c)                  # nimic pentru mine: nu mai compar data viitoare
-            else:
-                print("\n".join(m.line("nou") for m in new))
-                set_cursor(c)
+            try:
+                watch(c)                       # rulează hook-urile în sesiunea care a pornit așteptarea?
+            except (Fail, OSError):
+                pass
+        while True:
+            write_text(mark, "%d %g\n" % (os.getpid(), a.interval))
+            OFFLINE.clear()                    # fiecare tură încearcă din nou rețeaua
+            with Lock(c):
+                sync(c)
+                new = unread(c)
+                if not new:
+                    set_cursor(c)              # nimic pentru mine: nu mai compar data viitoare
+                else:
+                    print("\n".join(m.line("nou") for m in new))
+                    set_cursor(c)
+                    return 0
+            if a.timeout and time.time() - start > a.timeout:
+                print("[comms] wait: nimic nou în %d s" % a.timeout)
                 return 0
-        if a.timeout and time.time() - start > a.timeout:
-            print("[comms] wait: nimic nou în %d s" % a.timeout)
-            return 0
-        time.sleep(a.interval)
+            time.sleep(a.interval)
+    finally:
+        if read_text(mark).split()[:1] == [str(os.getpid())]:
+            os.remove(mark)
 
 
 def cmd_log(c, a):
@@ -713,6 +1106,76 @@ def cmd_log(c, a):
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(out))
     print("[comms] log: %d fire, %d mesaje -> %s" % (len(picked), n, path))
+
+
+def cmd_doctor(c, a):
+    """E în regulă instalarea pe calculatorul ăsta? Câte un rând pe lucru, cu ce ai de făcut unde nu e."""
+    online = sync(c)
+    rows = checks(c, fresh=True)
+    pid = waiting(c)
+    state = read_text(os.path.join(c.wt, "state", c.me + ".md")).split("\n", 1)[0].strip()
+    more = [("wait", None, "pornit (PID %d)" % pid if pid else "niciunul pornit", ""),
+            ("stare salvată", None, state or "niciodată", ""),
+            ("rețea", online, "remote-ul răspunde" if online else "remote-ul nu a răspuns",
+             "verifică rețeaua și accesul la repo")]
+    print("[comms] doctor pentru %s, în %s" % (c.me, where()[0]))
+    for name, ok, text, fix in rows + more:
+        print("  %s %s: %s%s" % ("ok" if ok else "NU" if ok is False else "--", name, text,
+                                 ". Fă: " + fix if ok is False and fix else ""))
+    bad = sum(1 for row in rows + more if row[1] is False)
+    print("[comms] instalarea e în regulă" if not bad else
+          "[comms] %d de reparat: rândurile cu NU. Spune-i omului tău ce scrie pe ele." % bad)
+    if publish(c, rows):
+        sync(c, fetch=False)
+    return 1 if bad else 0
+
+
+def cmd_update(c, a):
+    """Aduce la zi ce ține de calculatorul ăsta: unealta din .git/comms/ și CLAUDE.local.md. Nu atinge proiectul."""
+    top, _, base = where()
+    if git("config", "remote.origin.url", cwd=top, check=False).returncode == 0:
+        if git("fetch", "--quiet", "origin", base, cwd=top, check=False, timeout=NET["fetch"]).returncode:
+            print("[comms] remote-ul nu a răspuns: compar cu ce am deja din origin/%s" % base)
+    _, text, new = check_tool(c, top, base)
+    if new:
+        write_text(os.path.join(c.state, "comms.py"), new)
+        print("[comms] unealta: adusă la zi (era: %s)" % text)
+    else:
+        print("[comms] unealta: " + text)
+    _, text, new = check_rules(c, top, base)
+    if new:
+        write_text(os.path.join(top, "CLAUDE.local.md"), new)
+        print("[comms] reguli locale: CLAUDE.local.md adus la zi (era: %s). Citește-l acum: în contextul tău "
+              "sunt încă regulile vechi." % text)
+    else:
+        print("[comms] reguli locale: CLAUDE.local.md " + text)
+    sync(c)
+    rows = checks(c)
+    for name, ok, text, fix in rows[1:3]:
+        print("[comms] %s: %s%s" % (name, text, ". Fă: " + fix if ok is False and fix else ""))
+    if publish(c, rows):
+        sync(c, fetch=False)
+
+
+def cmd_team(c, a):
+    """Pentru lider: cum stă instalarea fiecărui coleg și când a scris ultima oară."""
+    sync(c)
+    last, gone = {}, away(c)
+    for m in load(c):
+        last[m.frm] = m
+    folder = os.path.join(c.wt, "members")
+    for name in sorted(x for x in (os.listdir(folder) if os.path.isdir(folder) else []) if x != "dag"):
+        report = read_text(os.path.join(c.wt, "health", name)).strip().splitlines()
+        if report:
+            parts = [line.replace(": ok", " ok").replace(": NU", " NU").replace(": - ", " ") for line in report[1:]]
+            parts.append("raport " + report[0][5:])
+        else:
+            parts = ["fără raport: unealta e dinainte de v3 (pe main: git pull, apoi python tools/comms/install.py)"]
+        if name in last:
+            parts.append("ultimul mesaj %s %s:%s" % (last[name].day[5:], last[name].id[:2], last[name].id[2:4]))
+        if name in gone:
+            parts.append("plecat, îi ține locul " + gone[name])
+        print("%s  %s" % (name, " · ".join(parts)))
 
 
 class Parser(argparse.ArgumentParser):
@@ -778,6 +1241,8 @@ def main(argv=None):
 
     s = sub.add_parser("inbox", parents=[base], help="ce e nou pentru tine, plus firele deschise")
     s.add_argument("--new", action="store_true", help="doar ce a sosit de la ultima citire")
+    s.add_argument("--hook", choices=("start", "prompt"),
+                   help="spune că rularea vine dintr-un hook; de obicei se vede singur, din JSON-ul de pe stdin")
     s.add_argument("--tool-hook", action="store_true",
                    help="pentru hook-ul PostToolUse: cel mult o verificare pe minut, ieșire JSON")
     s.set_defaults(fn=cmd_inbox)
@@ -790,6 +1255,15 @@ def main(argv=None):
     s.add_argument("--interval", type=float, default=60, help="secunde între verificări")
     s.add_argument("--timeout", type=float, default=0, help="renunță după atâtea secunde (0 = niciodată)")
     s.set_defaults(fn=cmd_wait)
+
+    s = sub.add_parser("doctor", parents=[base], help="e în regulă instalarea? hook-uri, unealtă, reguli locale")
+    s.set_defaults(fn=cmd_doctor)
+
+    s = sub.add_parser("update", parents=[base], help="adu la zi unealta și CLAUDE.local.md de pe branch-ul comun")
+    s.set_defaults(fn=cmd_update)
+
+    s = sub.add_parser("team", parents=[base], help="pentru lider: instalarea și ultimul mesaj al fiecărui coleg")
+    s.set_defaults(fn=cmd_team)
 
     s = sub.add_parser("log", parents=[base], help="log pentru oameni, grupat pe fire")
     s.add_argument("--from", dest="frm", help="prima zi, AAAA-LL-ZZ")
@@ -808,12 +1282,23 @@ def main(argv=None):
             pass
     if a.cmd == "inbox":                       # rulează din hook-uri: trebuie să termine sub limita de 30 s
         NET.update(NET_HOOK)
+        if not a.hook and not a.tool_hook:
+            a.hook = hook_event()
+        if a.hook or a.tool_hook:
+            DEADLINE.append(time.time() + HOOK_BUDGET)
     try:
         c = Ctx(a.me)
         if a.cmd == "wait":
             return cmd_wait(c, a)
+        from_hook = a.cmd == "inbox" and (a.hook or a.tool_hook)
         with Lock(c, patience=INBOX_PATIENCE if a.cmd == "inbox" else None):   # un hook nu ține promptul pe loc
-            return a.fn(c, a) or 0
+            code = a.fn(c, a) or 0
+            if not from_hook and a.cmd not in QUIET_CMDS:
+                try:
+                    watch(c)                   # o comandă de mână: rulează hook-urile în sesiunea asta?
+                except (Fail, OSError):
+                    pass                       # verificarea instalării nu strică niciodată comanda propriu-zisă
+            return code
     except Fail as e:
         if quiet:
             return 0                           # un hook din timpul lucrului nu deranjează agentul cu erori

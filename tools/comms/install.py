@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Instalează comms în clona curentă. Se rulează o dată pe fiecare calculator, din repo:
 
-    python tools/comms/install.py <numele tău>          (de exemplu: D)
+    python tools/comms/install.py <numele tău>          (de exemplu: D; a doua oară merge și fără nume)
 
 Ce face: branch-ul orfan `comms`, worktree-ul `.comms/`, aliasul `git comms`, numele tău în git config,
-apoi hook-urile din `.claude/settings.json`, blocul din `CLAUDE.md` și `.comms/` în `.gitignore`.
-A doua rulare nu strică nimic: doar actualizează unealta.
+apoi hook-urile din `.claude/settings.json`, blocul din `CLAUDE.md`, `.comms/` în `.gitignore`
+și `CLAUDE.local.md` din șablonul tău din repo (dacă proiectul are unul).
+A doua rulare nu strică nimic: doar aduce la zi unealta, hook-urile și regulile locale.
 """
 import json
 import os
@@ -75,8 +76,10 @@ def project_files(top):
                 changed.append("tools/comms/" + name)
 
     ignore = read(os.path.join(top, ".gitignore"))
-    if ".comms/" not in ignore.split():
-        write(os.path.join(top, ".gitignore"), ignore + ("" if ignore.endswith("\n") or not ignore else "\n") + ".comms/\n")
+    missing = [entry for entry in (".comms/", "CLAUDE.local.md") if entry not in ignore.split()]
+    if missing:                                # worktree-ul cu mesaje și regulile fiecărui om nu se comit în proiect
+        write(os.path.join(top, ".gitignore"),
+              ignore + ("" if ignore.endswith("\n") or not ignore else "\n") + "".join(e + "\n" for e in missing))
         changed.append(".gitignore")
 
     block = read(os.path.join(HERE, BLOCK)).strip()
@@ -114,9 +117,11 @@ def project_files(top):
 def main():
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace")
-    if len(sys.argv) != 2 or not re.fullmatch(r"[A-Za-z0-9_]{1,20}", sys.argv[1]) or sys.argv[1] == "all":
-        sys.exit("folosire: python tools/comms/install.py <numele tău>     (litere și cifre, de exemplu D)")
-    me = sys.argv[1]
+    me = sys.argv[1] if len(sys.argv) == 2 else git("config", "comms.me", check=False).stdout.strip()
+    if len(sys.argv) > 2 or not re.fullmatch(r"[A-Za-z0-9_]{1,20}", me) or me == "all":
+        sys.exit("folosire: python tools/comms/install.py <numele tău>     (litere și cifre, de exemplu D; "
+                 "fără nume merge doar dacă ai mai instalat o dată aici)")
+    rules = ""
     try:
         worktrees = git("worktree", "list", "--porcelain").stdout.splitlines()
         main_top = worktrees[0][len("worktree "):]
@@ -152,13 +157,28 @@ def main():
                 online = comms.sync(c)
             if not os.path.exists(c.cursor):
                 comms.set_cursor(c)            # tot ce sosește de acum înainte e „nou”, inclusiv răspunsurile
+
+        # 5. regulile tale locale, din șablonul din repo; un fișier cu schimbări proprii rămâne neatins
+        _, rules, new = comms.check_rules(c, top, comms.where()[2])
+        if new:
+            comms.write_text(os.path.join(top, "CLAUDE.local.md"), new)
+            rules = "adus la zi (era: %s)" % rules
+
+        # 6. raportul instalării, ca liderul să vadă cu `git comms team` cine a ajuns la versiunea asta
+        with comms.Lock(c):
+            if comms.publish(c, comms.checks(c)):
+                online = comms.sync(c, fetch=False) and online
     except Fail as e:
         sys.exit("[comms] instalarea a eșuat: %s" % e)
     print("[comms] instalat pentru %s: branch `comms`, worktree %s, comanda `git comms`." % (me, c.wt))
+    print("[comms] reguli locale: CLAUDE.local.md " + rules)
     if changed:
         print("[comms] am schimbat în proiect: %s. Verifică-le și fă commit." % ", ".join(changed))
     if not online:
         print("[comms] remote-ul nu a răspuns: înscrierea ta pleacă la următoarea comandă `git comms`.")
+    print("[comms] Hook-urile se încarcă doar dacă Claude pornește din folderul proiectului. Închide sesiunile "
+          "deschise, pornește Claude din %s și rulează `git comms doctor`: instalarea e gata când nu mai are niciun NU."
+          % top)
 
 
 if __name__ == "__main__":

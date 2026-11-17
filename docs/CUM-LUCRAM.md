@@ -6,11 +6,24 @@ Pe scurt, pentru oameni și agenți. Regulile complete: `tools/comms/PROTOCOL.md
 
 ```bash
 git clone https://github.com/06cezar/UiShapeshifter && cd UiShapeshifter
-python tools/comms/install.py <litera ta>        # A, B, C, D sau E
-cp docs/agenti/CLAUDE.local-<litera ta>.md CLAUDE.local.md
+python tools/comms/install.py <litera ta>        # A, B, C, D sau E; scrie și CLAUDE.local.md, din docs/agenti/
 ```
 
-Apoi deschide Claude Code în folder: agentul tău știe cine e, ce taskuri are și citește mesajele singur.
+Apoi **pornește Claude Code din folderul proiectului**, nu din cel de deasupra lui: hook-urile care aduc mesajele se
+încarcă doar așa. Cere-i agentului `git comms doctor`; instalarea e gata când nu mai are niciun rând cu `NU`.
+
+- **Când liderul schimbă unealta sau regulile:** agentul află singur la începutul sesiunii (rânduri
+  `[comms] instalare:`) și rulează `git comms update`. Dacă liderul îți scrie să reinstalezi, o faci de pe `main`,
+  ca să rulezi unealta nouă, nu pe cea de pe branch-ul tău (comite sau pune deoparte întâi lucrul nesalvat):
+
+  ```bash
+  git switch main && git pull
+  python tools/comms/install.py                    # fără literă
+  git switch -                                     # înapoi pe branch-ul tău
+  ```
+- **Regulile tale proprii** le scrii la sfârșitul lui `CLAUDE.local.md`; `git comms update` aduce la zi ce e deasupra
+  lor și le păstrează.
+- **Liderul vede instalarea fiecăruia** cu `git comms team`.
 
 ## Trei branch-uri
 
