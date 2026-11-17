@@ -129,17 +129,15 @@ Cifrele sunt măsurate de agentul fiecăruia pe transcrierile lui (`rapoarte/ANA
 | `close` trimise | 50 | 0 | 3 | 2 | 0 |
 | Cereri de `review` trimise | 4 | 26 | 0 | 0 (32 de `ask` despre PR-uri) | 2 (31 de cereri despre PR-uri) |
 | Etichete pentru graf / citiri `DAG.md` | 6 / 33 | 0 / 27 | 0 / 2 | 0 / 33 (plus 16 ale `tasks.yaml`) | 0 / 11 (plus 7 ale `tasks.yaml`) |
-| `CLAUDE.local.md` față de repo | ultima versiune (17:36) | prima (14:41), de confirmat [?] | a treia (15:50), plus o regulă proprie | ultima versiune (17:36) | ultima versiune (17:36) |
+| `CLAUDE.local.md` față de repo | ultima versiune (17:36) | ultima (17:36), de la vineri 18:10; înainte, prima | a treia (15:50), plus o regulă proprie | ultima versiune (17:36) | ultima versiune (17:36) |
 | Comms și graf din tokenii noi | ~4% | ~5,9% | ~1,9% | ~4,2% | ~3,4% |
 | Limita de usage atinsă | de 4 ori | o dată | de 2 ori | o dată măsurat, a doua oară nesigur [?] | 0 în ce a rămas [?] |
 
 ### A
 - [M] **La A, hook-urile n-au rulat deloc.** Agentul a pornit din folderul părinte al repo-ului, iar toate cele 289 de comenzi `git comms` sunt înlănțuite cu `cd … &&`.
   Confirmat în a doua rundă a raportului: în folderul de pornire nu există `.claude/settings.json`, iar cel din repo, cu cele trei hook-uri, nu a fost încărcat.
-- [M] **`CLAUDE.local.md` al lui A a rămas la prima versiune** (identic cu `docs/agenti/CLAUDE.local-A.md` din `ace6820`, vineri 14:41), cu trei versiuni în urmă.
-  [?] De confirmat cu A: raportul lui măsoară un `CLAUDE.local.md` de 13.929 de caractere, exact cât `b6a1603` (ultima versiune), iar copia trimisă are 11.188 (`ace6820`). Copia e din 16 nov., deci nu știm sigur ce fișier a avut agentul în sesiune.
-  Îi lipsesc reparațiile la etichete (`ce58deb`), `send --each` (`3d590ac`) și tot pivotul cu etapele (`b6a1603`, 17:36): descrie produsul vechi (aplicație de mesaje pentru vârstnici) și 4 taskuri vechi, în loc de cele 6 din planul final (A2–A4 redefinite, A5 și A6 lipsă), fără puncte de control.
-  [?] Cât din el a fost în context, cu sesiunea pornită din folderul părinte, nu se vede.
+- [M] **A și-a adus singur la zi `CLAUDE.local.md`, la 34 de minute după pivot.** Agentul a pornit cu prima versiune (`ace6820`, 14:41), dintr-un fișier din folderul părinte al repo-ului. La 17:59 a citit versiunea nouă din `docs/agenti/`, iar la 18:10 a copiat-o în rădăcina repo-ului; de atunci fișierul e identic cu `b6a1603` și n-a mai fost atins. Claude Code l-a încărcat în context vineri la 15:18 (versiunea veche) și sâmbătă la 07:20 (cea nouă). Sursa: o a doua măsurătoare a agentului lui A, pe 17 nov., făcută la cererea noastră.
+  Prima copie trimisă (11.188 de caractere) era fișierul din folderul părinte, nu cel din repo; `rapoarte/CLAUDE.local-A.md` e acum cel din repo.
 - [M] Fără hook-uri, mesajele au venit doar prin `wait`: un mesaj primit a costat ~1,1 k caractere, de ~4 ori mai mult decât prin hook la D (~250 de caractere), iar omul a cerut de 15 ori verificarea mesajelor.
 - [M] **O singură sesiune de 24 de ore a citit din cache mai mult decât cele 78 ale lui D, cu mai puțin de jumătate din apeluri.** E același efect ca la bucla de noapte a lui D (§6), întins pe tot hackathonul.
 - [M] **Cursorul comun strică livrarea:** `inbox` rulat de mână lângă un `wait` pornit a făcut ca un mesaj al lui D să fie ratat (vineri 14:56–15:15), iar 7 `wait`-uri duble au fost oprite de agent (exit 143, nu eșecuri ale uneltei). Din 3 rulări de mână ale lui `inbox`, 2 au fost cu un `wait` pornit.
@@ -149,7 +147,7 @@ Cifrele sunt măsurate de agentul fiecăruia pe transcrierile lui (`rapoarte/ANA
 - [M] **A a deschis fire și D le-a închis:** A a trimis 26 din cele 32 de mesaje `review` și niciun `close`; D a trimis 50 din cele 55 de `close`. Firele reafișate cel mai des la pornirile lui D (§3) sunt review-urile lui A.
 - [M] La A, comms și graful fac ~5,9% din tokenii noi (318 k caractere), față de ~4% la D; procentul e mai mare fiindcă o singură sesiune are puțini tokeni noi.
 ### B
-- [M] **B a lucrat și el după instrucțiuni dinaintea pivotului.** `CLAUDE.local.md` al lui e versiunea din `3d590ac` (vineri 15:50) plus o secțiune proprie: descrie produsul vechi și taskurile vechi B1–B4. Din trei agenți măsurați, doar D a avut versiunea de după pivot.
+- [M] **B a lucrat și el după instrucțiuni dinaintea pivotului.** `CLAUDE.local.md` al lui e versiunea din `3d590ac` (vineri 15:50) plus o secțiune proprie: descrie produsul vechi și taskurile vechi B1–B4. Dintre A, B și D, doar B a rămas cu o versiune dinaintea pivotului.
 - [M] **Regula proprie a lui B a înlocuit hook-ul cu `brief`.** Secțiunea „Reguli de la Ștefan” cere, la fiecare prompt, `git fetch` și citirea mesajelor „sau `git comms brief`”. Rezultatul: 45 de apeluri `brief` la 63 de prompturi (46 k caractere), față de 7 k caractere aduse de hook-uri.
 - [M] **Jumătate din hackathon fără hook-uri.** Prima sesiune a lui B (6,5 ore) a pornit din folderul părinte, ca la A: 0 rânduri `[comms]` și 53 de comenzi rulate de mână. În a doua sesiune, pornită din repo, hook-urile au mers.
 - [M] Toate cele 130 de comenzi `git comms` sunt înlănțuite, 127 cu `cd`, inclusiv în sesiunea pornită din repo, deși regula spune „fără `cd`”.
@@ -180,7 +178,7 @@ Cifrele sunt măsurate de agentul fiecăruia pe transcrierile lui (`rapoarte/ANA
 - [M] O singură sesiune (402 apeluri în 4,5 ore) a ajuns la 667 k tokeni citiți din cache pe apel: același tipar de sesiune lungă ca la A, B și E.
 ### Concluzii din cei cinci
 - [D] **Costul mare nu e textul mesajelor (1,9–5,9% din tokenii noi), ci contextul recitit la fiecare apel.** A, B, C și E au citit din cache 357–508 k tokeni pe apel, de 1,7–2,5 ori cât D, fiindcă au ținut sesiuni lungi. D l-a plătit noaptea, ceilalți tot timpul. A și E, cu câte o singură sesiune de 24 de ore, au citit fiecare ~700 M, mai mult decât D în 78 de sesiuni.
-- [M] **Instalarea n-a ținut la 3 din 5 agenți:** sesiuni pornite din afara repo-ului (A și E tot timpul, B 6,5 ore) și instrucțiuni locale rămase înaintea pivotului (A și B). Hook-urile au rulat tot timpul doar la D și, în intervalul rămas, la C.
+- [M] **Instalarea n-a ținut la 3 din 5 agenți:** sesiuni pornite din afara repo-ului (A și E tot timpul, B 6,5 ore) și instrucțiuni locale rămase înaintea pivotului (B; A doar primele trei ore și jumătate). Hook-urile au rulat tot timpul doar la D și, în intervalul rămas, la C.
 - [M] **Viteza de răspuns ține de `wait`, nu de hook-uri.** Mediana până la răspuns, cu aceeași metodă pentru toți, pe `origin/comms`: A 2 min (p90 7), C 3 (p90 29), B 4 (p90 120), D 13 (p90 ~6 h), E 18 (p90 54). Rapoartele dau cifre puțin diferite, fiindcă fiecare agent a măsurat altfel (de exemplu B 5,3 și 105, E 18,5 și 44, p90 la A 6). A n-a avut niciun hook, dar a ținut un `wait` pornit tot timpul (146); E n-a avut nici hook-uri, nici `wait` continuu (18). D e lent din alt motiv: 107 cereri către el, cât A și C la un loc.
 - [M] **Omul a rămas curier acolo unde hook-urile n-au mers:** 15 din 67 de prompturi la A, 11 din 63 la B și 16 din 214 la E cer verificarea mesajelor, față de ~10 din ~360 la D și 3 din 44 la C. La E procentul e aproape cât la C (7%), fiindcă agentul a rulat singur `inbox`.
 - [M] **Fără hook-uri, agentul plătește altă cale, mai scumpă:** A prin `wait` (146), B prin `brief` (45), E prin `inbox` de mână (73). Toate trei reafișează firele deschise cu textul întreg.

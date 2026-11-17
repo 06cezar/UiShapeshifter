@@ -26,7 +26,7 @@ Fișierele sunt în `rapoarte/`. Coloana a doua spune cu ce versiune din istoric
 
 | Agent | Identic cu | Observații |
 |---|---|---|
-| A | `ace6820` (vineri 14:41), prima versiune | dinaintea pivotului; trei versiuni mai noi. [?] Raportul lui A măsoară însă 13.929 de caractere, cât `b6a1603`: de confirmat ce fișier a avut agentul în sesiune |
+| A | `b6a1603` (vineri 17:36), ultima | adus la zi de agent vineri la 18:10; până atunci, prima versiune (`ace6820`). Prima copie trimisă era fișierul vechi din folderul părinte și a fost înlocuită |
 | B | niciuna: `3d590ac` (vineri 15:50), a treia, plus o secțiune proprie de 5 rânduri la final | dinaintea pivotului |
 | C | `b6a1603` (vineri 17:36), ultima | |
 | D | `b6a1603` (vineri 17:36), ultima | luat din repo: fișierul local a fost scurtat pe 16 nov., după analiză |
