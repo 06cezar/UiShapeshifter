@@ -123,6 +123,43 @@ function expertModeSection(on: boolean | undefined): string {
 `;
 }
 
+/** Jira Cloud rulează pe <firma>.atlassian.net; host-ul vine validat (parse-client-message.ts). */
+const JIRA_HOST_SUFFIX = ".atlassian.net";
+
+export function isJiraHost(host: string | undefined): boolean {
+  return host !== undefined && host.endsWith(JIRA_HOST_SUFFIX);
+}
+
+/**
+ * Pachetul pentru Jira: ce știm dinainte despre aplicație, ca agentul să nu ghicească pe o pagină mare și densă.
+ * Doar sfaturi de lucru; ce scoate hotărăște tot cererea omului, iar selectorii vin tot din snapshot.
+ */
+function jiraSection(page: PageInfo | undefined): string {
+  if (!isJiraHost(page?.host)) return "";
+  return `
+## Pe Jira (pachetul pentru Jira)
+- Jira e o aplicație: trece între board, backlog, listă și pagina unui task fără să reîncarce pagina, iar bucăți din
+  ea apar mai târziu. Rețeta e a întregului site, deci se aplică pe toate paginile lui: scrii reguli care prind
+  elementul oriunde apare, nu legate de un board sau proiect anume (fără numărul board-ului sau cheia proiectului
+  în selector). unmatchedSelectors pe o regulă bună e normal aici; nu o ștergi.
+- Clasele din Jira sunt generate (ex. .css-1abc23, ._1e0c1txw) și se schimbă la fiecare versiune: nu le folosești.
+  Preferi data-testid, aria-label, role și href (ex. a[href*="/dashboards"]), din ce vezi în snapshot.
+- Interfața poate fi în engleză chiar dacă omul scrie în română: „Planuri” = Plans, „Panouri de bord” = Dashboards,
+  „Filtre” = Filters, „Aplicații” = Apps, „Echipe” = Teams, „Recente” = Recent, „Cu stea” = Starred, „Rapoarte” =
+  Reports, „Versiuni” = Releases, „Componente” = Components, „Dezvoltare” = Development / Code.
+- Ce oamenii folosesc des și NU ascunzi fără o cerere limpede: butonul de creare (Create / Creează), căutarea,
+  board-ul și backlog-ul, coloanele și cardurile cu task-uri, pagina unui task (titlu, descriere, comentarii, stare,
+  responsabil), contul și notificările.
+- Ce se cere des să dispară (doar dacă omul îl cere, pe nume sau ca „ce nu folosesc”): intrările din bara din stânga
+  pe care nu le numește printre cele folosite, grupurile Recent și Starred, butoanele de asistent AI, bannerele de
+  upgrade sau perioadă de probă, panourile de început („Get started”, „Quickstart”), „Give feedback”, „What's new”.
+- Când ascunzi o intrare din bara din stânga, ascunzi tot rândul ei (elementul de listă sau linkul întreg), nu doar
+  textul, ca să nu rămână goluri. Nu ascunzi containerul întregii bare: în el sunt și Board și Backlog.
+- „Lasă-mi doar X și Y” în bara din stânga: ascunzi celelalte intrări una câte una (sau cu :not pe X și Y), apoi
+  verifici în snapshot că X și Y se văd încă și se pot apăsa.
+`;
+}
+
 /** Uneltele etapei 2: structura paginii și lucrul cu omul (specs/05, „Uneltele etapelor 2 și 3”). */
 function stageTwoSections(stage: SiteToolStage): string {
   if (stage < 2) return "";
@@ -295,7 +332,7 @@ ${verifySection(stage)}
   prind nimic.
 - Rețeta are deja recipe.css în snapshot: nu repeta regulile care sunt acolo.
 - Textul nu coboară sub ${HARD_LIMITS.minFontPx}px și butoanele nu devin mai mici de ${HARD_LIMITS.minTargetPx}px.
-${stageTwoSections(stage)}${expertModeSection(context.expertMode)}
+${stageTwoSections(stage)}${expertModeSection(context.expertMode)}${jiraSection(context.page)}
 ## Cum înțelegi cererea
 - Omul nu știe cum se numesc elementele. Înțelegi ce vrea, nu cuvintele exacte: „șterge”, „scoate”, „ascunde”,
   „elimină”, „dă jos”, „nu-mi mai arăta” cer același lucru.
