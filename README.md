@@ -1,5 +1,15 @@
 # UI Shapeshifter
 
+> **In English:** UI Shapeshifter is a Chrome extension with an AI agent that reshapes the interface of sites you
+> already use. Tell it what you want in a plain sentence and it hides what you never use, adds the buttons you're
+> missing (linked to the site's real ones) and restyles the page. Its loop is visible: you watch it observe, decide,
+> act, verify and fix, and after each change it checks accessibility (minimum font size, target size, contrast).
+> It doesn't run generated code: it writes CSS and HTML that we validate first, except in an opt-in Expert mode
+> where code runs only after you see it and press Run. Changes are saved as a "recipe" for the site and re-applied on
+> every visit without AI. Built in 24 hours at the UiPath Future Forward Hackathon 2026 (theme: Agents in Action) by
+> team reachForTheClouds, and extended a bit afterwards. The interface and the rest of this README are in Romanian;
+> the setup commands are under [Pornire](#pornire).
+
 > Orice site se schimbă după tine, nu tu după el.
 
 UiPath Future Forward Hackathon 2026, tema **Agents in Action**.
