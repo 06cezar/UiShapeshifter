@@ -1,7 +1,8 @@
 // Mascota (specs/11): un raton care stă în colțul de jos, merge până la un element și îl arată (point_at),
 // cu o bulă de mesaj și un contur pulsatoriu desenat în stratul nostru (nu atingem stilul site-ului). La o rulare
 // reușită dansează (happy).
-// Nu primește click-uri (pointer-events: none), ca să nu acopere niciodată ce vrea omul să apese.
+// Click pe raton deschide sau închide chatul. Restul cutiei lasă click-urile să treacă (pointer-events: none), iar cât
+// merge sau arată un element nu primește niciunul, ca să nu acopere ce vrea omul să apese.
 
 import type { MascotState, ToolData, ToolResult } from "@uishapeshifter/contracts";
 import type { OurRoot } from "../extension/shadow-root";
@@ -108,6 +109,7 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
       <span class="mascot-note" style="--i: 1; --angle: 22deg">♫</span>
       <span class="mascot-note" style="--i: 2; --angle: -22deg">♪</span>
       <span class="mascot-note" style="--i: 3; --angle: 65deg">♫</span>
+      <span class="mascot-hit" data-agent-id="mascot.chat"></span>
     </div>
   `;
   const highlight = document.createElement("div");
@@ -117,6 +119,14 @@ export function mountMascot(root: OurRoot, options: MascotOptions = {}): MascotC
 
   const bubble = container.querySelector<HTMLParagraphElement>(".mascot-bubble")!;
   const canvas = container.querySelector<HTMLCanvasElement>(".mascot-canvas")!;
+
+  // Scurtătură doar pentru mouse și atingere; de la tastatură chatul se deschide din butonul lui. Îi apăsăm butoanele
+  // după data-agent-id: cât chatul e deschis, „chat.toggle” e ascuns și închidem din „chat.close”.
+  container.querySelector<HTMLElement>(".mascot-hit")!.addEventListener("click", () => {
+    const toggle = root.shadow.querySelector<HTMLButtonElement>('[data-agent-id="chat.toggle"]');
+    if (!toggle?.hidden) return toggle?.click();
+    root.shadow.querySelector<HTMLButtonElement>('[data-agent-id="chat.close"]')?.click();
+  });
 
   let state: MascotState = "idle";
   /** Mersul în curs: unde merge și cum îl anunțăm pe cel care îl așteaptă (true = a ajuns, false = întrerupt). */
