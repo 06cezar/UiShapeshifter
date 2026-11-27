@@ -14,7 +14,11 @@ export interface RunJsView {
 const STATUS_TEXT: Record<RunJsData["status"], string> = {
   ran: "A rulat, după ce l-ai aprobat. Nu se anulează din panou: reîncarcă pagina ca să scapi de el.",
   declined: "Nu l-ai rulat.",
-  disabled: "Modul expert e oprit, deci codul nu a rulat.",
+  // Pașii de pornire stau aici, nu doar în ce spune modelul: omul află mereu cum îl pornește (aceiași pași ca în popup)
+  disabled:
+    "Modul expert e oprit, deci codul nu a rulat. Ca să-l pornești: apasă butonul extensiei, sus în browser, și " +
+    "bifează „Mod expert”. Apoi, în chrome://extensions → UI Shapeshifter → Details, pornește „Allow User Scripts”. " +
+    "După aceea cere din nou.",
 };
 
 const RUN_JS_STATUSES = Object.keys(STATUS_TEXT);
