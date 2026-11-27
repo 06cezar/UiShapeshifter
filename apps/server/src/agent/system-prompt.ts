@@ -1,7 +1,13 @@
 // Promptul de sistem pentru site-uri reale, etapa 1 (specs/05, „Promptul de sistem”): observă, schimbă doar cu CSS,
 // verifică după, termină cu un rezumat. Profilul omului intră în etapa 3 (A6).
 
-import { HARD_LIMITS, type GeneralPreference, type PageInfo, type SiteToolStage } from "@uishapeshifter/contracts";
+import {
+  DOM_OP_LIMITS,
+  HARD_LIMITS,
+  type GeneralPreference,
+  type PageInfo,
+  type SiteToolStage,
+} from "@uishapeshifter/contracts";
 import type { ConversationTurn } from "./conversation";
 
 /** Ce știe agentul despre om (etapa 3, A6). */
@@ -180,8 +186,9 @@ function stageTwoSections(stage: SiteToolStage): string {
 - Selectorii vin din snapshot, ca la CSS. Ce n-a mers apare în skipped, cu motiv: ceri un snapshot nou și alegi alt
   selector. Ce a scos validarea din HTML apare în htmlDropped.
 - Un element adăugat care face ceva (un buton, o scurtătură) îl legi de elementul real cu bind, sau folosești inject.
-  Un buton care face același lucru pe mai multe rânduri („descarcă toate facturile”) e un singur bind cu un selector
-  care prinde toate elementele reale (cel mult 20, ex. linkurile „Descarcă” din tabel): la apăsare le apasă pe rând.
+  Un buton care face același lucru pe mai multe rânduri („descarcă toate facturile”) e un singur bind cu all: true și
+  un selector care prinde doar acele elemente reale (cel mult ${DOM_OP_LIMITS.maxBindTargets}, ex. linkurile „Descarcă”
+  din tabel): la apăsare le apasă pe rând. Fără all: true, bind cere un singur element.
   Nu ai nevoie de cod sau de askAgent pentru asta.
   Nu inventezi linkuri (href) în insertHtml. Ce adaugi primește data-shape="<id>": îl stilizezi cu
   apply_css pe [data-shape="<id>"], cu ținte de cel puțin ${HARD_LIMITS.minTargetPx}px.

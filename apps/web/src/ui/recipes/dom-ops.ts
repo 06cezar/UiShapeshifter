@@ -28,8 +28,6 @@ import {
 export const HIDDEN_ATTR = "data-uishapeshifter-hidden";
 export const HIDDEN_STYLE_ID = "uishapeshifter-hidden";
 const HIDDEN_CSS = `[${HIDDEN_ATTR}] { display: none !important; }`;
-/** Un buton legat poate apăsa mai multe elemente reale („Descarcă toate facturile”), dar nu o pagină întreagă. */
-const MAX_BIND_TARGETS = 20;
 /** Pauza dintre apăsări: browserul pierde descărcările pornite toate în același moment. */
 const BIND_CLICK_GAP_MS = 400;
 /** Textul comentariului lăsat pe locul vechi al unui element mutat sau împachetat. */
@@ -134,7 +132,14 @@ export function checkOp(raw: unknown, doc: Document): Check {
     case "bind": {
       const idProblem = shapeIdProblem(raw.from);
       if (idProblem) return invalid(`from: ${idProblem}`);
-      return withSelectors(doc, [raw.to], () => ({ op: "bind", from: raw.from as string, to: raw.to as string }));
+      // Doar `true` cere toate elementele; orice altceva (lipsă, false) e bind-ul obișnuit, pe un singur element.
+      const all = raw.all === true ? { all: true as const } : {};
+      return withSelectors(doc, [raw.to], () => ({
+        op: "bind",
+        from: raw.from as string,
+        to: raw.to as string,
+        ...all,
+      }));
     }
     default:
       return invalid(`Operația „${raw.op}” nu există.`);
@@ -334,7 +339,7 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
       case "inject":
         return inject(op.id, op.component, op.at);
       case "bind":
-        return bind(op.from, op.to);
+        return bind(op.from, op.to, op.all === true);
     }
   }
 
@@ -343,10 +348,13 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
     if (real instanceof HTMLElement) real.click();
   }
 
-  /** Elementele se caută la apăsare (site-ul poate randa din nou tabelul); primul imediat, restul cu pauză. */
-  function clickAllReal(selector: string) {
+  /**
+   * Elementele se caută la apăsare (site-ul poate randa din nou tabelul); primul imediat, restul cu pauză.
+   * Fără `all` se apasă doar primul, chiar dacă între timp au apărut mai multe.
+   */
+  function clickBound(selector: string, all: boolean) {
     const targets = bindTargets(selector).filter((el): el is HTMLElement => el instanceof HTMLElement);
-    targets.slice(0, MAX_BIND_TARGETS).forEach((el, index) => {
+    targets.slice(0, all ? DOM_OP_LIMITS.maxBindTargets : 1).forEach((el, index) => {
       if (index === 0) el.click();
       else doc.defaultView?.setTimeout(() => el.isConnected && el.click(), index * BIND_CLICK_GAP_MS);
     });
@@ -377,19 +385,26 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
     return placeAdded(id, renderPageComponent(component, actions, doc), at);
   }
 
-  function bind(from: string, to: string) {
+  function bind(from: string, to: string, all: boolean) {
     const added = doc.querySelector(`[${SHAPE_ATTR}="${CSS.escape(from)}"]`);
     if (!added) return skip("TARGET_NOT_FOUND", `Nu găsesc elementul adăugat „${from}”; adaugă-l întâi.`);
     const found = bindTargets(to);
     if (found.length === 0)
       return skip("SELECTOR_NOT_FOUND", `Nu găsesc „${to}” pe pagină. Ia un selector din snapshot nou.`);
-    if (found.length > MAX_BIND_TARGETS) {
-      return skip("SELECTOR_AMBIGUOUS", `„${to}” prinde ${found.length} elemente; cel mult ${MAX_BIND_TARGETS}.`);
+    if (!all && found.length > 1) {
+      return skip(
+        "SELECTOR_AMBIGUOUS",
+        `„${to}” prinde ${found.length} elemente. Alege unul; ca să le apeși pe toate, pune all: true.`,
+      );
     }
-    // Un <a> adăugat nu mai navighează: apăsarea lui apasă elementele reale, pe rând, care fac ce fac pe site.
+    if (found.length > DOM_OP_LIMITS.maxBindTargets) {
+      const max = DOM_OP_LIMITS.maxBindTargets;
+      return skip("SELECTOR_AMBIGUOUS", `„${to}” prinde ${found.length} elemente; cel mult ${max}.`);
+    }
+    // Un <a> adăugat nu mai navighează: apăsarea lui apasă elementele reale (pe rând, cu all), care fac ce fac pe site.
     const onClick = (event: Event) => {
       event.preventDefault();
-      clickAllReal(to);
+      clickBound(to, all);
     };
     added.addEventListener("click", onClick);
     return done({

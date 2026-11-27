@@ -217,7 +217,7 @@ describe("bind: un element adăugat apasă unul real", () => {
             html: "<button>Descarcă toate</button>",
             at: { selector: "main", position: "prepend" },
           },
-          { op: "bind", from: "toate", to: "a.factura" },
+          { op: "bind", from: "toate", to: "a.factura", all: true },
         ],
         reason: "descarcă toate",
       });
@@ -229,6 +229,32 @@ describe("bind: un element adăugat apasă unul real", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test("bind fără all pe un selector care prinde mai multe elemente e respins, cu sfatul pentru all", async () => {
+    const { engine } = await engineOn();
+    const main = document.querySelector("main")!;
+    for (const name of ["f1", "f2"]) {
+      const link = document.createElement("a");
+      link.className = "factura";
+      link.textContent = name;
+      main.append(link);
+    }
+    const result = await engine.applyOps({
+      ops: [
+        {
+          op: "insertHtml",
+          id: "toate",
+          html: "<button>Toate</button>",
+          at: { selector: "main", position: "prepend" },
+        },
+        { op: "bind", from: "toate", to: "a.factura" },
+      ],
+      reason: "x",
+    });
+    const skipped = result.ok ? result.data.skipped[0] : undefined;
+    expect(skipped?.reason).toBe("SELECTOR_AMBIGUOUS");
+    expect(skipped?.message).toContain("all: true");
   });
 
   test("bind nu apasă și butonul adăugat, chiar dacă selectorul îl prinde (altfel s-ar apăsa la nesfârșit)", async () => {
@@ -249,7 +275,7 @@ describe("bind: un element adăugat apasă unul real", () => {
             html: "<button>Toate</button>",
             at: { selector: "main", position: "append" },
           },
-          { op: "bind", from: "toate", to: "main button" },
+          { op: "bind", from: "toate", to: "main button", all: true },
         ],
         reason: "descarcă toate",
       });
