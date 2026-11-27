@@ -18,6 +18,16 @@ const FRAME_WIDTH_PX = 235;
 const FRAME_HEIGHT_PX = 200;
 const RACCOON_CENTER_X_PERCENT = 57; // privind spre dreapta; oglindit (spre stânga) e 100 - 57
 const RACCOON_CENTER_Y_PERCENT = 43;
+/** Marginile ratonului în cadru: pe ele se întinde zona care primește click-ul. */
+const RACCOON_LEFT_PX = 73;
+const RACCOON_RIGHT_PX = 194;
+const RACCOON_TOP_PX = 6;
+const RACCOON_BOTTOM_PX = 167;
+const HIT_WIDTH_PERCENT = (100 * (RACCOON_RIGHT_PX - RACCOON_LEFT_PX)) / FRAME_WIDTH_PX;
+const HIT_HEIGHT_PERCENT = (100 * (RACCOON_BOTTOM_PX - RACCOON_TOP_PX)) / FRAME_HEIGHT_PX;
+const HIT_TOP_PERCENT = (100 * RACCOON_TOP_PX) / FRAME_HEIGHT_PX;
+const HIT_LEFT_FACING_RIGHT_PERCENT = (100 * RACCOON_LEFT_PX) / FRAME_WIDTH_PX;
+const HIT_LEFT_MIRRORED_PERCENT = (100 * (FRAME_WIDTH_PX - RACCOON_RIGHT_PX)) / FRAME_WIDTH_PX;
 /** Discul de dans, cât din lățimea cutiei: destul cât să încapă ratonul întors pe orice parte. */
 const DISC_WIDTH_PERCENT = 76;
 
@@ -73,6 +83,15 @@ export const MASCOT_CSS = `
   animation: mascot-note ${DANCE_BAR_MS}ms ease-out infinite;
   animation-delay: calc(var(--i) * ${DANCE_BEAT_MS}ms);
 }
+.mascot-hit {
+  position: absolute; top: ${HIT_TOP_PERCENT}%; left: ${HIT_LEFT_MIRRORED_PERCENT}%;
+  width: ${HIT_WIDTH_PERCENT}%; height: ${HIT_HEIGHT_PERCENT}%;
+  pointer-events: auto; cursor: pointer;
+}
+.mascot[data-facing="right"] .mascot-hit { left: ${HIT_LEFT_FACING_RIGHT_PERCENT}%; }
+/* cât merge sau arată un element stă peste pagină, nu în colțul lui: click-urile trec la site */
+.mascot[data-state="walking"] .mascot-hit, .mascot[data-state="pointing"] .mascot-hit,
+.mascot[data-no-model="true"] .mascot-hit { display: none; }
 .mascot[data-no-model="true"] .mascot-canvas { display: none; }
 .mascot-bubble {
   position: absolute; bottom: calc(100% - var(--uis-space)); right: 0;

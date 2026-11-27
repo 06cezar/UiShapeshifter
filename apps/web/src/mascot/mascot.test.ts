@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { mountChat } from "../chat";
 import { HOST_ID, mountOurRoot, ourShadowRoot } from "../extension/shadow-root";
 import { DANCE_MS, type SpriteAnimation } from "./animations";
 import type { Facing } from "./geometry";
@@ -65,6 +66,23 @@ describe("stări", () => {
     expect(fake.played.at(-1)).toBe("crouch");
     mascot.setState("happy");
     expect(fake.played.at(-1)).toBe("dance");
+  });
+});
+
+describe("click pe raton", () => {
+  test("deschide chatul și, apăsat din nou, îl închide", async () => {
+    const { q } = await setup();
+    const root = mountOurRoot(document);
+    const chat = mountChat(root, {
+      send: () => {},
+      page: () => ({ url: "https://exemplu.ro/", host: "exemplu.ro", title: "Exemplu" }),
+      recognition: null,
+    });
+    const hit = q<HTMLElement>(".mascot-hit");
+    hit.click();
+    expect(chat.state().open).toBe(true);
+    hit.click();
+    expect(chat.state().open).toBe(false);
   });
 });
 
