@@ -26,8 +26,8 @@
     }
   },
   "last_comms_sha": "c269f25c3eee72f8cf11ec2852aa3772f66e203f",
-  "last_run": "2026-11-27T11:09:47Z",
-  "last_sha": "7f7d86f54ff4448d414d600e44d41b3d3e6c0442",
+  "last_run": "2026-11-27T11:16:42Z",
+  "last_sha": "ea75e6c4826b0dbf2bade1f8b5884518f6f85de1",
   "prs": {
     "1": {
       "head": "c1-contrast",
@@ -411,8 +411,8 @@
     },
     "168": {
       "head": "docs-analiza-comms-dag",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-27T11:16:36Z",
+      "state": "MERGED"
     },
     "169": {
       "head": "demo-buton",
@@ -426,8 +426,8 @@
     },
     "170": {
       "head": "mascota-click",
-      "merged_at": null,
-      "state": "OPEN"
+      "merged_at": "2026-11-27T11:16:23Z",
+      "state": "MERGED"
     },
     "18": {
       "head": "d-pivot-extensie",
