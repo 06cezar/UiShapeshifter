@@ -193,6 +193,114 @@ describe("bind: un element adăugat apasă unul real", () => {
     expect(navigation.defaultPrevented).toBe(true);
   });
 
+  test("un buton legat de mai multe linkuri le apasă pe toate, pe rând („Descarcă toate facturile”)", async () => {
+    vi.useFakeTimers();
+    try {
+      const { engine } = await engineOn();
+      const main = document.querySelector("main")!;
+      const clicked: string[] = [];
+      for (const name of ["f1", "f2", "f3"]) {
+        const link = document.createElement("a");
+        link.className = "factura";
+        link.textContent = name;
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          clicked.push(name);
+        });
+        main.append(link);
+      }
+      const result = await engine.applyOps({
+        ops: [
+          {
+            op: "insertHtml",
+            id: "toate",
+            html: "<button>Descarcă toate</button>",
+            at: { selector: "main", position: "prepend" },
+          },
+          { op: "bind", from: "toate", to: "a.factura", all: true },
+        ],
+        reason: "descarcă toate",
+      });
+      expect(result.ok && result.data.applied).toBe(2);
+      document.querySelector<HTMLButtonElement>('[data-shape="toate"] button')!.click();
+      expect(clicked).toEqual(["f1"]);
+      vi.runAllTimers();
+      expect(clicked).toEqual(["f1", "f2", "f3"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("bind fără all pe un selector care prinde mai multe elemente e respins, cu sfatul pentru all", async () => {
+    const { engine } = await engineOn();
+    const main = document.querySelector("main")!;
+    for (const name of ["f1", "f2"]) {
+      const link = document.createElement("a");
+      link.className = "factura";
+      link.textContent = name;
+      main.append(link);
+    }
+    const result = await engine.applyOps({
+      ops: [
+        {
+          op: "insertHtml",
+          id: "toate",
+          html: "<button>Toate</button>",
+          at: { selector: "main", position: "prepend" },
+        },
+        { op: "bind", from: "toate", to: "a.factura" },
+      ],
+      reason: "x",
+    });
+    const skipped = result.ok ? result.data.skipped[0] : undefined;
+    expect(skipped?.reason).toBe("SELECTOR_AMBIGUOUS");
+    expect(skipped?.message).toContain("all: true");
+  });
+
+  test("bind nu apasă și butonul adăugat, chiar dacă selectorul îl prinde (altfel s-ar apăsa la nesfârșit)", async () => {
+    vi.useFakeTimers();
+    try {
+      const { engine } = await engineOn();
+      const main = document.querySelector("main")!;
+      let realClicks = 0;
+      const real = document.createElement("button");
+      real.textContent = "real";
+      real.addEventListener("click", () => realClicks++);
+      main.append(real);
+      const result = await engine.applyOps({
+        ops: [
+          {
+            op: "insertHtml",
+            id: "toate",
+            html: "<button>Toate</button>",
+            at: { selector: "main", position: "append" },
+          },
+          { op: "bind", from: "toate", to: "main button", all: true },
+        ],
+        reason: "descarcă toate",
+      });
+      expect(result.ok && result.data.applied).toBe(2);
+      document.querySelector<HTMLButtonElement>('[data-shape="toate"] button')!.click();
+      vi.runAllTimers();
+      expect(realClicks).toBe(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("bind spre un selector care prinde doar ce am adăugat noi e respins", async () => {
+    const { engine } = await engineOn();
+    const result = await engine.applyOps({
+      ops: [
+        { op: "insertHtml", id: "doar-al-nostru", html: "<em>x</em>", at: { selector: "main", position: "append" } },
+        { op: "bind", from: "doar-al-nostru", to: '[data-shape="doar-al-nostru"] em' },
+      ],
+      reason: "x",
+    });
+    expect(result.ok && result.data.skipped[0]?.reason).toBe("SELECTOR_NOT_FOUND");
+  });
+
   test("bind spre un id care nu a fost adăugat e respins, cu motiv", async () => {
     const { engine } = await engineOn();
     const result = await engine.applyOps({ ops: [{ op: "bind", from: "nu-exista", to: "a.pay" }], reason: "x" });

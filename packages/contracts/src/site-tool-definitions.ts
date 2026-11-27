@@ -28,7 +28,11 @@ const DOM_OP_ITEM = {
     to: {
       description:
         "move: unde îl muți, ca obiect { selector, position } (position: before, after, prepend, append). " +
-        "bind: text, selectorul elementului real care e apăsat.",
+        "bind: text, selectorul elementului real care e apăsat (unul singur; pentru mai multe, all: true).",
+    },
+    all: {
+      type: "boolean",
+      description: `bind: true = apasă toate elementele prinse de \`to\`, pe rând (cel mult ${DOM_OP_LIMITS.maxBindTargets}), ex. „descarcă toate facturile”.`,
     },
     selectors: { type: "array", items: { type: "string" }, description: "wrap: elementele puse împreună în container." },
     id: {
@@ -64,7 +68,7 @@ export const SITE_TOOL_DEFINITIONS_STAGE2 = [
         "ca să-l stilizezi cu apply_css. Fără JavaScript și fără `<script>`, `<iframe>`, `on*`: ce nu e voie se scoate. " +
         "Forma fiecărei operații: { op: \"remove\", selector } · { op: \"move\", selector, to: { selector, position } } · " +
         "{ op: \"wrap\", selectors, id, tag? } · { op: \"setText\", selector, text } · { op: \"setAttr\", selector, name, value } · " +
-        "{ op: \"insertHtml\", id, html, at: { selector, position } } · { op: \"bind\", from, to } · " +
+        "{ op: \"insertHtml\", id, html, at: { selector, position } } · { op: \"bind\", from, to, all? } · " +
         "{ op: \"inject\", id, component, at: { selector, position } }.",
       parameters: {
         type: "object",

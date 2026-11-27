@@ -1,7 +1,13 @@
 // Promptul de sistem pentru site-uri reale, etapa 1 (specs/05, „Promptul de sistem”): observă, schimbă doar cu CSS,
 // verifică după, termină cu un rezumat. Profilul omului intră în etapa 3 (A6).
 
-import { HARD_LIMITS, type GeneralPreference, type PageInfo, type SiteToolStage } from "@uishapeshifter/contracts";
+import {
+  DOM_OP_LIMITS,
+  HARD_LIMITS,
+  type GeneralPreference,
+  type PageInfo,
+  type SiteToolStage,
+} from "@uishapeshifter/contracts";
 import type { ConversationTurn } from "./conversation";
 
 /** Ce știe agentul despre om (etapa 3, A6). */
@@ -123,6 +129,43 @@ function expertModeSection(on: boolean | undefined): string {
 `;
 }
 
+/** Jira Cloud rulează pe <firma>.atlassian.net; host-ul vine validat (parse-client-message.ts). */
+const JIRA_HOST_SUFFIX = ".atlassian.net";
+
+export function isJiraHost(host: string | undefined): boolean {
+  return host !== undefined && host.endsWith(JIRA_HOST_SUFFIX);
+}
+
+/**
+ * Pachetul pentru Jira: ce știm dinainte despre aplicație, ca agentul să nu ghicească pe o pagină mare și densă.
+ * Doar sfaturi de lucru; ce scoate hotărăște tot cererea omului, iar selectorii vin tot din snapshot.
+ */
+function jiraSection(page: PageInfo | undefined): string {
+  if (!isJiraHost(page?.host)) return "";
+  return `
+## Pe Jira (pachetul pentru Jira)
+- Jira e o aplicație: trece între board, backlog, listă și pagina unui task fără să reîncarce pagina, iar bucăți din
+  ea apar mai târziu. Rețeta e a întregului site, deci se aplică pe toate paginile lui: scrii reguli care prind
+  elementul oriunde apare, nu legate de un board sau proiect anume (fără numărul board-ului sau cheia proiectului
+  în selector). unmatchedSelectors pe o regulă bună e normal aici; nu o ștergi.
+- Clasele din Jira sunt generate (ex. .css-1abc23, ._1e0c1txw) și se schimbă la fiecare versiune: nu le folosești.
+  Preferi data-testid, aria-label, role și href (ex. a[href*="/dashboards"]), din ce vezi în snapshot.
+- Interfața poate fi în engleză chiar dacă omul scrie în română: „Planuri” = Plans, „Panouri de bord” = Dashboards,
+  „Filtre” = Filters, „Aplicații” = Apps, „Echipe” = Teams, „Recente” = Recent, „Cu stea” = Starred, „Rapoarte” =
+  Reports, „Versiuni” = Releases, „Componente” = Components, „Dezvoltare” = Development / Code.
+- Ce oamenii folosesc des și NU ascunzi fără o cerere limpede: butonul de creare (Create / Creează), căutarea,
+  board-ul și backlog-ul, coloanele și cardurile cu task-uri, pagina unui task (titlu, descriere, comentarii, stare,
+  responsabil), contul și notificările.
+- Ce se cere des să dispară (doar dacă omul îl cere, pe nume sau ca „ce nu folosesc”): intrările din bara din stânga
+  pe care nu le numește printre cele folosite, grupurile Recent și Starred, butoanele de asistent AI, bannerele de
+  upgrade sau perioadă de probă, panourile de început („Get started”, „Quickstart”), „Give feedback”, „What's new”.
+- Când ascunzi o intrare din bara din stânga, ascunzi tot rândul ei (elementul de listă sau linkul întreg), nu doar
+  textul, ca să nu rămână goluri. Nu ascunzi containerul întregii bare: în el sunt și Board și Backlog.
+- „Lasă-mi doar X și Y” în bara din stânga: ascunzi celelalte intrări una câte una (sau cu :not pe X și Y), apoi
+  verifici în snapshot că X și Y se văd încă și se pot apăsa.
+`;
+}
+
 /** Uneltele etapei 2: structura paginii și lucrul cu omul (specs/05, „Uneltele etapelor 2 și 3”). */
 function stageTwoSections(stage: SiteToolStage): string {
   if (stage < 2) return "";
@@ -143,6 +186,10 @@ function stageTwoSections(stage: SiteToolStage): string {
 - Selectorii vin din snapshot, ca la CSS. Ce n-a mers apare în skipped, cu motiv: ceri un snapshot nou și alegi alt
   selector. Ce a scos validarea din HTML apare în htmlDropped.
 - Un element adăugat care face ceva (un buton, o scurtătură) îl legi de elementul real cu bind, sau folosești inject.
+  Un buton care face același lucru pe mai multe rânduri („descarcă toate facturile”) e un singur bind cu all: true și
+  un selector care prinde doar acele elemente reale (cel mult ${DOM_OP_LIMITS.maxBindTargets}, ex. linkurile „Descarcă”
+  din tabel): la apăsare le apasă pe rând. Fără all: true, bind cere un singur element.
+  Nu ai nevoie de cod sau de askAgent pentru asta.
   Nu inventezi linkuri (href) în insertHtml. Ce adaugi primește data-shape="<id>": îl stilizezi cu
   apply_css pe [data-shape="<id>"], cu ținte de cel puțin ${HARD_LIMITS.minTargetPx}px.
 
@@ -295,7 +342,7 @@ ${verifySection(stage)}
   prind nimic.
 - Rețeta are deja recipe.css în snapshot: nu repeta regulile care sunt acolo.
 - Textul nu coboară sub ${HARD_LIMITS.minFontPx}px și butoanele nu devin mai mici de ${HARD_LIMITS.minTargetPx}px.
-${stageTwoSections(stage)}${expertModeSection(context.expertMode)}
+${stageTwoSections(stage)}${expertModeSection(context.expertMode)}${jiraSection(context.page)}
 ## Cum înțelegi cererea
 - Omul nu știe cum se numesc elementele. Înțelegi ce vrea, nu cuvintele exacte: „șterge”, „scoate”, „ascunde”,
   „elimină”, „dă jos”, „nu-mi mai arăta” cer același lucru.
@@ -327,9 +374,6 @@ ${stageTwoSections(stage)}${expertModeSection(context.expertMode)}
 - Nu legi (bind) de elemente care apar doar la hover sau cât rulează ceva (playere de previzualizare, butoane de pe
   miniaturi): când omul apasă butonul tău, ele nu există și nu se întâmplă nimic. Dacă acțiunea cerută nu are un
   element stabil pe pagină (ex. „pornește melodia” fără nicio melodie deschisă), spui asta în loc să adaugi butonul.
-- Nu inventezi date sau butoane pe care site-ul nu le are (ex. „pune un buton cu vremea” pe un magazin): în insertHtml
-  pui doar informații din snapshot sau butoane legate (bind) de un element real. Altfel spui cu say ce lipsește și
-  închei cu finish (success: false).
 - Alegi tu potrivirea cea mai probabilă și spui în rezumat ce ai ales („Am ascuns raftul «Sponsorizate» din dreapta”),
   ca omul să poată anula. Întrebi doar când două lucruri diferite se potrivesc la fel de bine.
 

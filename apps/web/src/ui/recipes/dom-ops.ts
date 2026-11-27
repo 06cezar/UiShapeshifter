@@ -28,6 +28,8 @@ import {
 export const HIDDEN_ATTR = "data-uishapeshifter-hidden";
 export const HIDDEN_STYLE_ID = "uishapeshifter-hidden";
 const HIDDEN_CSS = `[${HIDDEN_ATTR}] { display: none !important; }`;
+/** Pauza dintre apăsări: browserul pierde descărcările pornite toate în același moment. */
+const BIND_CLICK_GAP_MS = 400;
 /** Textul comentariului lăsat pe locul vechi al unui element mutat sau împachetat. */
 export const MARKER_TEXT = "uishapeshifter:marcaj";
 export const SHAPE_ATTR = "data-shape";
@@ -130,7 +132,14 @@ export function checkOp(raw: unknown, doc: Document): Check {
     case "bind": {
       const idProblem = shapeIdProblem(raw.from);
       if (idProblem) return invalid(`from: ${idProblem}`);
-      return withSelectors(doc, [raw.to], () => ({ op: "bind", from: raw.from as string, to: raw.to as string }));
+      // Doar `true` cere toate elementele; orice altceva (lipsă, false) e bind-ul obișnuit, pe un singur element.
+      const all = raw.all === true ? { all: true as const } : {};
+      return withSelectors(doc, [raw.to], () => ({
+        op: "bind",
+        from: raw.from as string,
+        to: raw.to as string,
+        ...all,
+      }));
     }
     default:
       return invalid(`Operația „${raw.op}” nu există.`);
@@ -330,13 +339,25 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
       case "inject":
         return inject(op.id, op.component, op.at);
       case "bind":
-        return bind(op.from, op.to);
+        return bind(op.from, op.to, op.all === true);
     }
   }
 
   function clickReal(selector: string) {
     const real = matches(selector)[0];
     if (real instanceof HTMLElement) real.click();
+  }
+
+  /**
+   * Elementele se caută la apăsare (site-ul poate randa din nou tabelul); primul imediat, restul cu pauză.
+   * Fără `all` se apasă doar primul, chiar dacă între timp au apărut mai multe.
+   */
+  function clickBound(selector: string, all: boolean) {
+    const targets = bindTargets(selector).filter((el): el is HTMLElement => el instanceof HTMLElement);
+    targets.slice(0, all ? DOM_OP_LIMITS.maxBindTargets : 1).forEach((el, index) => {
+      if (index === 0) el.click();
+      else doc.defaultView?.setTimeout(() => el.isConnected && el.click(), index * BIND_CLICK_GAP_MS);
+    });
   }
 
   /** Pune elementul adăugat la locul cerut; „Anulez” îl scoate. */
@@ -364,15 +385,26 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
     return placeAdded(id, renderPageComponent(component, actions, doc), at);
   }
 
-  function bind(from: string, to: string) {
+  function bind(from: string, to: string, all: boolean) {
     const added = doc.querySelector(`[${SHAPE_ATTR}="${CSS.escape(from)}"]`);
     if (!added) return skip("TARGET_NOT_FOUND", `Nu găsesc elementul adăugat „${from}”; adaugă-l întâi.`);
-    const real = single(to);
-    if (!real.ok) return real;
-    // Un <a> adăugat nu mai navighează: apăsarea lui apasă elementul real, care face ce face pe site.
+    const found = bindTargets(to);
+    if (found.length === 0)
+      return skip("SELECTOR_NOT_FOUND", `Nu găsesc „${to}” pe pagină. Ia un selector din snapshot nou.`);
+    if (!all && found.length > 1) {
+      return skip(
+        "SELECTOR_AMBIGUOUS",
+        `„${to}” prinde ${found.length} elemente. Alege unul; ca să le apeși pe toate, pune all: true.`,
+      );
+    }
+    if (found.length > DOM_OP_LIMITS.maxBindTargets) {
+      const max = DOM_OP_LIMITS.maxBindTargets;
+      return skip("SELECTOR_AMBIGUOUS", `„${to}” prinde ${found.length} elemente; cel mult ${max}.`);
+    }
+    // Un <a> adăugat nu mai navighează: apăsarea lui apasă elementele reale (pe rând, cu all), care fac ce fac pe site.
     const onClick = (event: Event) => {
       event.preventDefault();
-      clickReal(to);
+      clickBound(to, all);
     };
     added.addEventListener("click", onClick);
     return done({
@@ -384,6 +416,14 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
   /** Toate elementele site-ului care se potrivesc (fără ale noastre). */
   function matches(selector: string): Element[] {
     return [...doc.querySelectorAll(selector)].filter((el) => !isOurs(el));
+  }
+
+  /**
+   * Ce apasă un bind: doar elementele site-ului, fără ce am adăugat noi (`data-shape`). Altfel un selector care prinde
+   * și butonul nostru („main button”) l-ar apăsa din nou pe el, iar apăsarea ar porni seria iar, la nesfârșit.
+   */
+  function bindTargets(selector: string): Element[] {
+    return matches(selector).filter((el) => !el.closest(`[${SHAPE_ATTR}]`));
   }
 
   /** Exact un element, altfel motivul pentru `skipped`. */

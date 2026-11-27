@@ -294,4 +294,23 @@ describe("JournalPanel", () => {
     );
     expect(byId("journal-panel.run-js")).toBeNull();
   });
+
+  it("run_js cu modul expert oprit spune în panou cum îl pornești", async () => {
+    const { journal, byId, startRun } = await renderPanel();
+    await startRun();
+    await act(async () =>
+      journal.getState().handleServerMessage({
+        type: "step",
+        step: step(0, {
+          tool: "run_js",
+          args: { purpose: "Descarcă toate facturile", code: "return 1;" },
+          result: { ok: true, data: { status: "disabled" } },
+        }),
+      }),
+    );
+    const text = byId("journal-panel.run-js")?.textContent ?? "";
+    expect(text).toContain("Modul expert e oprit");
+    expect(text).toContain("bifează „Mod expert”");
+    expect(text).toContain("Allow User Scripts");
+  });
 });

@@ -42,8 +42,13 @@ export type DomOp =
   | { op: "setAttr"; selector: string; name: SettableAttr; value: string }
   /** HTML scris de agent, curățat de validare (lista de mai jos). Rezultatul primește `id`. */
   | { op: "insertHtml"; id: ShapeId; html: string; at: DomPlace }
-  /** Legătură: apăsarea elementului adăugat (`from`, un `id` de mai sus) apasă elementul real `to`. Doar click. */
-  | { op: "bind"; from: ShapeId; to: string }
+  /**
+   * Legătură: apăsarea elementului adăugat (`from`, un `id` de mai sus) apasă elementul real `to`. Doar click.
+   * Implicit `to` trebuie să prindă un singur element. Cu `all: true` le apasă pe toate cele prinse (cel mult
+   * `DOM_OP_LIMITS.maxBindTargets`), pe rând („Descarcă toate facturile”): cerut explicit, ca un selector prea larg
+   * să nu apese butoane la întâmplare.
+   */
+  | { op: "bind"; from: ShapeId; to: string; all?: true }
   /** O componentă din catalogul nostru (scurtături, plăci, carduri), pentru cazurile obișnuite. */
   | { op: "inject"; id: ShapeId; component: PageComponentSpec; at: DomPlace };
 
@@ -59,6 +64,8 @@ export const DOM_OP_LIMITS = {
   maxHtmlBytes: 4000,
   maxTextChars: 200,
   maxShapeIdChars: 40,
+  /** Elemente reale apăsate de un singur `bind` cu `all: true`. */
+  maxBindTargets: 20,
 } as const;
 
 /**
@@ -98,7 +105,7 @@ export interface PageComponentSpec {
 /** Rezultatul unei operații din apply_ops care n-a putut fi aplicată (restul s-au aplicat). */
 export type OpSkipReason =
   | "SELECTOR_NOT_FOUND"  // niciun element potrivit (site-ul s-a schimbat sau selectorul e greșit)
-  | "SELECTOR_AMBIGUOUS"  // mai multe elemente și operația cere unul (move, wrap, bind)
+  | "SELECTOR_AMBIGUOUS"  // mai multe elemente și operația cere unul (move, wrap, bind fără all), sau prea multe la bind cu all
   | "TARGET_NOT_FOUND"    // `to` / `at` nu se găsește
   | "ALREADY_APPLIED"     // aceeași operație e deja în rețetă
   | "INVALID";            // html/text/atribut respins de validare
