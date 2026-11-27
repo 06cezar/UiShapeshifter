@@ -1,3 +1,3 @@
-2026-11-14 12:35
+2026-11-27 13:34
 
-gata: #152 Mod expert, #154 timeout run_js, #155 PDF-uri pe site-ul de test, #157 aprobarea doar de om (gaura lui B) — toate unite; urmează: proba în Chrome a descărcărilor cu «Rulează» apăsat de Cezar, #153 pitch de unit, M4 de marcat; blocat: nimic
+gata: repararea panoului (reluarea) comisă local pe demo-buton (824978f), nepushată; #168-#170 sunt în main, fără ea; urmează: de adus în main printr-un PR nou; blocat: nimic
