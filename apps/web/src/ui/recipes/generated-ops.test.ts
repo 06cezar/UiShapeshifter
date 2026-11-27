@@ -193,6 +193,44 @@ describe("bind: un element adăugat apasă unul real", () => {
     expect(navigation.defaultPrevented).toBe(true);
   });
 
+  test("un buton legat de mai multe linkuri le apasă pe toate, pe rând („Descarcă toate facturile”)", async () => {
+    vi.useFakeTimers();
+    try {
+      const { engine } = await engineOn();
+      const main = document.querySelector("main")!;
+      const clicked: string[] = [];
+      for (const name of ["f1", "f2", "f3"]) {
+        const link = document.createElement("a");
+        link.className = "factura";
+        link.textContent = name;
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          clicked.push(name);
+        });
+        main.append(link);
+      }
+      const result = await engine.applyOps({
+        ops: [
+          {
+            op: "insertHtml",
+            id: "toate",
+            html: "<button>Descarcă toate</button>",
+            at: { selector: "main", position: "prepend" },
+          },
+          { op: "bind", from: "toate", to: "a.factura" },
+        ],
+        reason: "descarcă toate",
+      });
+      expect(result.ok && result.data.applied).toBe(2);
+      document.querySelector<HTMLButtonElement>('[data-shape="toate"] button')!.click();
+      expect(clicked).toEqual(["f1"]);
+      vi.runAllTimers();
+      expect(clicked).toEqual(["f1", "f2", "f3"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("bind spre un id care nu a fost adăugat e respins, cu motiv", async () => {
     const { engine } = await engineOn();
     const result = await engine.applyOps({ ops: [{ op: "bind", from: "nu-exista", to: "a.pay" }], reason: "x" });

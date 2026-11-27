@@ -28,6 +28,10 @@ import {
 export const HIDDEN_ATTR = "data-uishapeshifter-hidden";
 export const HIDDEN_STYLE_ID = "uishapeshifter-hidden";
 const HIDDEN_CSS = `[${HIDDEN_ATTR}] { display: none !important; }`;
+/** Un buton legat poate apăsa mai multe elemente reale („Descarcă toate facturile”), dar nu o pagină întreagă. */
+const MAX_BIND_TARGETS = 20;
+/** Pauza dintre apăsări: browserul pierde descărcările pornite toate în același moment. */
+const BIND_CLICK_GAP_MS = 400;
 /** Textul comentariului lăsat pe locul vechi al unui element mutat sau împachetat. */
 export const MARKER_TEXT = "uishapeshifter:marcaj";
 export const SHAPE_ATTR = "data-shape";
@@ -339,6 +343,15 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
     if (real instanceof HTMLElement) real.click();
   }
 
+  /** Elementele se caută la apăsare (site-ul poate randa din nou tabelul); primul imediat, restul cu pauză. */
+  function clickAllReal(selector: string) {
+    const targets = matches(selector).filter((el): el is HTMLElement => el instanceof HTMLElement);
+    targets.slice(0, MAX_BIND_TARGETS).forEach((el, index) => {
+      if (index === 0) el.click();
+      else doc.defaultView?.setTimeout(() => el.isConnected && el.click(), index * BIND_CLICK_GAP_MS);
+    });
+  }
+
   /** Pune elementul adăugat la locul cerut; „Anulez” îl scoate. */
   function placeAdded(id: string, element: Element, at: DomPlace) {
     const target = single(at.selector, "TARGET_NOT_FOUND");
@@ -367,12 +380,16 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
   function bind(from: string, to: string) {
     const added = doc.querySelector(`[${SHAPE_ATTR}="${CSS.escape(from)}"]`);
     if (!added) return skip("TARGET_NOT_FOUND", `Nu găsesc elementul adăugat „${from}”; adaugă-l întâi.`);
-    const real = single(to);
-    if (!real.ok) return real;
-    // Un <a> adăugat nu mai navighează: apăsarea lui apasă elementul real, care face ce face pe site.
+    const found = matches(to);
+    if (found.length === 0)
+      return skip("SELECTOR_NOT_FOUND", `Nu găsesc „${to}” pe pagină. Ia un selector din snapshot nou.`);
+    if (found.length > MAX_BIND_TARGETS) {
+      return skip("SELECTOR_AMBIGUOUS", `„${to}” prinde ${found.length} elemente; cel mult ${MAX_BIND_TARGETS}.`);
+    }
+    // Un <a> adăugat nu mai navighează: apăsarea lui apasă elementele reale, pe rând, care fac ce fac pe site.
     const onClick = (event: Event) => {
       event.preventDefault();
-      clickReal(to);
+      clickAllReal(to);
     };
     added.addEventListener("click", onClick);
     return done({

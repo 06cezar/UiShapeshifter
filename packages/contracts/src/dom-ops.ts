@@ -42,7 +42,10 @@ export type DomOp =
   | { op: "setAttr"; selector: string; name: SettableAttr; value: string }
   /** HTML scris de agent, curățat de validare (lista de mai jos). Rezultatul primește `id`. */
   | { op: "insertHtml"; id: ShapeId; html: string; at: DomPlace }
-  /** Legătură: apăsarea elementului adăugat (`from`, un `id` de mai sus) apasă elementul real `to`. Doar click. */
+  /**
+   * Legătură: apăsarea elementului adăugat (`from`, un `id` de mai sus) apasă elementul real `to`. Doar click.
+   * Dacă `to` prinde mai multe elemente (cel mult 20), le apasă pe toate, pe rând („Descarcă toate facturile”).
+   */
   | { op: "bind"; from: ShapeId; to: string }
   /** O componentă din catalogul nostru (scurtături, plăci, carduri), pentru cazurile obișnuite. */
   | { op: "inject"; id: ShapeId; component: PageComponentSpec; at: DomPlace };
@@ -98,7 +101,7 @@ export interface PageComponentSpec {
 /** Rezultatul unei operații din apply_ops care n-a putut fi aplicată (restul s-au aplicat). */
 export type OpSkipReason =
   | "SELECTOR_NOT_FOUND"  // niciun element potrivit (site-ul s-a schimbat sau selectorul e greșit)
-  | "SELECTOR_AMBIGUOUS"  // mai multe elemente și operația cere unul (move, wrap, bind)
+  | "SELECTOR_AMBIGUOUS"  // mai multe elemente și operația cere unul (move, wrap), sau peste 20 la bind
   | "TARGET_NOT_FOUND"    // `to` / `at` nu se găsește
   | "ALREADY_APPLIED"     // aceeași operație e deja în rețetă
   | "INVALID";            // html/text/atribut respins de validare

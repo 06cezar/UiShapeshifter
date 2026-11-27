@@ -180,6 +180,9 @@ function stageTwoSections(stage: SiteToolStage): string {
 - Selectorii vin din snapshot, ca la CSS. Ce n-a mers apare în skipped, cu motiv: ceri un snapshot nou și alegi alt
   selector. Ce a scos validarea din HTML apare în htmlDropped.
 - Un element adăugat care face ceva (un buton, o scurtătură) îl legi de elementul real cu bind, sau folosești inject.
+  Un buton care face același lucru pe mai multe rânduri („descarcă toate facturile”) e un singur bind cu un selector
+  care prinde toate elementele reale (cel mult 20, ex. linkurile „Descarcă” din tabel): la apăsare le apasă pe rând.
+  Nu ai nevoie de cod sau de askAgent pentru asta.
   Nu inventezi linkuri (href) în insertHtml. Ce adaugi primește data-shape="<id>": îl stilizezi cu
   apply_css pe [data-shape="<id>"], cu ținte de cel puțin ${HARD_LIMITS.minTargetPx}px.
 

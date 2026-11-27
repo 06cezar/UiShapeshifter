@@ -28,7 +28,7 @@ const DOM_OP_ITEM = {
     to: {
       description:
         "move: unde îl muți, ca obiect { selector, position } (position: before, after, prepend, append). " +
-        "bind: text, selectorul elementului real care e apăsat.",
+        "bind: text, selectorul elementului real care e apăsat; dacă prinde mai multe (cel mult 20), le apasă pe toate, pe rând.",
     },
     selectors: { type: "array", items: { type: "string" }, description: "wrap: elementele puse împreună în container." },
     id: {
