@@ -345,7 +345,7 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
 
   /** Elementele se caută la apăsare (site-ul poate randa din nou tabelul); primul imediat, restul cu pauză. */
   function clickAllReal(selector: string) {
-    const targets = matches(selector).filter((el): el is HTMLElement => el instanceof HTMLElement);
+    const targets = bindTargets(selector).filter((el): el is HTMLElement => el instanceof HTMLElement);
     targets.slice(0, MAX_BIND_TARGETS).forEach((el, index) => {
       if (index === 0) el.click();
       else doc.defaultView?.setTimeout(() => el.isConnected && el.click(), index * BIND_CLICK_GAP_MS);
@@ -380,7 +380,7 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
   function bind(from: string, to: string) {
     const added = doc.querySelector(`[${SHAPE_ATTR}="${CSS.escape(from)}"]`);
     if (!added) return skip("TARGET_NOT_FOUND", `Nu găsesc elementul adăugat „${from}”; adaugă-l întâi.`);
-    const found = matches(to);
+    const found = bindTargets(to);
     if (found.length === 0)
       return skip("SELECTOR_NOT_FOUND", `Nu găsesc „${to}” pe pagină. Ia un selector din snapshot nou.`);
     if (found.length > MAX_BIND_TARGETS) {
@@ -401,6 +401,14 @@ export function createDomOpsApplier(options: DomOpsOptions = {}): DomOpsApplier 
   /** Toate elementele site-ului care se potrivesc (fără ale noastre). */
   function matches(selector: string): Element[] {
     return [...doc.querySelectorAll(selector)].filter((el) => !isOurs(el));
+  }
+
+  /**
+   * Ce apasă un bind: doar elementele site-ului, fără ce am adăugat noi (`data-shape`). Altfel un selector care prinde
+   * și butonul nostru („main button”) l-ar apăsa din nou pe el, iar apăsarea ar porni seria iar, la nesfârșit.
+   */
+  function bindTargets(selector: string): Element[] {
+    return matches(selector).filter((el) => !el.closest(`[${SHAPE_ATTR}]`));
   }
 
   /** Exact un element, altfel motivul pentru `skipped`. */

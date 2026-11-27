@@ -231,6 +231,50 @@ describe("bind: un element adăugat apasă unul real", () => {
     }
   });
 
+  test("bind nu apasă și butonul adăugat, chiar dacă selectorul îl prinde (altfel s-ar apăsa la nesfârșit)", async () => {
+    vi.useFakeTimers();
+    try {
+      const { engine } = await engineOn();
+      const main = document.querySelector("main")!;
+      let realClicks = 0;
+      const real = document.createElement("button");
+      real.textContent = "real";
+      real.addEventListener("click", () => realClicks++);
+      main.append(real);
+      const result = await engine.applyOps({
+        ops: [
+          {
+            op: "insertHtml",
+            id: "toate",
+            html: "<button>Toate</button>",
+            at: { selector: "main", position: "append" },
+          },
+          { op: "bind", from: "toate", to: "main button" },
+        ],
+        reason: "descarcă toate",
+      });
+      expect(result.ok && result.data.applied).toBe(2);
+      document.querySelector<HTMLButtonElement>('[data-shape="toate"] button')!.click();
+      vi.runAllTimers();
+      expect(realClicks).toBe(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("bind spre un selector care prinde doar ce am adăugat noi e respins", async () => {
+    const { engine } = await engineOn();
+    const result = await engine.applyOps({
+      ops: [
+        { op: "insertHtml", id: "doar-al-nostru", html: "<em>x</em>", at: { selector: "main", position: "append" } },
+        { op: "bind", from: "doar-al-nostru", to: '[data-shape="doar-al-nostru"] em' },
+      ],
+      reason: "x",
+    });
+    expect(result.ok && result.data.skipped[0]?.reason).toBe("SELECTOR_NOT_FOUND");
+  });
+
   test("bind spre un id care nu a fost adăugat e respins, cu motiv", async () => {
     const { engine } = await engineOn();
     const result = await engine.applyOps({ ops: [{ op: "bind", from: "nu-exista", to: "a.pay" }], reason: "x" });
